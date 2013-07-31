@@ -1,0 +1,7 @@
+/ebin
+/deps
+/erl_crash.dump
+/tmp
+*.swp
+.*.swp
+*.swo

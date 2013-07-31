@@ -1,0 +1,3 @@
+[ "eredis": {:git, "git://github.com/wooga/eredis.git", "a2273335de773209fd3ab30542fd1b670ca5c957", [tag: 'v1.0.5']},
+  "jsex": {:git, "git://github.com/talentdeficit/jsex.git", "e870b17fe168f5cc87505c88e578858532bd0d66", []},
+  "jsx": {:git, "git://github.com/talentdeficit/jsx.git", "352d6b21cbec4fe1b66bc7ce3ded67a3b32add2c", [tag: "v1.4.2"]} ]
