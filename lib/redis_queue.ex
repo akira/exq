@@ -1,4 +1,4 @@
-defmodule JobQueue do 
+defmodule RedisQueue do 
 
   @default_queue "default"
 

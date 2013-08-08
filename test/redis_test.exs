@@ -28,13 +28,13 @@ defmodule RedisTest do
   end
 
   test "lpop empty" do 
-    assert Redis.lpop!(:testredis, "bogus")  == nil
+    assert Redis.lpop!(:testredis, "bogus")  == :none
   end 
 
   test "rpush / lpop" do 
     Redis.rpush!(:testredis, "akey", "avalue")
     assert Redis.lpop!(:testredis, "akey")  == "avalue"
-    assert Redis.lpop!(:testredis, "akey")  == nil
+    assert Redis.lpop!(:testredis, "akey")  == :none
   end
 
   test "flushdb" do

@@ -22,7 +22,7 @@ defmodule Redis do
   
   def lpop!(redis, key) do
     case :eredis.q(redis, ["LPOP", key]) do
-      {:ok, :undefined} -> nil
+      {:ok, :undefined} -> :none
       {:ok, value} -> value
     end
   end
