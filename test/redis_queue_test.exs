@@ -1,6 +1,6 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defmodule RedisQueueTest do
+defmodule Exq.RedisQueueTest do
   use ExUnit.Case
 
   setup_all do
@@ -12,18 +12,18 @@ defmodule RedisQueueTest do
   end
  
   test "enqueue/dequeue single queue" do
-    RedisQueue.enqueue(:testredis, "test", "default", "MyWorker", [])
-    deq = RedisQueue.dequeue(:testredis, "test", "default")
+    Exq.RedisQueue.enqueue(:testredis, "test", "default", "MyWorker", [])
+    deq = Exq.RedisQueue.dequeue(:testredis, "test", "default")
     assert deq != :none 
-    assert RedisQueue.dequeue(:testredis, "test", "default") == :none
+    assert Exq.RedisQueue.dequeue(:testredis, "test", "default") == :none
   end
   
   test "enqueue/dequeue multi queue" do
-    RedisQueue.enqueue(:testredis, "test", "default", "MyWorker", [])
-    RedisQueue.enqueue(:testredis, "test", "myqueue", "MyWorker", [])
-    assert RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) != :none
-    assert RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) != :none
-    assert RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) == :none
+    Exq.RedisQueue.enqueue(:testredis, "test", "default", "MyWorker", [])
+    Exq.RedisQueue.enqueue(:testredis, "test", "myqueue", "MyWorker", [])
+    assert Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) != :none
+    assert Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) != :none
+    assert Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) == :none
   end
 end
 

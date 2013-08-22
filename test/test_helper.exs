@@ -16,9 +16,13 @@ defmodule TestRedis do
     :ok
   end
 
+  def flush_all do 
+    Exq.Redis.flushdb! :testredis
+  end
+ 
   def teardown do
-    Redis.flushdb! :testredis
-    TestRedis.stop
+    flush_all
+    stop
     Process.unregister(:testredis)
     :ok
   end

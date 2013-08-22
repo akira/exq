@@ -1,10 +1,10 @@
-defmodule RedisQueue do 
+defmodule Exq.RedisQueue do 
 
   @default_queue "default"
 
   def enqueue(redis, namespace, queue, worker, args) do
-    Redis.sadd!(redis, full_key(namespace, "queues"), queue)
-    Redis.rpush!(redis, queue_key(namespace, queue),
+    Exq.Redis.sadd!(redis, full_key(namespace, "queues"), queue)
+    Exq.Redis.rpush!(redis, queue_key(namespace, queue),
       job_json(queue, worker, args))
   end
 
@@ -12,7 +12,7 @@ defmodule RedisQueue do
     dequeue_random(redis, namespace, queues)
   end
   def dequeue(redis, namespace, queue) do 
-    Redis.lpop!(redis, queue_key(namespace, queue))
+    Exq.Redis.lpop!(redis, queue_key(namespace, queue))
   end
 
   defp full_key(namespace, key) do 
@@ -27,7 +27,7 @@ defmodule RedisQueue do
     nil
   end
   defp dequeue_random(redis, namespace, queues) do 
-    [h | rq]  = Shuffle.shuffle(queues)
+    [h | rq]  = Exq.Shuffle.shuffle(queues)
     case dequeue(redis, namespace, h) do
       nil -> dequeue_random(redis, namespace, rq)
       job -> job

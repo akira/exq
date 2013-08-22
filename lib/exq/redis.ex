@@ -1,4 +1,4 @@
-defmodule Redis do 
+defmodule Exq.Redis do 
 
   def flushdb!(redis) do 
     {:ok, res} = :eredis.q(redis, [:flushdb])

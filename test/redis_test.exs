@@ -1,6 +1,6 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defmodule RedisTest do
+defmodule Exq.RedisTest do
   use ExUnit.Case
 
   setup_all do 
@@ -12,34 +12,34 @@ defmodule RedisTest do
   end
 
   teardown do 
-    Redis.flushdb! :testredis
+    Exq.Redis.flushdb! :testredis
     :ok
   end
 
   test "smembers empty" do 
-    m = Redis.smembers!(:testredis, "bogus")
+    m = Exq.Redis.smembers!(:testredis, "bogus")
     assert m == []
   end
   
   test "sadd" do 
-    r = Redis.sadd!(:testredis, "theset", "amember")
+    r = Exq.Redis.sadd!(:testredis, "theset", "amember")
     assert r == "1"
-    assert Redis.smembers!(:testredis, "theset") == ["amember"]
+    assert Exq.Redis.smembers!(:testredis, "theset") == ["amember"]
   end
 
   test "lpop empty" do 
-    assert Redis.lpop!(:testredis, "bogus")  == :none
+    assert Exq.Redis.lpop!(:testredis, "bogus")  == :none
   end 
 
   test "rpush / lpop" do 
-    Redis.rpush!(:testredis, "akey", "avalue")
-    assert Redis.lpop!(:testredis, "akey")  == "avalue"
-    assert Redis.lpop!(:testredis, "akey")  == :none
+    Exq.Redis.rpush!(:testredis, "akey", "avalue")
+    assert Exq.Redis.lpop!(:testredis, "akey")  == "avalue"
+    assert Exq.Redis.lpop!(:testredis, "akey")  == :none
   end
 
   test "flushdb" do
-    Redis.sadd!(:testredis, "theset", "amember")
-    Redis.flushdb! :testredis
-    assert Redis.smembers!(:testredis, "theset") == []
+    Exq.Redis.sadd!(:testredis, "theset", "amember")
+    Exq.Redis.flushdb! :testredis
+    assert Exq.Redis.smembers!(:testredis, "theset") == []
   end
 end
