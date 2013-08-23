@@ -4,6 +4,10 @@ defmodule Exq do
     :gen_server.start(Exq.Manager, opts, [])
   end
 
+  def start_link(opts // []) do
+    :gen_server.start_link(Exq.Manager, opts, [])
+  end
+
   def stop(pid) do
     :gen_server.call(pid, {:stop})
   end
