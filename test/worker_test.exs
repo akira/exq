@@ -22,31 +22,31 @@ defmodule WorkerTest do
   end
  
   test "execute valid job with perform" do
-    {:ok, worker} = Exq.Worker.start(self, 
+    {:ok, worker} = Exq.Worker.start(
       "{ \"queue\": \"default\", \"class\": \"WorkerTest\", \"args\": [] }")
     assert_terminate(worker, true)
   end
   
   test "execute valid job with custom function" do
-    {:ok, worker} = Exq.Worker.start(self, 
+    {:ok, worker} = Exq.Worker.start(
       "{ \"queue\": \"default\", \"class\": \"WorkerTest/custom_perform\", \"args\": [] }")
     assert_terminate(worker, true)
   end
   
   test "execute job with invalid JSON" do
-    {:ok, worker} = Exq.Worker.start(self, 
+    {:ok, worker} = Exq.Worker.start(
       "{ invalid: json: this: is}")
     assert_terminate(worker, false)
   end
   
   test "execute invalid module perform" do
-    {:ok, worker} = Exq.Worker.start(self, 
+    {:ok, worker} = Exq.Worker.start(
       "{ \"queue\": \"default\", \"class\": \"NonExistant\", \"args\": [] }")
     assert_terminate(worker, false)
   end
   
   test "execute invalid module function" do
-    {:ok, worker} = Exq.Worker.start(self,
+    {:ok, worker} = Exq.Worker.start(
       "{ \"queue\": \"default\", \"class\": \"WorkerTest/nonexist\", \"args\": [] }")
     assert_terminate(worker, false)
   end

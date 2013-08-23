@@ -1,10 +1,10 @@
 defmodule Exq.Worker do 
   use GenServer.Behaviour
 
-  defrecord State, [:manager, :job]
+  defrecord State, [:job]
 
-  def start(manager, job) do 
-    :gen_server.start(__MODULE__, {manager, job}, [])
+  def start(job) do
+    :gen_server.start(__MODULE__, {job}, [])
   end
 
   def work(pid) do 
@@ -15,8 +15,8 @@ defmodule Exq.Worker do
 ## gen server callbacks
 ##===========================================================
 
-  def init({manager, job}) do 
-    {:ok, State.new(manager: manager, job: job)}
+  def init({job}) do
+    {:ok, State.new(job: job)}
   end
 
   def handle_cast(:work, state) do
