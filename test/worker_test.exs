@@ -4,20 +4,20 @@ defmodule WorkerTest do
   use ExUnit.Case
 
   def perform do
-    IO.puts("PERFORM") 
+  end
+  def perform(a1, a2, a3) do
   end
   def custom_perform do
-    IO.puts("CUSTOM_PERFORM") 
   end
   
-  def assert_terminate(worker, is_normal) do 
+  def assert_terminate(worker, normal_terminate) do
     :erlang.monitor(:process, worker)
     Exq.Worker.work(worker)
     receive do 
-      {:'DOWN', ref, _, _pid, :normal} -> assert is_normal
-      {:'DOWN', ref, _, _pid, _} -> assert !is_normal
+      {:'DOWN', ref, _, _pid, :normal} -> assert normal_terminate
+      {:'DOWN', ref, _, _pid, _} -> assert !normal_terminate
     after_timeout ->
-      assert !is_normal
+      assert !normal_terminate
     end 
   end
  
@@ -27,6 +27,12 @@ defmodule WorkerTest do
     assert_terminate(worker, true)
   end
   
+  test "execute valid job with perform args" do
+    {:ok, worker} = Exq.Worker.start(
+      "{ \"queue\": \"default\", \"class\": \"WorkerTest\", \"args\": [1, 2, 3] }")
+    assert_terminate(worker, true)
+  end
+
   test "execute valid job with custom function" do
     {:ok, worker} = Exq.Worker.start(
       "{ \"queue\": \"default\", \"class\": \"WorkerTest/custom_perform\", \"args\": [] }")

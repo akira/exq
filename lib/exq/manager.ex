@@ -76,6 +76,7 @@ defmodule Exq.Manager do
 
   def dispatch_job(state, job) do 
     {:ok, worker} = Exq.Worker.start(job)
+    Exq.Worker.work(worker)
     state
   end
 

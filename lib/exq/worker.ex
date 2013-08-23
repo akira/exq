@@ -21,9 +21,14 @@ defmodule Exq.Worker do
 
   def handle_cast(:work, state) do
     job_dict = JSEX.decode!(state.job)
-    handler_module = Dict.get(job_dict, "class")
-    handler_args = Dict.get(job_dict, "args")
-    dispatch_work(handler_module, :perform, handler_args)
+    target = Dict.get(job_dict, "class")
+    [mod | func_or_empty] = Regex.split(%r/\//, target)
+    func = case func_or_empty do
+      [] -> :perform
+      [f] -> :erlang.binary_to_atom(f, :utf8)
+    end
+    args = Dict.get(job_dict, "args")
+    dispatch_work(mod, func, args)
     {:stop, :normal, state}
   end
 
