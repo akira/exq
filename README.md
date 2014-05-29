@@ -2,11 +2,11 @@
 
 [![Build Status](https://travis-ci.org/akira/exq.png)](https://travis-ci.org/akira/exq)
 
-Exq is a job processing libarry compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
+Exq is a job processing libary compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 
 ## Example Usage:
 
-Start process with with:
+Start process with:
 
 ```elixir
 {:ok, pid} = Exq.start
