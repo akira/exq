@@ -35,7 +35,7 @@ defmodule Exq.RedisQueue do
   end
 
   defp job_json(queue, worker, args) do
-    job = HashDict.new([{:queue, queue}, {:class, worker}, {:args, args}])
+    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}], HashDict.new)
     JSEX.encode!(job)
   end
 end

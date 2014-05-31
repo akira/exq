@@ -22,7 +22,7 @@ defmodule Exq.Worker do
   def handle_cast(:work, state) do
     job_dict = JSEX.decode!(state.job)
     target = Dict.get(job_dict, "class")
-    [mod | func_or_empty] = Regex.split(%r/\//, target)
+    [mod | func_or_empty] = Regex.split(~r/\//, target)
     func = case func_or_empty do
       [] -> :perform
       [f] -> :erlang.binary_to_atom(f, :utf8)

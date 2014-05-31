@@ -1,10 +1,10 @@
 defmodule Exq do
-  
-  def start(opts // []) do 
+
+  def start(opts \\ []) do
     :gen_server.start(Exq.Manager, opts, [])
   end
 
-  def start_link(opts // []) do
+  def start_link(opts \\ []) do
     :gen_server.start_link(Exq.Manager, opts, [])
   end
 

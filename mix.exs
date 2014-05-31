@@ -3,8 +3,8 @@ defmodule Exq.Mixfile do
 
   def project do
     [ app: :exq,
-      version: "0.0.1",
-      elixir: "~> 0.10.1",
+      version: "0.0.2",
+      elixir: "~> 0.13.3",
       deps: deps ]
   end
 
@@ -17,7 +17,7 @@ defmodule Exq.Mixfile do
   # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
   defp deps do
     [
-      { :eredis, github: 'wooga/eredis', tag: 'v1.0.5' }, 
+      { :eredis, github: 'wooga/eredis', tag: 'v1.0.5' },
       { :jsex, github: 'talentdeficit/jsex'}
     ]
   end

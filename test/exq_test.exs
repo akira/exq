@@ -4,17 +4,17 @@ defmodule ExqTest do
   use ExUnit.Case
 
   def perform do
-    :exqtest <- {:worked}
+    send :exqtest, {:worked}
   end
 
   def perform(arg) do
-    :exqtest <- {:worked, arg}
+    send :exqtest, {:worked, arg}
   end
 
   setup do
     TestRedis.start
     :ok
-  end 
+  end
 
   teardown do
     TestRedis.stop
