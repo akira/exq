@@ -33,3 +33,7 @@ defmodule MyWorker do
   end
 end
 ```
+
+## Contributors:
+
+Benjamin Tan Wei Hao (benjamintanweihao)
