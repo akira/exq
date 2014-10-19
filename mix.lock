@@ -1,3 +1,3 @@
 %{"eredis": {:git, "git://github.com/wooga/eredis.git", "a2273335de773209fd3ab30542fd1b670ca5c957", [tag: 'v1.0.5']},
-  "jsex": {:git, "git://github.com/talentdeficit/jsex.git", "9755fc4d9c33b66945000d9bbdbb32a72f418ac8", []},
-  "jsx": {:package, "2.0.3"}}
+  "jsex": {:hex, :jsex, "2.0.0"},
+  "jsx": {:hex, :jsx, "2.0.3"}}

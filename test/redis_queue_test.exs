@@ -5,11 +5,12 @@ defmodule Exq.RedisQueueTest do
 
   setup_all do
     TestRedis.setup
+    IO.puts "Start"
+    on_exit fn ->
+      TestRedis.teardown
+    end
   end 
 
-  teardown_all do
-    TestRedis.teardown
-  end
  
   test "enqueue/dequeue single queue" do
     Exq.RedisQueue.enqueue(:testredis, "test", "default", "MyWorker", [])

@@ -4,7 +4,7 @@ defmodule Exq.Mixfile do
   def project do
     [ app: :exq,
       version: "0.0.2",
-      elixir: "~> 0.13.3",
+      elixir: "~> 1.0.0",
       deps: deps ]
   end
 
@@ -18,7 +18,7 @@ defmodule Exq.Mixfile do
   defp deps do
     [
       { :eredis, github: 'wooga/eredis', tag: 'v1.0.5' },
-      { :jsex, github: 'talentdeficit/jsex'}
+      { :jsex, "2.0.0"}
     ]
   end
 end

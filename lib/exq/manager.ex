@@ -1,7 +1,7 @@
 defmodule Exq.Manager do 
-  use GenServer.Behaviour
-
-  defrecord State, [:redis, :busy_workers, :namespace, :queues, :poll_timeout]
+  use GenServer
+  require Record
+  Record.defrecord :state, State, [:redis, :busy_workers, :namespace, :queues, :poll_timeout]
   
 ##===========================================================
 ## gen server callbacks
@@ -18,55 +18,56 @@ defmodule Exq.Manager do
     reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, 100)
     {:ok, redis} = :eredis.start_link(host, port, database, password, reconnect_on_sleep)
     :erlang.start_timer(0, self, :poll) 
-    state = State.new(redis: redis, 
+    my_state = state(redis: redis, 
                       busy_workers: [], 
                       namespace: namespace, 
                       queues: queues, 
                       poll_timeout: poll_timeout)
-    {:ok, state}
+    {:ok, my_state}
   end
 
-  def handle_call({:enqueue, queue, worker, args}, _from, state) do 
-    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args) 
-    {:reply, {:ok, jid}, state}
+  def handle_call({:enqueue, queue, worker, args}, _from, my_state) do 
+    jid = Exq.RedisQueue.enqueue(state(my_state, :redis), state(my_state, :namespace), queue, worker, args) 
+    {:reply, {:ok, jid}, my_state}
   end
   
-  def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
+  def handle_call({:stop}, _from, my_state) do
+    { :stop, :normal, :ok, my_state }
   end
   
-  def handle_info({:timeout, _ref, :poll}, state) do
-    :erlang.start_timer(state.poll_timeout, self, :poll)
-    updated_state = dequeue_and_dispatch(state)
+  def handle_info({:timeout, _ref, :poll}, my_state) do
+    
+    :erlang.start_timer(state(my_state, :poll_timeout), self, :poll)
+    updated_state = dequeue_and_dispatch(my_state)
     {:noreply, updated_state}
   end
 
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
+  def code_change(_old_version, my_state, _extra) do
+    {:ok, my_state}
   end
 
   def terminate(_reason, _state) do 
     :ok
   end
   
-  def handle_call(_request, _from, state) do 
+  def handle_call(_request, _from, my_state) do 
     IO.puts("UKNOWN CALL")
-    {:reply, :unknown, state}
+    {:reply, :unknown, my_state}
   end  
 
-  def handle_cast(_request, state) do 
+  def handle_cast(_request, my_state) do 
     IO.puts("UKNOWN CAST")
-    {:noreply, state}
+    {:noreply, my_state}
   end  
 
 ##===========================================================
 ## Internal Functions
 ##===========================================================
 
-  def dequeue_and_dispatch(state) do
-    case dequeue(state.redis, state.namespace, state.queues) do 
-      :none -> state
-      job -> dispatch_job(state, job)
+  def dequeue_and_dispatch(my_state) do
+    case dequeue(state(my_state, :redis), state(my_state, :namespace), state(my_state, :queues)) do 
+      :none -> my_state
+      job -> dispatch_job(my_state, job)
     end
   end
 
@@ -74,10 +75,10 @@ defmodule Exq.Manager do
     Exq.RedisQueue.dequeue(redis, namespace, queues) 
   end 
 
-  def dispatch_job(state, job) do 
+  def dispatch_job(my_state, job) do 
     {:ok, worker} = Exq.Worker.start(job)
     Exq.Worker.work(worker)
-    state
+    my_state
   end
 
   def stop(pid) do 

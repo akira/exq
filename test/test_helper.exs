@@ -17,10 +17,15 @@ defmodule TestRedis do
   end
 
   def flush_all do 
-    Exq.Redis.flushdb! :testredis
+      Exq.Redis.flushdb! :testredis
   end
  
   def teardown do
+    if !Process.whereis(:testredis) do
+      # For some reason at the end of test the link is down, before we acutally stop and unregister?
+      {:ok, redis} = :eredis.start_link('127.0.0.1', 6555)
+      Process.register(redis, :testredis)
+    end
     flush_all
     stop
     Process.unregister(:testredis)
