@@ -13,11 +13,10 @@ defmodule ExqTest do
 
   setup do
     TestRedis.start
-    :ok
-  end
-
-  teardown do
-    TestRedis.stop
+    IO.puts "Start"
+    on_exit fn ->
+      TestRedis.stop
+    end
     :ok
   end
 

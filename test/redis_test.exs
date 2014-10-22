@@ -5,14 +5,16 @@ defmodule Exq.RedisTest do
 
   setup_all do 
     TestRedis.setup
+    IO.puts "Start"
+    on_exit fn ->
+      TestRedis.teardown
+    end
   end 
 
-  teardown_all do
-    TestRedis.teardown
-  end
-
-  teardown do 
-    Exq.Redis.flushdb! :testredis
+  setup do
+    on_exit fn -> 
+      Exq.Redis.flushdb! :testredis
+    end
     :ok
   end
 

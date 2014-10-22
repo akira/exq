@@ -1,7 +1,7 @@
 defmodule Exq.Worker do 
-  use GenServer.Behaviour
-
-  defrecord State, [:job]
+  use GenServer
+  require Record
+  Record.defrecord :state, State, [:job]
 
   def start(job) do
     :gen_server.start(__MODULE__, {job}, [])
@@ -16,11 +16,11 @@ defmodule Exq.Worker do
 ##===========================================================
 
   def init({job}) do
-    {:ok, State.new(job: job)}
+    {:ok, state(job: job)}
   end
 
-  def handle_cast(:work, state) do
-    job_dict = JSEX.decode!(state.job)
+  def handle_cast(:work, my_state) do
+    job_dict = JSEX.decode!(state(my_state, :job))
     target = Dict.get(job_dict, "class")
     [mod | func_or_empty] = Regex.split(~r/\//, target)
     func = case func_or_empty do
@@ -29,11 +29,11 @@ defmodule Exq.Worker do
     end
     args = Dict.get(job_dict, "args")
     dispatch_work(mod, func, args)
-    {:stop, :normal, state}
+    {:stop, :normal, my_state}
   end
 
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
+  def code_change(_old_version, my_state, _extra) do
+    {:ok, my_state}
   end
 
   def terminate(_reason, _state) do 
@@ -48,6 +48,6 @@ defmodule Exq.Worker do
     dispatch_work(worker_module, :perform, args)
   end
   def dispatch_work(worker_module, method, args) do 
-    :erlang.apply(binary_to_atom("Elixir.#{worker_module}"), method, args)
+    :erlang.apply(String.to_atom("Elixir.#{worker_module}"), method, args)
   end
 end

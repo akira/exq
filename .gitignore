@@ -6,3 +6,4 @@ _build/
 *.swp
 .*.swp
 *.swo
+stdout
