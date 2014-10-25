@@ -6,7 +6,11 @@
     <title>ExqAdmin</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <base href="/<%= assigns[:namespace] %>" />
+    <base href="/<%= assigns[:base] %>" />
+
+    <script>
+      window.exqNamespace = "<%= assigns[:namespace] %>";
+    </script>
 
     {{content-for 'head'}}
     

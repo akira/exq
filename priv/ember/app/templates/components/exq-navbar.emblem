@@ -13,4 +13,4 @@ nav.navbar.navbar-default role="navigation"
     #bs-example-navbar-collapse-1.collapse.navbar-collapse
       ul.nav.navbar-nav
         li
-          link-to 'index' | Queues
+          link-to 'queues.index' | Queues

@@ -18,6 +18,26 @@ defmodule Exq do
     GenServer.call(pid, {:enqueue, queue, worker, args})
   end
 
+  def queues(pid) do
+    :gen_server.call(pid, {:queues})
+  end
+  
+  def jobs(pid) do
+    :gen_server.call(pid, {:jobs})
+  end
+
+  def jobs(pid, queue) do
+    :gen_server.call(pid, {:jobs, queue})
+  end
+
+  def queue_size(pid) do
+    :gen_server.call(pid, {:queue_size})
+  end
+
+  def queue_size(pid, queue) do
+    :gen_server.call(pid, {:queue_size, queue})
+  end
+
   def find_failed(pid, jid) do
     GenServer.call(pid, {:find_failed, jid})
   end

@@ -28,17 +28,28 @@ defmodule Exq.Redis do
     :eredis.q(redis, ["SET", key, val])
   end
 
+
   def llen!(redis, list) do
     {:ok, len} = :eredis.q(redis, ["LLEN", list])
     len
   end
 
-  def smembers!(redis, set) do
+  
+  def keys(redis, search \\ "*") do
+    {:ok, keys} = :eredis.q(redis, ["KEYS", search])
+  end
+
+  def smembers!(redis, set) do 
     {:ok, members} = :eredis.q(redis, ["SMEMBERS", set])
     members
   end
 
- def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
+  def llen!(redis, list) do
+    {:ok, count} = :eredis.q(redis, ["LLEN", list])
+    count
+  end
+
+  def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = :eredis.q(redis, ["LRANGE", list, range_start, range_end])
     items
   end

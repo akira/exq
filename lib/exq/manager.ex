@@ -48,13 +48,39 @@ defmodule Exq.Manager do
     {:noreply, state, 10}
   end
 
-  def handle_cast({:failure, error, job}, state) do
-    GenServer.cast(state.stats, {:record_failure, state.namespace, error, job})
-    {:noreply, state, 0}
+  def handle_call({:queues}, _from, state) do
+    queues = list_queues(state.redis, state.namespace)
+    {:reply, {:ok, queues}, state, 0}
+  end
+
+  def handle_call({:jobs}, _from, state) do
+    queues = list_queues(state.redis, state.namespace)
+    jobs = for q <- queues, do: {q, list_jobs(state.redis, state.namespace, q)}
+    {:reply, {:ok, jobs}, my_state, 0}
+  end
+
+  def handle_call({:jobs, queue}, _from, my_state) do
+    jobs = list_jobs(state.redis, state.namespace, queue)
+    {:reply, {:ok, jobs}, my_state, 0}
+  end
+
+  def handle_call({:queue_size}, _from, my_state) do
+    queues = list_queues(state.redis, state.namespace)
+    sizes = for q <- queues, do: {q, queue_size(state.redis, state.namespace, q)}
+    {:reply, {:ok, sizes}, my_state, 0}
+  end
+  def handle_call({:queue_size, queue}, _from, my_state) do
+    size = queue_size(state.redis, state.namespace, queue)
+    {:reply, {:ok, size}, my_state, 0}
   end
 
   def handle_cast({:success, job}, state) do
     GenServer.cast(state.stats, {:record_processed, state.namespace, job})
+    {:noreply, state, 0}
+  end
+
+  def handle_cast({:failure, error, job}, state) do
+    GenServer.cast(state.stats, {:record_failure, state.namespace, error, job})
     {:noreply, state, 0}
   end
 
@@ -101,11 +127,23 @@ defmodule Exq.Manager do
 ## Internal Functions
 ##===========================================================
 
+
   def dequeue_and_dispatch(state) do
     case dequeue(state.redis, state.namespace, state.queues) do
       :none -> {state, state.poll_timeout}
       job -> {dispatch_job(state, job), 0}
     end
+  end
+  def list_queues(redis, namespace) do
+    Exq.Redis.smembers!(redis, "#{namespace}:queues")
+  end
+
+  def list_jobs(redis, namespace, queue) do
+    Exq.Redis.lrange!(redis, "#{namespace}:queue:#{queue}")
+  end
+
+  def queue_size(redis, namespace, queue) do
+    Exq.Redis.llen!(redis, "#{namespace}:queue:#{queue}")
   end
 
   def dequeue(redis, namespace, queues) do

@@ -1,0 +1,10 @@
+h2
+  | Queues
+
+ul
+  each queue in model
+    li
+      link-to 'queues.show' queue.id
+        = queue.id
+      |  -  
+      = queue.size

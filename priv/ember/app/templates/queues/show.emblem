@@ -1,0 +1,9 @@
+h2
+  | Queue:  
+  = model.id
+ul
+  each job in model.jobs
+    li
+      = job.id
+      |  -  
+      = job.job
