@@ -1,0 +1,4 @@
+exq-navbar
+
+.container-fluid
+  = outlet
