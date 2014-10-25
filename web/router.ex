@@ -32,8 +32,6 @@ defmodule Exq.RouterPlug do
 
 
     get "/api/queues" do
-      Exq.enqueue(:exq, "default", "TestWorker", [])
-      Exq.enqueue(:exq, "default", "TestWorker", [])
       {:ok, queues} = Exq.queue_size(:exq)
       job_counts = for {q, size} <- queues, do: %{id: q, size: size}
       {:ok, json} = JSEX.encode(%{queues: job_counts})
@@ -65,7 +63,7 @@ defmodule Exq.RouterPlug do
 
       conn |>
       put_resp_header("content-type", "text/html") |>
-      send_resp(200, render_index(namespace: "#{conn.assigns[:namespace]}/", base: base)) |>
+      send_resp(200, render_index(base: base)) |>
       halt
     end
 

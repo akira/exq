@@ -1,4 +1,4 @@
 ApplicationAdapter = DS.ActiveModelAdapter.extend
-  namespace: "#{window.exqNamespace}/api"
+  namespace: "#{window.exqNamespace}api"
 
 `export default ApplicationAdapter`
