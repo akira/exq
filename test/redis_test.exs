@@ -5,7 +5,6 @@ defmodule Exq.RedisTest do
 
   setup_all do 
     TestRedis.setup
-    IO.puts "Start"
     on_exit fn ->
       TestRedis.teardown
     end
