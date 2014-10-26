@@ -1,7 +1,9 @@
 defmodule Exq.Worker do 
   use GenServer
-  require Record
-  Record.defrecord :state, State, [:job]
+  
+  defmodule State do
+    defstruct job: nil
+  end
 
   def start(job) do
     :gen_server.start(__MODULE__, {job}, [])
@@ -16,11 +18,11 @@ defmodule Exq.Worker do
 ##===========================================================
 
   def init({job}) do
-    {:ok, state(job: job)}
+    {:ok, %State{job: job}}
   end
 
-  def handle_cast(:work, my_state) do
-    job_dict = JSEX.decode!(state(my_state, :job))
+  def handle_cast(:work, state) do
+    job_dict = JSEX.decode!(state.job)
     target = Dict.get(job_dict, "class")
     [mod | func_or_empty] = Regex.split(~r/\//, target)
     func = case func_or_empty do
@@ -29,11 +31,11 @@ defmodule Exq.Worker do
     end
     args = Dict.get(job_dict, "args")
     dispatch_work(mod, func, args)
-    {:stop, :normal, my_state}
+    {:stop, :normal, state}
   end
 
-  def code_change(_old_version, my_state, _extra) do
-    {:ok, my_state}
+  def code_change(_old_version, state, _extra) do
+    {:ok, state}
   end
 
   def terminate(_reason, _state) do 
