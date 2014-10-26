@@ -1,11 +1,12 @@
 defmodule Exq.Manager do
   require Logger
   use GenServer
+  use Timex
 
   @default_name :exq_manager
 
   defmodule State do
-    defstruct pid: nil, redis: nil, busy_workers: nil, namespace: nil,
+    defstruct pid: nil, host: nil, redis: nil, busy_workers: nil, namespace: nil,
               queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
   end
 
@@ -24,6 +25,8 @@ defmodule Exq.Manager do
     queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
+    reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Exq.Config.get(:reconnect_on_sleep, 100))
+    {:ok, localhost} = :inet.gethostname()
 
     {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
 
@@ -35,11 +38,13 @@ defmodule Exq.Manager do
     state = %State{redis: redis,
                       busy_workers: [],
                       enqueuer: enq,
+                      host:  to_string(localhost),
                       namespace: namespace,
                       queues: queues,
                       pid: self(),
                       poll_timeout: poll_timeout,
                       stats: stats}
+    
     {:ok, state, 0}
   end
 
@@ -48,30 +53,11 @@ defmodule Exq.Manager do
     {:noreply, state, 10}
   end
 
-  def handle_call({:queues}, _from, state) do
-    queues = list_queues(state.redis, state.namespace)
-    {:reply, {:ok, queues}, state, 0}
-  end
+  
 
-  def handle_call({:jobs}, _from, state) do
-    queues = list_queues(state.redis, state.namespace)
-    jobs = for q <- queues, do: {q, list_jobs(state.redis, state.namespace, q)}
-    {:reply, {:ok, jobs}, my_state, 0}
-  end
-
-  def handle_call({:jobs, queue}, _from, my_state) do
-    jobs = list_jobs(state.redis, state.namespace, queue)
-    {:reply, {:ok, jobs}, my_state, 0}
-  end
-
-  def handle_call({:queue_size}, _from, my_state) do
-    queues = list_queues(state.redis, state.namespace)
-    sizes = for q <- queues, do: {q, queue_size(state.redis, state.namespace, q)}
-    {:reply, {:ok, sizes}, my_state, 0}
-  end
-  def handle_call({:queue_size, queue}, _from, my_state) do
-    size = queue_size(state.redis, state.namespace, queue)
-    {:reply, {:ok, size}, my_state, 0}
+  def handle_cast({:worker_terminated, pid}, state) do
+    GenServer.cast(state.stats, {:process_terminated, state.namespace, state.host, pid})
+    {:noreply, state, 0}
   end
 
   def handle_cast({:success, job}, state) do
@@ -82,16 +68,6 @@ defmodule Exq.Manager do
   def handle_cast({:failure, error, job}, state) do
     GenServer.cast(state.stats, {:record_failure, state.namespace, error, job})
     {:noreply, state, 0}
-  end
-
-  def handle_call({:find_failed, jid}, _from, state) do
-    {:ok, job, idx} = Exq.Stats.find_failed(state.redis, state.namespace, jid)
-    {:reply, {:ok, job, idx}, state, 0}
-  end
-
-  def handle_call({:find_job, queue, jid}, _from, state) do
-    {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, queue)
-    {:reply, {:ok, job, idx}, state, 0}
   end
 
   def handle_call({:stop}, _from, state) do
@@ -134,17 +110,6 @@ defmodule Exq.Manager do
       job -> {dispatch_job(state, job), 0}
     end
   end
-  def list_queues(redis, namespace) do
-    Exq.Redis.smembers!(redis, "#{namespace}:queues")
-  end
-
-  def list_jobs(redis, namespace, queue) do
-    Exq.Redis.lrange!(redis, "#{namespace}:queue:#{queue}")
-  end
-
-  def queue_size(redis, namespace, queue) do
-    Exq.Redis.llen!(redis, "#{namespace}:queue:#{queue}")
-  end
 
   def dequeue(redis, namespace, queues) do
     Exq.RedisQueue.dequeue(redis, namespace, queues)
@@ -152,9 +117,14 @@ defmodule Exq.Manager do
 
   def dispatch_job(state, job) do
     {:ok, worker} = Exq.Worker.start(job, state.pid)
+    Exq.Stats.add_process(state.redis, state.namespace, %Exq.Process{pid: worker, host: state.host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")})
     Exq.Worker.work(worker)
     state
   end
 
   def default_name, do: @default_name
+
+  def stop(pid) do
+  end
+
 end

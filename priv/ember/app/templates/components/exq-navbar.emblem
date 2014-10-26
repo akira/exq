@@ -1,5 +1,5 @@
 nav.navbar.navbar-default role="navigation" 
-  .container-fluid
+  .container
     /! Brand and toggle get grouped for better mobile display
     .navbar-header
       button.navbar-toggle.collapsed data-target="#bs-example-navbar-collapse-1" data-toggle="collapse" type="button" 
@@ -13,4 +13,14 @@ nav.navbar.navbar-default role="navigation"
     #bs-example-navbar-collapse-1.collapse.navbar-collapse
       ul.nav.navbar-nav
         li
+          link-to 'index' | Dashboard
+        li
+          link-to 'processes.index' | Workers
+        li
           link-to 'queues.index' | Queues
+        / li
+        /   link-to 'index' | Retries
+        / li
+        /   link-to 'index' | Scheduled
+        li
+          link-to 'failures.index' | Failures

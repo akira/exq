@@ -14,7 +14,8 @@
     "ember-qunit-notifications": "0.0.4",
     "bootswatch-scss": "~3.2.0",
     "ember-validations": "http://builds.dockyard.com.s3.amazonaws.com/ember-validations/ember-validations-latest.js",
-    "ember-simple-auth": "0.6.7"
+    "ember-simple-auth": "0.6.7",
+    "moment": "~2.8.3"
   },
   "resolutions": {
     "ember-data": "canary"

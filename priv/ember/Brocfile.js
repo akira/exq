@@ -9,4 +9,7 @@ var app = new EmberApp({
       'bower_components/bootswatch-scss'
     ]
   }});
+
+app.import("bower_components/moment/moment.js")
+
 module.exports = app.toTree();

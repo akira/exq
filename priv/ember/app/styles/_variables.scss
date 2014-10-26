@@ -13,7 +13,7 @@ $gray:                   lighten(#000, 33.5%) !default; // #555
 $gray-light:             lighten(#000, 60%) !default;   // #999
 $gray-lighter:           lighten(#000, 90%) !default; // #eee
 
-$brand-primary:         #007FFF !default;
+$brand-primary:         #472059 !default;
 $brand-success:         #3FB618 !default;
 $brand-info:            #9954BB !default;
 $brand-warning:         #FF7518 !default;
@@ -130,7 +130,7 @@ $border-radius-large:       0 !default;
 $border-radius-small:       0 !default;
 
 //** Global color for active items (e.g., navs or dropdowns).
-$component-active-color:    #fff !default;
+$component-active-color:    #BDB5C0 !default;
 //** Global background color for active items (e.g., navs or dropdowns).
 $component-active-bg:       $brand-primary !default;
 
@@ -369,13 +369,13 @@ $navbar-padding-vertical:          (($navbar-height - $line-height-computed) / 2
 $navbar-collapse-max-height:       340px !default;
 
 $navbar-default-color:             #fff !default;
-$navbar-default-bg:                $gray-darker !default;
+$navbar-default-bg:                #472059 !default;
 $navbar-default-border:            darken($navbar-default-bg, 6.5%) !default;
 
 // Navbar links
 $navbar-default-link-color:                #fff !default;
 $navbar-default-link-hover-color:          #fff !default;
-$navbar-default-link-hover-bg:             darken($navbar-default-bg, 10%) !default;
+$navbar-default-link-hover-bg:             lighten($navbar-default-bg, 10%) !default;
 $navbar-default-link-active-color:         $navbar-default-link-hover-color !default;
 $navbar-default-link-active-bg:            $navbar-default-link-hover-bg !default;
 $navbar-default-link-disabled-color:       #ccc !default;
