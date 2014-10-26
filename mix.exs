@@ -17,6 +17,7 @@ defmodule Exq.Mixfile do
   # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
   defp deps do
     [
+      { :uuid, "~> 0.1.5", github: 'zyro/elixir-uuid'},
       { :eredis, github: 'wooga/eredis', tag: 'v1.0.5' },
       { :jsex, "2.0.0"}
     ]
