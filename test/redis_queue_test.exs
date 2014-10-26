@@ -26,5 +26,15 @@ defmodule Exq.RedisQueueTest do
     assert Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) != :none
     assert Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]) == :none
   end
+
+  test "creates and returns a jid" do
+    jid = Exq.RedisQueue.enqueue(:testredis, "test", "default", "MyWorker", [])
+    assert jid != nil
+
+    job_str = Exq.RedisQueue.dequeue(:testredis, "test", "default")
+    job = JSEX.decode!(job_str)
+    assert Dict.get(job, "jid") == jid
+  end
+
 end
 
