@@ -1,4 +1,5 @@
-defmodule Exq.Manager do 
+defmodule Exq.Manager do
+  require Logger
   use GenServer
   
   defmodule State do
@@ -54,12 +55,12 @@ defmodule Exq.Manager do
   end
   
   def handle_call(_request, _from, state) do 
-    IO.puts("UKNOWN CALL")
+    Logger.error("UKNOWN CALL")
     {:reply, :unknown, state}
   end  
 
   def handle_cast(_request, state) do 
-    IO.puts("UKNOWN CAST")
+    Logger.error("UKNOWN CAST")
     {:noreply, state}
   end  
 
