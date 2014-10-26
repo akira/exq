@@ -1,5 +1,5 @@
 defmodule Exq do
-
+  require Logger
   def start(opts \\ []) do
     :gen_server.start(Exq.Manager, opts, [])
   end
