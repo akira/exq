@@ -13,15 +13,18 @@ defmodule Exq.Manager do
 ## gen server callbacks
 ##===========================================================
 
-  def init(opts) do
-    host = Keyword.get(opts, :host, '127.0.0.1')
-    port = Keyword.get(opts, :port, 6379)
-    database = Keyword.get(opts, :database, 0)
-    password = Keyword.get(opts, :password, '')
-    queues = Keyword.get(opts, :queues, ["default"])
-    namespace = Keyword.get(opts, :namespace, "resque")
-    reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, 100)
-    poll_timeout = Keyword.get(opts, :poll_timeout, 50)
+
+  def init(opts) do 
+
+    host = Keyword.get(opts, :host, Exq.Config.get(:host, '127.0.0.1')) 
+    port = Keyword.get(opts, :port, Exq.Config.get(:port, 6379)) 
+    database = Keyword.get(opts, :database, Exq.Config.get(:database, 0))
+    password = Keyword.get(opts, :password, Exq.Config.get(:password, '')) 
+    queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"])) 
+    namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
+    poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
+    reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Exq.Config.get(:reconnect_on_sleep, 100))
+
     {:ok, redis} = :eredis.start_link(host, port, database, password, reconnect_on_sleep)
 
     state = %State{redis: redis,
