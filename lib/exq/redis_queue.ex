@@ -4,7 +4,7 @@ defmodule Exq.RedisQueue do
 
   def enqueue(redis, namespace, queue, worker, args) do
     Exq.Redis.sadd!(redis, full_key(namespace, "queues"), queue)
-    [jid, job] = job_json(queue, worker, args)
+    {jid, job} = job_json(queue, worker, args)
     Exq.Redis.rpush!(redis, queue_key(namespace, queue), job)
     jid
   end
@@ -38,6 +38,6 @@ defmodule Exq.RedisQueue do
   defp job_json(queue, worker, args) do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}], HashDict.new)
-    [jid, JSEX.encode!(job)]
+    {jid, JSEX.encode!(job)}
   end
 end
