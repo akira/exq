@@ -5,6 +5,11 @@ defmodule Exq.Redis do
     res
   end
   
+  def llen!(redis, list) do
+    {:ok, len} = :eredis.q(redis, ["LLEN", list])
+    len
+  end
+
   def smembers!(redis, set) do 
     {:ok, members} = :eredis.q(redis, ["SMEMBERS", set])
     members
