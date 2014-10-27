@@ -3,6 +3,11 @@ defmodule TestStats do
     count = Exq.Redis.get!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed"))
     {:ok, count}
   end
+
+  def failed_count(redis, namespace) do
+    count = Exq.Redis.get!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"))
+    {:ok, count}
+  end
 end
 
 defmodule TestRedis do 

@@ -16,8 +16,8 @@ defmodule Exq do
     :gen_server.call(pid, {:enqueue, queue, worker, args})
   end
 
-  def find_error(pid, jid) do
-    :gen_server.call(pid, {:find_error, jid})
+  def find_failed(pid, jid) do
+    :gen_server.call(pid, {:find_failed, jid})
   end
 
   def find_job(pid, queue, jid) do
