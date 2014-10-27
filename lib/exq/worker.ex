@@ -1,12 +1,13 @@
 defmodule Exq.Worker do 
+  require Logger
   use GenServer
   
   defmodule State do
-    defstruct job: nil
+    defstruct job: nil, manager: nil
   end
 
-  def start(job) do
-    :gen_server.start(__MODULE__, {job}, [])
+  def start(job, manager \\ nil) do
+    :gen_server.start(__MODULE__, {job, manager}, [])
   end
 
   def work(pid) do 
@@ -17,19 +18,19 @@ defmodule Exq.Worker do
 ## gen server callbacks
 ##===========================================================
 
-  def init({job}) do
-    {:ok, %State{job: job}}
+  def init({job, manager}) do
+    {:ok, %State{job: job, manager: manager}}
   end
 
   def handle_cast(:work, state) do
-    job_dict = JSEX.decode!(state.job)
-    target = Dict.get(job_dict, "class")
+    job = Poison.decode!(state.job, as: Exq.Job)
+    target = job.class
     [mod | func_or_empty] = Regex.split(~r/\//, target)
     func = case func_or_empty do
       [] -> :perform
       [f] -> :erlang.binary_to_atom(f, :utf8)
     end
-    args = Dict.get(job_dict, "args")
+    args = job.args
     dispatch_work(mod, func, args)
     {:stop, :normal, state}
   end
@@ -38,7 +39,28 @@ defmodule Exq.Worker do
     {:ok, state}
   end
 
-  def terminate(_reason, _state) do 
+  def terminate(:normal, %State{manager: nil}), do: :ok
+
+  def terminate(:normal, state) do
+    case Process.alive?(state.manager) do
+      true ->
+        :gen_server.call(state.manager, {:success, state.job})
+      _ ->
+        Logger.error("Worker terminated, but manager was not alive.")
+    end
+    :ok
+  end
+
+  def terminate(error, %State{manager: nil}), do: :ok
+
+  def terminate(error, state) do
+    case Process.alive?(state.manager) do
+      true ->
+        error_msg = Inspect.Algebra.format(Inspect.Algebra.to_doc(error, %Inspect.Opts{}), %Inspect.Opts{}.width)
+        :gen_server.call(state.manager, {:failure, to_string(error_msg), state.job})
+      _ ->
+        Logger.error("Worker terminated, but manager was not alive.")
+    end
     :ok
   end
 

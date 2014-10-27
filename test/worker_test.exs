@@ -56,4 +56,7 @@ defmodule WorkerTest do
       "{ \"queue\": \"default\", \"class\": \"WorkerTest/nonexist\", \"args\": [] }")
     assert_terminate(worker, false)
   end
+
+
+
 end

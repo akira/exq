@@ -1,3 +1,10 @@
+defmodule TestStats do
+  def processed_count(redis, namespace) do
+    count = Exq.Redis.get!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed"))
+    {:ok, count}
+  end
+end
+
 defmodule TestRedis do 
   #TODO: Automate config
   def start do 

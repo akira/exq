@@ -3,8 +3,10 @@ defmodule Exq.Manager do
   use GenServer
 
   defmodule State do
-    defstruct redis: nil, busy_workers: nil, namespace: nil, queues: nil, poll_timeout: nil
+    defstruct pid: nil, redis: nil, busy_workers: nil, namespace: nil, queues: nil, poll_timeout: nil
   end
+
+
 
 
 ##===========================================================
@@ -21,10 +23,12 @@ defmodule Exq.Manager do
     reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, 100)
     poll_timeout = Keyword.get(opts, :poll_timeout, 50)
     {:ok, redis} = :eredis.start_link(host, port, database, password, reconnect_on_sleep)
+
     state = %State{redis: redis,
                       busy_workers: [],
                       namespace: namespace,
                       queues: queues,
+                      pid: self(),
                       poll_timeout: poll_timeout}
     {:ok, state, 0}
   end
@@ -32,6 +36,26 @@ defmodule Exq.Manager do
   def handle_call({:enqueue, queue, worker, args}, _from, state) do
     jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
     {:reply, {:ok, jid}, state, 0}
+  end
+
+  def handle_call({:failure, error, job}, _from, state) do
+    {:ok, jid} = Exq.Stats.record_failure(state.redis, state.namespace, error, job)
+    {:reply, {:ok, jid}, state, 0}
+  end
+
+  def handle_call({:success, job}, _from, state) do
+    {:ok, jid} = Exq.Stats.record_processed(state.redis, state.namespace, job)
+    {:reply, {:ok, jid}, state, 0}
+  end
+
+  def handle_call({:find_error, jid}, _from, state) do
+    {:ok, job, idx} = Exq.Stats.find_error(state.redis, state.namespace, jid)
+    {:reply, {:ok, job, idx}, state, 0}
+  end
+  
+  def handle_call({:find_job, queue, jid}, _from, state) do
+    {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, queue)
+    {:reply, {:ok, job, idx}, state, 0}
   end
 
   def handle_call({:stop}, _from, state) do
@@ -77,7 +101,7 @@ defmodule Exq.Manager do
   end
 
   def dispatch_job(state, job) do
-    {:ok, worker} = Exq.Worker.start(job)
+    {:ok, worker} = Exq.Worker.start(job, state.pid)
     Exq.Worker.work(worker)
     state
   end

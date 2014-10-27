@@ -4,10 +4,29 @@ defmodule Exq.Redis do
     {:ok, res} = :eredis.q(redis, [:flushdb])
     res
   end
+
+  def incr!(redis, key) do
+    {:ok, count} = :eredis.q(redis, ["INCR", key])
+    count
+  end
+
+  def get!(redis, key) do
+    {:ok, val} = :eredis.q(redis, ["GET", key])
+    val
+  end
+
+  def set!(redis, key, val \\ 0) do
+    :eredis.q(redis, ["SET", key, val])
+  end
   
   def smembers!(redis, set) do 
     {:ok, members} = :eredis.q(redis, ["SMEMBERS", set])
     members
+  end
+
+ def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
+    {:ok, items} = :eredis.q(redis, ["LRANGE", list, range_start, range_end])
+    items
   end
 
   def sadd!(redis, set, member) do 

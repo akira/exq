@@ -1,5 +1,6 @@
 Code.require_file "test_helper.exs", __DIR__
 
+
 defmodule ExqTest do
   use ExUnit.Case
 
@@ -11,9 +12,17 @@ defmodule ExqTest do
     send :exqtest, {:worked, arg}
   end
 
+  def simple_perform do
+
+  end
+
+  def failure_perform do
+    :num + 1
+    send :exqtest, {:worked}
+  end
+
   setup do
     TestRedis.start
-    IO.puts "Start"
     on_exit fn ->
       TestRedis.stop
     end
@@ -42,10 +51,40 @@ defmodule ExqTest do
     {:ok, exq} = Exq.start_link([port: 6555, queues: ["q1", "q2"], poll_timeout: 1])
     {:ok, _} = Exq.enqueue(exq, "q1", "ExqTest", [1])
     {:ok, _} = Exq.enqueue(exq, "q2", "ExqTest", [2])
-    :timer.sleep(50)
+    :timer.sleep(100)
     assert_received {:worked, 1}
     assert_received {:worked, 2}
     Exq.stop(exq)
     :timer.sleep(10)
   end
+
+  test "record processed jobs" do
+    {:ok, exq} = Exq.start([port: 6555, namespace: "test", poll_timeout: 1])
+    state = :sys.get_state(exq)
+    
+    {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest/simple_perform", [])
+    :timer.sleep(100)
+    {:ok, count} = TestStats.processed_count(state.redis, "test")
+    assert count == "1"
+    
+    {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest/simple_perform", [])
+    :timer.sleep(100)
+    {:ok, count} = TestStats.processed_count(state.redis, "test")
+    assert count == "2"
+
+    :timer.sleep(500)
+    Exq.stop(exq)
+    :timer.sleep(10)
+  end
+
+  test "record failed jobs" do
+    {:ok, exq} = Exq.start([port: 6555])
+    {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest/failure_perform", [])
+    :timer.sleep(500) # if we kill Exq too fast we dont record the failure because exq is gone.
+    # Find the job in the processed queue
+    {:ok, job, idx} = Exq.find_error(exq, jid)
+    Exq.stop(exq)
+    :timer.sleep(10)
+  end
+
 end

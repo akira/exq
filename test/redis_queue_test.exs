@@ -5,7 +5,6 @@ defmodule Exq.RedisQueueTest do
 
   setup_all do
     TestRedis.setup
-    IO.puts "Start"
     on_exit fn ->
       TestRedis.teardown
     end
@@ -32,8 +31,8 @@ defmodule Exq.RedisQueueTest do
     assert jid != nil
 
     job_str = Exq.RedisQueue.dequeue(:testredis, "test", "default")
-    job = JSEX.decode!(job_str)
-    assert Dict.get(job, "jid") == jid
+    job = Poison.decode!(job_str, as: Exq.Job)
+    assert job.jid == jid
   end
 
 end
