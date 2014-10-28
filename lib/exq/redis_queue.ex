@@ -6,13 +6,13 @@ defmodule Exq.RedisQueue do
   def find_job(redis, namespace, jid, queue) do
     jobs = Exq.Redis.lrange!(redis, queue_key(namespace, queue))
 
-    finder = fn({j, idx}) -> 
+    finder = fn({j, idx}) ->
       job = Poison.decode!(j, as: Exq.Job)
       job.jid == jid
     end
-    
+
     error = Enum.find(Enum.with_index(jobs), finder)
-   
+
     case error do
       nil ->
         {:not_found, nil}
@@ -58,7 +58,7 @@ defmodule Exq.RedisQueue do
 
   defp job_json(queue, worker, args) do
     jid = UUID.uuid4
-    job = %Exq.Job{queue: queue, class: worker, args: args, jid: jid}
-    {jid, Poison.Encoder.encode(job, %{})}
+    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}], HashDict.new)
+    {jid, Poison.encode!(job)}
   end
 end
