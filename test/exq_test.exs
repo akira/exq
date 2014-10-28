@@ -78,11 +78,24 @@ defmodule ExqTest do
   end
 
   test "record failed jobs" do
-    {:ok, exq} = Exq.start([port: 6555])
+    {:ok, exq} = Exq.start([port: 6555, namespace: "test"])
+    state = :sys.get_state(exq)
+    
+    {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest/fail", [])
+    :timer.sleep(100)
+    {:ok, count} = TestStats.failed_count(state.redis, "test")
+    assert count == "1"
+    
+    {:ok, jid} = Exq.enqueue(exq, "default", "FailWorker", [])
+    :timer.sleep(100)
+    {:ok, count} = TestStats.failed_count(state.redis, "test")
+    assert count == "2"
+
+
     {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest/failure_perform", [])
     :timer.sleep(500) # if we kill Exq too fast we dont record the failure because exq is gone.
     # Find the job in the processed queue
-    {:ok, job, idx} = Exq.find_error(exq, jid)
+    {:ok, job, idx} = Exq.find_failed(exq, jid)
     Exq.stop(exq)
     :timer.sleep(10)
   end

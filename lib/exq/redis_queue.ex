@@ -1,5 +1,4 @@
 defmodule Exq.RedisQueue do
-
   use Timex
 
   @default_queue "default"

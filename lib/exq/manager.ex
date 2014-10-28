@@ -51,8 +51,8 @@ defmodule Exq.Manager do
     {:reply, {:ok, jid}, state, 0}
   end
 
-  def handle_call({:find_error, jid}, _from, state) do
-    {:ok, job, idx} = Exq.Stats.find_error(state.redis, state.namespace, jid)
+  def handle_call({:find_failed, jid}, _from, state) do
+    {:ok, job, idx} = Exq.Stats.find_failed(state.redis, state.namespace, jid)
     {:reply, {:ok, job, idx}, state, 0}
   end
   
