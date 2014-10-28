@@ -58,7 +58,7 @@ defmodule Exq.Worker do
   def terminate(:normal, state) do
     case Process.alive?(state.manager) do
       true ->
-        :gen_server.call(state.manager, {:success, state.job})
+        GenServer.cast(state.manager, {:success, state.job})
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end
@@ -71,7 +71,7 @@ defmodule Exq.Worker do
     case Process.alive?(state.manager) do
       true ->
         error_msg = Inspect.Algebra.format(Inspect.Algebra.to_doc(error, %Inspect.Opts{}), %Inspect.Opts{}.width)
-        :gen_server.call(state.manager, {:failure, to_string(error_msg), state.job})
+        GenServer.cast(state.manager, {:failure, to_string(error_msg), state.job})
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end
