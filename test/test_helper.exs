@@ -10,14 +10,14 @@ defmodule TestStats do
   end
 end
 
-defmodule TestRedis do 
+defmodule TestRedis do
   #TODO: Automate config
-  def start do 
+  def start do
     [] = :os.cmd('redis-server test/test-redis.conf')
     :timer.sleep(100)
   end
 
-  def stop do 
+  def stop do
     [] = :os.cmd('redis-cli -p 6555 shutdown')
   end
 
@@ -28,10 +28,10 @@ defmodule TestRedis do
     :ok
   end
 
-  def flush_all do 
+  def flush_all do
       Exq.Redis.flushdb! :testredis
   end
- 
+
   def teardown do
     if !Process.whereis(:testredis) do
       # For some reason at the end of test the link is down, before we acutally stop and unregister?
@@ -44,5 +44,8 @@ defmodule TestRedis do
     :ok
   end
 end
+
+# Don't run parallel tests to prevent redis issues
+ExUnit.configure(seed: 0, max_cases: 1)
 
 ExUnit.start
