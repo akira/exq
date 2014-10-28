@@ -1,6 +1,6 @@
-defmodule Exq.Redis do 
+defmodule Exq.Redis do
 
-  def flushdb!(redis) do 
+  def flushdb!(redis) do
     {:ok, res} = :eredis.q(redis, [:flushdb])
     res
   end
@@ -18,8 +18,13 @@ defmodule Exq.Redis do
   def set!(redis, key, val \\ 0) do
     :eredis.q(redis, ["SET", key, val])
   end
-  
-  def smembers!(redis, set) do 
+
+  def llen!(redis, list) do
+    {:ok, len} = :eredis.q(redis, ["LLEN", list])
+    len
+  end
+
+  def smembers!(redis, set) do
     {:ok, members} = :eredis.q(redis, ["SMEMBERS", set])
     members
   end
@@ -29,7 +34,7 @@ defmodule Exq.Redis do
     items
   end
 
-  def sadd!(redis, set, member) do 
+  def sadd!(redis, set, member) do
     {:ok, res} = :eredis.q(redis, ["SADD", set, member])
     res
   end
@@ -38,7 +43,7 @@ defmodule Exq.Redis do
     {:ok, res} = :eredis.q(redis, ["RPUSH", key, value])
     res
   end
-  
+
   def lpop!(redis, key) do
     case :eredis.q(redis, ["LPOP", key]) do
       {:ok, :undefined} -> :none

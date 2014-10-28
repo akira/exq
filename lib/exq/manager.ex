@@ -3,36 +3,36 @@ defmodule Exq.Manager do
   use GenServer
 
   defmodule State do
-    defstruct pid: nil, redis: nil, busy_workers: nil, namespace: nil, queues: nil, poll_timeout: nil
+    defstruct pid: nil, redis: nil, busy_workers: nil, namespace: nil,
+              queues: nil, poll_timeout: nil, stats: nil
   end
-
-
-
 
 ##===========================================================
 ## gen server callbacks
 ##===========================================================
 
+  def init(opts) do
 
-  def init(opts) do 
-
-    host = Keyword.get(opts, :host, Exq.Config.get(:host, '127.0.0.1')) 
-    port = Keyword.get(opts, :port, Exq.Config.get(:port, 6379)) 
+    host = Keyword.get(opts, :host, Exq.Config.get(:host, '127.0.0.1'))
+    port = Keyword.get(opts, :port, Exq.Config.get(:port, 6379))
     database = Keyword.get(opts, :database, Exq.Config.get(:database, 0))
-    password = Keyword.get(opts, :password, Exq.Config.get(:password, '')) 
-    queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"])) 
+    password = Keyword.get(opts, :password, Exq.Config.get(:password, ''))
+    queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
     reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Exq.Config.get(:reconnect_on_sleep, 100))
 
     {:ok, redis} = :eredis.start_link(host, port, database, password, reconnect_on_sleep)
 
+    {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
+
     state = %State{redis: redis,
                       busy_workers: [],
                       namespace: namespace,
                       queues: queues,
                       pid: self(),
-                      poll_timeout: poll_timeout}
+                      poll_timeout: poll_timeout,
+                      stats: stats}
     {:ok, state, 0}
   end
 
@@ -41,27 +41,28 @@ defmodule Exq.Manager do
     {:reply, {:ok, jid}, state, 0}
   end
 
-  def handle_call({:failure, error, job}, _from, state) do
-    {:ok, jid} = Exq.Stats.record_failure(state.redis, state.namespace, error, job)
-    {:reply, {:ok, jid}, state, 0}
+  def handle_cast({:failure, error, job}, state) do
+    GenServer.cast(state.stats, {:record_failure, state.namespace, error, job})
+    {:noreply, state, 0}
   end
 
-  def handle_call({:success, job}, _from, state) do
-    {:ok, jid} = Exq.Stats.record_processed(state.redis, state.namespace, job)
-    {:reply, {:ok, jid}, state, 0}
+  def handle_cast({:success, job}, state) do
+    GenServer.cast(state.stats, {:record_processed, state.namespace, job})
+    {:noreply, state, 0}
   end
 
   def handle_call({:find_failed, jid}, _from, state) do
     {:ok, job, idx} = Exq.Stats.find_failed(state.redis, state.namespace, jid)
     {:reply, {:ok, job, idx}, state, 0}
   end
-  
+
   def handle_call({:find_job, queue, jid}, _from, state) do
     {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, queue)
     {:reply, {:ok, job, idx}, state, 0}
   end
 
   def handle_call({:stop}, _from, state) do
+    GenServer.call(state.stats, {:stop})
     { :stop, :normal, :ok, state }
   end
 
