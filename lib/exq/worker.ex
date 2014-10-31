@@ -7,11 +7,11 @@ defmodule Exq.Worker do
   end
 
   def start(job, manager \\ nil) do
-    :gen_server.start(__MODULE__, {job, manager}, [])
+    GenServer.start(__MODULE__, {job, manager}, [])
   end
 
   def work(pid) do
-    :gen_server.cast(pid, :work)
+    GenServer.cast(pid, :work)
   end
 
 ##===========================================================
