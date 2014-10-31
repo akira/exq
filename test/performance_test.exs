@@ -12,10 +12,12 @@ defmodule PerformanceTest do
     :ok
   end
 
-  def perform(arg) do
-    if arg == "last" do
-      Logger.info("Last message detected")
-      send(:tester, :done)
+  defmodule Worker do
+    def perform(arg) do
+      if arg == "last" do
+        Logger.info("Last message detected")
+        send(:tester, :done)
+      end
     end
   end
 
@@ -26,8 +28,8 @@ defmodule PerformanceTest do
     max_timeout_ms = 5 * 1_000
 
     {:ok, pid} = Exq.start([host: '127.0.0.1', port: 6555, namespace: "test", queues: ["default"]])
-    for n <- 1..5000, do: Exq.enqueue(pid, "default", "PerformanceTest", ["keep_on_trucking"])
-    Exq.enqueue(pid, "default", "PerformanceTest", ["last"])
+    for n <- 1..5000, do: Exq.enqueue(pid, "default", "PerformanceTest.Worker", ["keep_on_trucking"])
+    Exq.enqueue(pid, "default", "PerformanceTest.Worker", ["last"])
 
     # Wait for last message
     receive do
