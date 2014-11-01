@@ -64,16 +64,16 @@ defmodule Exq.Stats do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, error, job) do
+  def record_failure(redis, namespace, error, json) do
     count = Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"))
     date = DateFormat.format!(Date.local, "%Y-%m-%d", :strftime)
     Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed:#{date}"))
 
     failed_at = DateFormat.format!(Date.local, "{ISO}")
 
-    job = Poison.decode!(job, as: Exq.Job)
+    job = Exq.Job.from_json(json)
     job = %{job | failed_at: failed_at, error_class: "ExqGenericError", error_message: error}
-    job_json = Poison.encode!(job, %{})
+    job_json = Exq.Json.encode(job)
 
     Exq.Redis.rpush!(redis, Exq.RedisQueue.full_key(namespace, "failed"), job_json)
 
@@ -84,7 +84,7 @@ defmodule Exq.Stats do
     errors = Exq.Redis.lrange!(redis, Exq.RedisQueue.full_key(namespace, "failed"))
 
     finder = fn({j, idx}) ->
-      job = Poison.decode!(j, as: Exq.Job)
+      job = Exq.Job.from_json(j)
       job.jid == jid
     end
 
