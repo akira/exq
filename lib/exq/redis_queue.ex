@@ -7,7 +7,7 @@ defmodule Exq.RedisQueue do
     jobs = Exq.Redis.lrange!(redis, queue_key(namespace, queue))
 
     finder = fn({j, idx}) ->
-      job = Poison.decode!(j, as: Exq.Job)
+      job = Exq.Job.from_json(j)
       job.jid == jid
     end
 
@@ -59,6 +59,6 @@ defmodule Exq.RedisQueue do
   defp job_json(queue, worker, args) do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}], HashDict.new)
-    {jid, Poison.encode!(job)}
+    {jid, Exq.Json.encode(job)}
   end
 end

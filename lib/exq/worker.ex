@@ -23,20 +23,7 @@ defmodule Exq.Worker do
   end
 
   def handle_cast(:work, state) do
-    json = Poison.decode!(state.job)
-    job = %Exq.Job{
-      args: Dict.get(json, "args"),
-      class: Dict.get(json, "class"),
-      enqueued_at: Dict.get(json, "enqueued_at"),
-      error_message: Dict.get(json, "error_message"),
-      error_class: Dict.get(json, "error_class"),
-      failed_at: Dict.get(json, "failed_at"),
-      finished_at: Dict.get(json, "finished_at"),
-      jid: Dict.get(json, "jid"),
-      processor: Dict.get(json, "processor"),
-      queue: Dict.get(json, "queue"),
-      retry: Dict.get(json, "retry"),
-      retry_count: Dict.get(json, "retry_count")}
+    job = Exq.Job.from_json(state.job)
 
     target = job.class
     [mod | func_or_empty] = Regex.split(~r/\//, target)
