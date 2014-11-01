@@ -63,6 +63,7 @@ defmodule Exq.Manager do
 
   def handle_call({:stop}, _from, state) do
     GenServer.call(state.stats, {:stop})
+    :eredis.stop(state.redis)
     { :stop, :normal, :ok, state }
   end
 
