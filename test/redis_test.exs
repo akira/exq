@@ -3,36 +3,36 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Exq.RedisTest do
   use ExUnit.Case
 
-  setup_all do 
+  setup_all do
     TestRedis.setup
     on_exit fn ->
       TestRedis.teardown
     end
-  end 
+  end
 
   setup do
-    on_exit fn -> 
+    on_exit fn ->
       Exq.Redis.flushdb! :testredis
     end
     :ok
   end
 
-  test "smembers empty" do 
+  test "smembers empty" do
     m = Exq.Redis.smembers!(:testredis, "bogus")
     assert m == []
   end
-  
-  test "sadd" do 
+
+  test "sadd" do
     r = Exq.Redis.sadd!(:testredis, "theset", "amember")
     assert r == "1"
     assert Exq.Redis.smembers!(:testredis, "theset") == ["amember"]
   end
 
-  test "lpop empty" do 
+  test "lpop empty" do
     assert Exq.Redis.lpop!(:testredis, "bogus")  == :none
-  end 
+  end
 
-  test "rpush / lpop" do 
+  test "rpush / lpop" do
     Exq.Redis.rpush!(:testredis, "akey", "avalue")
     assert Exq.Redis.lpop!(:testredis, "akey")  == "avalue"
     assert Exq.Redis.lpop!(:testredis, "akey")  == :none

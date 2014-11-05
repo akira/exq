@@ -2,6 +2,8 @@ defmodule Exq.Manager do
   require Logger
   use GenServer
 
+  @default_name :exq_manager
+
   defmodule State do
     defstruct pid: nil, redis: nil, busy_workers: nil, namespace: nil,
               queues: nil, poll_timeout: nil, stats: nil
@@ -11,8 +13,7 @@ defmodule Exq.Manager do
 ## gen server callbacks
 ##===========================================================
 
-  def init(opts) do
-
+  def init([opts]) do
     host = Keyword.get(opts, :host, Exq.Config.get(:host, '127.0.0.1'))
     port = Keyword.get(opts, :port, Exq.Config.get(:port, 6379))
     database = Keyword.get(opts, :database, Exq.Config.get(:database, 0))
@@ -34,6 +35,11 @@ defmodule Exq.Manager do
                       poll_timeout: poll_timeout,
                       stats: stats}
     {:ok, state, 0}
+  end
+
+  def start_link(opts \\ []) do
+    name = Keyword.get(opts, :name, @default_name)
+    GenServer.start_link(__MODULE__, [opts], [{:name, name}])
   end
 
   def handle_call({:enqueue, queue, worker, args}, _from, state) do
@@ -62,8 +68,6 @@ defmodule Exq.Manager do
   end
 
   def handle_call({:stop}, _from, state) do
-    GenServer.call(state.stats, {:stop})
-    :eredis.stop(state.redis)
     { :stop, :normal, :ok, state }
   end
 
@@ -76,7 +80,9 @@ defmodule Exq.Manager do
     {:ok, state}
   end
 
-  def terminate(_reason, _state) do
+  def terminate(_reason, state) do
+    GenServer.call(state.stats, {:stop})
+    :eredis.stop(state.redis)
     :ok
   end
 
@@ -111,6 +117,5 @@ defmodule Exq.Manager do
     state
   end
 
-  def stop(pid) do
-  end
+  def default_name, do: @default_name
 end

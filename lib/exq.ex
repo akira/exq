@@ -1,11 +1,13 @@
 defmodule Exq do
   require Logger
+  import Supervisor.Spec
+
   def start(opts \\ []) do
-    GenServer.start(Exq.Manager, opts, [])
+    Exq.Manager.Supervisor.start_link(opts)
   end
 
   def start_link(opts \\ []) do
-    {:ok, pid} = GenServer.start_link(Exq.Manager, opts, [])
+    Exq.Manager.Supervisor.start_link(opts)
   end
 
   def stop(pid) do

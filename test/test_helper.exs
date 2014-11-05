@@ -10,6 +10,36 @@ defmodule TestStats do
   end
 end
 
+defmodule ExqTestUtil do
+  @timeout 20
+  @long_timeout 50
+
+  import ExUnit.Assertions
+
+  defmodule SendWorker do
+    def perform do
+      send :exq_up, {:worked}
+    end
+  end
+
+  #use ExUnit.Case
+  def assert_exq_up(exq) do
+    Process.register(self, :exq_up)
+    {:ok, _} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [])
+    wait
+    ExUnit.Assertions.assert_received {:worked}
+  end
+
+  def wait do
+    :timer.sleep(@timeout)
+  end
+
+  def wait_long do
+    :timer.sleep(@long_timeout)
+  end
+
+end
+
 defmodule TestRedis do
   #TODO: Automate config
   def start do
