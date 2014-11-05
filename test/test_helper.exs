@@ -17,17 +17,19 @@ defmodule ExqTestUtil do
   import ExUnit.Assertions
 
   defmodule SendWorker do
-    def perform do
-      send :exq_up, {:worked}
+    def perform(pid) do
+      send String.to_atom(pid), {:worked}
     end
   end
 
   #use ExUnit.Case
   def assert_exq_up(exq) do
-    Process.register(self, :exq_up)
-    {:ok, _} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [])
+    my_pid = String.to_atom(UUID.uuid4)
+    Process.register(self, my_pid)
+    {:ok, _} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [my_pid])
     wait
     ExUnit.Assertions.assert_received {:worked}
+    Process.unregister(my_pid)
   end
 
   def wait do

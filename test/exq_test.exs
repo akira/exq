@@ -43,7 +43,7 @@ defmodule ExqTest do
 
   test "start using start_link" do
     {:ok, exq} = Exq.start_link([port: 6555 ])
-    {:ok, _} = Exq.enqueue(exq, "default", "MyJob", [1, 2, 3])
+    assert_exq_up(exq)
     Exq.stop(exq)
   end
 
@@ -59,6 +59,16 @@ defmodule ExqTest do
     Exq.stop(exq)
   end
 
+  test "start separate exq servers using registered name" do
+    {:ok, exq1} = Exq.start_link([port: 6555, name: :custom_manager1])
+    assert_exq_up(:custom_manager1)
+
+    {:ok, exq2} = Exq.start_link([port: 6555, name: :custom_manager2])
+    assert_exq_up(:custom_manager2)
+
+    Exq.stop(exq1)
+    Exq.stop(exq2)
+  end
 
   test "enqueue with pid" do
     {:ok, exq} = Exq.start_link([port: 6555 ])

@@ -2,12 +2,12 @@ defmodule Exq.Manager.Supervisor do
   use Supervisor
 
   def start(opts) do
-    {:ok, sup} = Supervisor.start_link(__MODULE__, [opts], [])
+    {:ok, sup} = Supervisor.start_link(__MODULE__, {opts}, name: supervisor_name(opts))
     {:ok, manager_name(opts)}
   end
 
   def start_link(opts) do
-    {:ok, sup} = Supervisor.start_link(__MODULE__, {opts}, name: :manager_sup)
+    {:ok, sup} = Supervisor.start_link(__MODULE__, {opts}, name: supervisor_name(opts))
     {:ok, manager_name(opts)}
   end
 
@@ -20,5 +20,8 @@ defmodule Exq.Manager.Supervisor do
     Keyword.get(opts, :name, Exq.Manager.default_name)
   end
 
+  defp supervisor_name(opts) do
+    String.to_atom("#{manager_name(opts)}_sup")
+  end
 end
 
