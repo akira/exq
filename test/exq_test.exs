@@ -3,6 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule ExqTest do
   use ExUnit.Case
+  import ExqTestUtil
 
   defmodule PerformWorker do
     def perform do
@@ -18,7 +19,6 @@ defmodule ExqTest do
 
   defmodule CustomMethodWorker do
     def simple_perform do
-
     end
   end
 
@@ -35,26 +35,44 @@ defmodule ExqTest do
   setup do
     TestRedis.start
     on_exit fn ->
+      wait
       TestRedis.stop
     end
     :ok
   end
 
-  test "enqueue with pid" do
-    {:ok, exq} = Exq.start([port: 6555 ])
+  test "start using start_link" do
+    {:ok, exq} = Exq.start_link([port: 6555 ])
     {:ok, _} = Exq.enqueue(exq, "default", "MyJob", [1, 2, 3])
     Exq.stop(exq)
-    :timer.sleep(10)
+  end
+
+  test "start using start" do
+    {:ok, exq} = Exq.start([port: 6555 ])
+    assert_exq_up(exq)
+    Exq.stop(exq)
+  end
+
+  test "start using registered name" do
+    {:ok, exq} = Exq.start_link([port: 6555, name: :custom_manager])
+    assert_exq_up(:custom_manager)
+    Exq.stop(exq)
+  end
+
+
+  test "enqueue with pid" do
+    {:ok, exq} = Exq.start_link([port: 6555 ])
+    {:ok, _} = Exq.enqueue(exq, "default", "MyJob", [1, 2, 3])
+    Exq.stop(exq)
   end
 
   test "run job" do
     Process.register(self, :exqtest)
-    {:ok, exq} = Exq.start([port: 6555, poll_timeout: 1 ])
+    {:ok, exq} = Exq.start_link([port: 6555, poll_timeout: 1 ])
     {:ok, _} = Exq.enqueue(exq, "default", "ExqTest.PerformWorker", [])
-    :timer.sleep(50)
+    wait
     assert_received {:worked}
     Exq.stop(exq)
-    :timer.sleep(10)
   end
 
   test "run jobs on multiple queues" do
@@ -62,53 +80,52 @@ defmodule ExqTest do
     {:ok, exq} = Exq.start_link([port: 6555, queues: ["q1", "q2"], poll_timeout: 1])
     {:ok, _} = Exq.enqueue(exq, "q1", "ExqTest.PerformArgWorker", [1])
     {:ok, _} = Exq.enqueue(exq, "q2", "ExqTest.PerformArgWorker", [2])
-    :timer.sleep(100)
+    wait
     assert_received {:worked, 1}
     assert_received {:worked, 2}
     Exq.stop(exq)
-    :timer.sleep(10)
   end
 
   test "record processed jobs" do
-    {:ok, exq} = Exq.start([port: 6555, namespace: "test", poll_timeout: 1])
+    {:ok, exq} = Exq.start_link([port: 6555, namespace: "test", poll_timeout: 1])
     state = :sys.get_state(exq)
 
     {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
-    :timer.sleep(100)
+    wait
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "1"
 
     {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
-    :timer.sleep(100)
+    wait_long
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "2"
 
-    :timer.sleep(500)
+    wait
     Exq.stop(exq)
-    :timer.sleep(10)
   end
 
   test "record failed jobs" do
-    {:ok, exq} = Exq.start([port: 6555, namespace: "test"])
+    {:ok, exq} = Exq.start_link([port: 6555, namespace: "test"])
     state = :sys.get_state(exq)
 
     {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest.MissingMethodWorker/fail", [])
-    :timer.sleep(100)
+    wait_long
     {:ok, count} = TestStats.failed_count(state.redis, "test")
     assert count == "1"
 
     {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest.MissingWorker", [])
-    :timer.sleep(100)
+    wait_long
     {:ok, count} = TestStats.failed_count(state.redis, "test")
     assert count == "2"
 
 
     {:ok, jid} = Exq.enqueue(exq, "default", "ExqTest.FailWorker/failure_perform", [])
-    :timer.sleep(500) # if we kill Exq too fast we dont record the failure because exq is gone.
+
+    # if we kill Exq too fast we dont record the failure because exq is gone
+    wait_long
+
     # Find the job in the processed queue
     {:ok, job, idx} = Exq.find_failed(exq, jid)
     Exq.stop(exq)
-    :timer.sleep(10)
   end
-
 end
