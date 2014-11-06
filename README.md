@@ -23,7 +23,14 @@ To enqueue jobs:
 {:ok, ack} = Exq.enqueue(pid, "default", "MyWorker/custom_method", [])
 ```
 
-By default, the `perform` method will be called.  However, you can pass a method such as `MyWorker/custom_method`
+You can also enqueue jobs without starting workers:
+
+```elixir
+{:ok, enq} = Exq.Enqueuer.start_link([port: 6555])
+
+{:ok, ack} = Exq.Enqueuer.enqueue(enq, "default", "MyWorker", [])
+
+```
 
 Example Worker:
 ```elixir
@@ -33,6 +40,19 @@ defmodule MyWorker do
   end
 end
 ```
+
+By default, the `perform` method will be called.  However, you can pass a method such as `MyWorker/custom_method`
+
+Example Worker:
+```elixir
+defmodule MyWorker do
+  def custom_method(arg1) do
+    # will get called since job has  "/custom_method" postfix
+    # Not that arity must match args
+  end
+end
+```
+
 
 ## Contributors:
 

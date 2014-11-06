@@ -6,7 +6,12 @@ defmodule Exq.Manager do
 
   defmodule State do
     defstruct pid: nil, redis: nil, busy_workers: nil, namespace: nil,
-              queues: nil, poll_timeout: nil, stats: nil
+              queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
+  end
+
+  def start_link(opts \\ []) do
+    name = Keyword.get(opts, :name, @default_name)
+    GenServer.start_link(__MODULE__, [opts], [{:name, name}])
   end
 
 ##===========================================================
@@ -14,21 +19,22 @@ defmodule Exq.Manager do
 ##===========================================================
 
   def init([opts]) do
-    host = Keyword.get(opts, :host, Exq.Config.get(:host, '127.0.0.1'))
-    port = Keyword.get(opts, :port, Exq.Config.get(:port, 6379))
-    database = Keyword.get(opts, :database, Exq.Config.get(:database, 0))
-    password = Keyword.get(opts, :password, Exq.Config.get(:password, ''))
+    {:ok, redis} = Exq.Redis.connection(opts)
+    name = Keyword.get(opts, :name, @default_name)
     queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
-    reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Exq.Config.get(:reconnect_on_sleep, 100))
-
-    {:ok, redis} = :eredis.start_link(host, port, database, password, reconnect_on_sleep)
 
     {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
 
+    {:ok, enq} =  Exq.Enqueuer.Supervisor.start_link(
+      redis: redis,
+      name: String.to_atom("#{name}_enqueuer"),
+      namespace: namespace)
+
     state = %State{redis: redis,
                       busy_workers: [],
+                      enqueuer: enq,
                       namespace: namespace,
                       queues: queues,
                       pid: self(),
@@ -37,14 +43,9 @@ defmodule Exq.Manager do
     {:ok, state, 0}
   end
 
-  def start_link(opts \\ []) do
-    name = Keyword.get(opts, :name, @default_name)
-    GenServer.start_link(__MODULE__, [opts], [{:name, name}])
-  end
-
-  def handle_call({:enqueue, queue, worker, args}, _from, state) do
-    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
-    {:reply, {:ok, jid}, state, 0}
+  def handle_call({:enqueue, queue, worker, args}, from, state) do
+    Exq.Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
+    {:noreply, state, 10}
   end
 
   def handle_cast({:failure, error, job}, state) do

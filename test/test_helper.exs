@@ -12,7 +12,7 @@ end
 
 defmodule ExqTestUtil do
   @timeout 20
-  @long_timeout 50
+  @long_timeout 100
 
   import ExUnit.Assertions
 
@@ -22,12 +22,11 @@ defmodule ExqTestUtil do
     end
   end
 
-  #use ExUnit.Case
   def assert_exq_up(exq) do
     my_pid = String.to_atom(UUID.uuid4)
     Process.register(self, my_pid)
-    {:ok, _} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [my_pid])
-    wait
+    {:ok, jid} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [my_pid])
+    wait_long
     ExUnit.Assertions.assert_received {:worked}
     Process.unregister(my_pid)
   end
