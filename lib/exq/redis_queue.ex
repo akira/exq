@@ -22,11 +22,11 @@ defmodule Exq.RedisQueue do
     end
   end
 
-
   def enqueue(redis, namespace, queue, worker, args) do
-    Exq.Redis.sadd!(redis, full_key(namespace, "queues"), queue)
     {jid, job} = job_json(queue, worker, args)
-    Exq.Redis.rpush!(redis, queue_key(namespace, queue), job)
+    [{:ok, _}, {:ok, _}] = :eredis.qp(redis, [
+      ["SADD", full_key(namespace, "queues"), queue],
+      ["RPUSH", queue_key(namespace, queue), job]])
     jid
   end
 

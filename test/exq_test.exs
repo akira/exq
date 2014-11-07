@@ -59,7 +59,7 @@ defmodule ExqTest do
     Exq.stop(exq)
   end
 
-  test "start separate exq servers using registered name" do
+  test "start multiple exq instances using registered name" do
     {:ok, exq1} = Exq.start_link([port: 6555, name: :custom_manager1])
     assert_exq_up(:custom_manager1)
 
@@ -70,13 +70,7 @@ defmodule ExqTest do
     Exq.stop(exq2)
   end
 
-  test "enqueue with pid" do
-    {:ok, exq} = Exq.start_link([port: 6555 ])
-    {:ok, _} = Exq.enqueue(exq, "default", "MyJob", [1, 2, 3])
-    Exq.stop(exq)
-  end
-
-  test "run job" do
+  test "enqueue and run job" do
     Process.register(self, :exqtest)
     {:ok, exq} = Exq.start_link([port: 6555, poll_timeout: 1 ])
     {:ok, _} = Exq.enqueue(exq, "default", "ExqTest.PerformWorker", [])
@@ -84,6 +78,18 @@ defmodule ExqTest do
     assert_received {:worked}
     Exq.stop(exq)
   end
+
+  test "enqueue with separate enqueuer" do
+    Process.register(self, :exqtest)
+    {:ok, exq} = Exq.start_link([port: 6555, poll_timeout: 1 ])
+    {:ok, enq} = Exq.Enqueuer.start_link([port: 6555, poll_timeout: 1 ])
+    {:ok, _} = Exq.Enqueuer.enqueue(enq, "default", "ExqTest.PerformWorker", [])
+    wait
+    assert_received {:worked}
+    Exq.stop(exq)
+    Exq.Enqueuer.stop(enq)
+  end
+
 
   test "run jobs on multiple queues" do
     Process.register(self, :exqtest)
