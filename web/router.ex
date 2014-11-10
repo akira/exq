@@ -4,23 +4,29 @@ defmodule Exq.RouterPlug do
   alias Exq.RouterPlug.Router
 
   def init(options) do
-    enq_opts = Keyword.put(options[:exqopts], :name, :exq_enq_ui)
-    Exq.Enqueuer.Supervisor.start_link(enq_opts)
-    options
+    if options[:exqopts] do
+      enq_opts = options[:exqopts]
+    else
+      enq_opts = [{:name, :exq_enqueuer}]
+    end
+    Keyword.put(options, :exqopts, enq_opts)
   end
 
   def call(conn, opts) do
+    conn = Plug.Conn.assign(conn, :namespace, opts[:namespace] || "exq")
+    conn = Plug.Conn.assign(conn, :exq_name, opts[:exqopts][:name])
     case opts[:namespace] do
       "" ->
-        Router.call(Plug.Conn.assign(conn, :namespace, ""), Router.init(opts))
+        Router.call(conn, Router.init(opts))
       _ ->
-        namespace(conn, opts, opts[:namespace] || "exq")
+        namespace(conn, opts, opts[:namespace])
     end
   end
 
   def namespace(%Plug.Conn{path_info: [ns | path]} = conn, opts, ns) do
-    Router.call(%Plug.Conn{Plug.Conn.assign(conn, :namespace, ns) | path_info: path}, Router.init(opts))
+    Router.call(%Plug.Conn{conn | path_info: path}, Router.init(opts))
   end
+
   def namespace(conn, _opts, _ns), do: conn
 
   defmodule Router do
@@ -35,11 +41,11 @@ defmodule Exq.RouterPlug do
 
 
     get "/api/stats/all" do
-      {:ok, processed} = Exq.Api.stats(:exq_enq_ui, "processed")
-      {:ok, failed} = Exq.Api.stats(:exq_enq_ui, "failed")
-      {:ok, busy} = Exq.Api.busy(:exq_enq_ui)
+      {:ok, processed} = Exq.Api.stats(conn.assigns[:exq_name], "processed")
+      {:ok, failed} = Exq.Api.stats(conn.assigns[:exq_name], "failed")
+      {:ok, busy} = Exq.Api.busy(conn.assigns[:exq_name])
 
-      {:ok, queues} = Exq.Api.queue_size(:exq_enq_ui)
+      {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
       qtotal = 0
       queue_sizes = for {q, size} <- queues do
         {size, _} = Integer.parse(size)
@@ -53,7 +59,7 @@ defmodule Exq.RouterPlug do
     end
 
     get "/api/realtimes" do
-      {:ok, failures, successes} = Exq.Api.realtime_stats(:exq_enq_ui)
+      {:ok, failures, successes} = Exq.Api.realtime_stats(conn.assigns[:exq_name])
 
       f = for {date, count} <- failures do
         %{id: "f#{date}", date: date, count: count, type: "failure"}
@@ -70,7 +76,7 @@ defmodule Exq.RouterPlug do
     end
 
     get "/api/failures" do
-      {:ok, failed} = Exq.Api.failed(:exq_enq_ui)
+      {:ok, failed} = Exq.Api.failed(conn.assigns[:exq_name])
       failures = for f <- failed do
         {:ok, fail} = Poison.decode(f, %{})
         Map.put(fail, :id, fail["jid"])
@@ -83,13 +89,13 @@ defmodule Exq.RouterPlug do
     end
 
     delete "/api/failures/:id" do
-      {:ok} = Exq.Api.remove_failed(:exq_enq_ui, id)
+      {:ok} = Exq.Api.remove_failed(conn.assigns[:exq_name], id)
       send_resp(conn, 204, "")
       conn |> halt
     end
 
     delete "/api/failures" do
-      {:ok} = Exq.Api.clear_failed(:exq_enq_ui)
+      {:ok} = Exq.Api.clear_failed(conn.assigns[:exq_name])
       send_resp(conn, 204, "")
       conn |> halt
     end
@@ -100,7 +106,7 @@ defmodule Exq.RouterPlug do
     end
 
     get "/api/processes" do
-      {:ok, processes} = Exq.Api.processes(:exq_enq_ui)
+      {:ok, processes} = Exq.Api.processes(conn.assigns[:exq_name])
 
       process_jobs = for p <- processes do
         {:ok, process} = Poison.decode(p, %{})
@@ -121,7 +127,7 @@ defmodule Exq.RouterPlug do
     end
 
     get "/api/queues" do
-      {:ok, queues} = Exq.Api.queue_size(:exq_enq_ui)
+      {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
       job_counts = for {q, size} <- queues, do: %{id: q, size: size}
       {:ok, json} = Poison.encode(%{queues: job_counts})
       send_resp(conn, 200, json)
@@ -129,7 +135,7 @@ defmodule Exq.RouterPlug do
     end
 
     get "/api/queues/:id" do
-      {:ok, jobs} = Exq.Api.jobs(:exq_enq_ui, id)
+      {:ok, jobs} = Exq.Api.jobs(conn.assigns[:exq_name], id)
       jobs_structs = for j <- jobs do
         {:ok, job} = Poison.decode(j, %{})
         Map.put(job, :id, job["jid"])
@@ -141,7 +147,7 @@ defmodule Exq.RouterPlug do
     end
 
     delete "/api/queues/:id" do
-      Exq.Api.remove_queue(:exq_enq_ui, id)
+      Exq.Api.remove_queue(conn.assigns[:exq_name], id)
       send_resp(conn, 204, "")
       conn |> halt
     end
@@ -153,7 +159,7 @@ defmodule Exq.RouterPlug do
     # end
 
     delete "/api/processes" do
-      {:ok} = Exq.Api.clear_processes(:exq_enq_ui)
+      {:ok} = Exq.Api.clear_processes(conn.assigns[:exq_name])
       send_resp(conn, 204, "")
       conn |> halt
     end

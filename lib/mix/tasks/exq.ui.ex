@@ -11,7 +11,12 @@ defmodule Mix.Tasks.Exq.Ui do
 
     webport = Keyword.get(opts, :webport, 4040)
     opts = Keyword.put(opts, :host, to_char_list(Keyword.get(opts, :host, "127.0.0.1")))
-    
+    opts = Keyword.put(opts, :name, :exq_enq_ui)
+
+    # Start exq enqueuer supervisor
+
+    Exq.Enqueuer.Supervisor.start_link(opts)
+
     IO.puts "Started ExqUI on Port #{webport}"
 
     Plug.Adapters.Cowboy.http Exq.RouterPlug, [namespace: "", exqopts: opts], port: webport
