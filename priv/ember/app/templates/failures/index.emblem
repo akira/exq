@@ -1,0 +1,38 @@
+h2
+  | Failures
+
+table.table.table-bordered.table-hover
+  thead
+    tr
+      th
+        | Queue
+      th
+        | Class
+      th
+        | Args
+      th
+        | Failed At
+      th
+        | Actions
+  tbody
+    each failure in model
+      tr
+        td
+          = failure.queue
+        td
+          = failure.class
+        td
+          = failure.args
+        td
+          = failure.failed_at
+        td
+          / button class="btn btn-info btn-xs"
+          /   | Retry
+          / |  
+          button class="btn btn-danger btn-xs" click="removeFailure failure"
+            | Delete
+  tfoot
+    tr
+      td colspan="5"
+        button class="btn btn-danger btn-xs" click="clearFailures"
+          | Clear Failed Jobs List
