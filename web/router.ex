@@ -4,8 +4,8 @@ defmodule Exq.RouterPlug do
   alias Exq.RouterPlug.Router
 
   def init(options) do
-    {:ok, pid} = Exq.Enqueuer.start(options[:exqopts])
-    Process.register(pid, :exq_enq_ui)
+    enq_opts = Keyword.put(options[:exqopts], :name, :exq_enq_ui)
+    Exq.Enqueuer.Supervisor.start_link(enq_opts)
     options
   end
 
