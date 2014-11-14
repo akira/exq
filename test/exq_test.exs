@@ -116,7 +116,6 @@ defmodule ExqTest do
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "2"
 
-    wait
     Exq.stop(exq)
   end
 
@@ -140,8 +139,13 @@ defmodule ExqTest do
     # if we kill Exq too fast we dont record the failure because exq is gone
     wait_long
 
+    {:ok, exqapi} = Exq.Enqueuer.start([port: 6555, namespace: "test"])
     # Find the job in the processed queue
-    {:ok, job, idx} = Exq.find_failed(exq, jid)
+    {:ok, job, idx} = Exq.Api.find_failed(exqapi, jid)
+    
+    wait_long
+
     Exq.stop(exq)
+    Exq.Enqueuer.stop(exqapi)
   end
 end

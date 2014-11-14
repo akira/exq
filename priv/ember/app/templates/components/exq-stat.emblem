@@ -1,0 +1,4 @@
+link-to link
+  .count
+    = stat
+  = title

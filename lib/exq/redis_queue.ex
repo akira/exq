@@ -41,7 +41,7 @@ defmodule Exq.RedisQueue do
     "#{namespace}:#{key}"
   end
 
-  defp queue_key(namespace, queue) do
+  def queue_key(namespace, queue) do
     full_key(namespace, "queue:#{queue}")
   end
 
@@ -58,7 +58,7 @@ defmodule Exq.RedisQueue do
 
   defp job_json(queue, worker, args) do
     jid = UUID.uuid4
-    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}], HashDict.new)
+    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, DateFormat.format!(Date.local, "{ISO}")}], HashDict.new)
     {jid, Exq.Json.encode(job)}
   end
 end
