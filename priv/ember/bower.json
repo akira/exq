@@ -1,0 +1,23 @@
+{
+  "name": "exq-admin",
+  "dependencies": {
+    "handlebars": "~1.3.0",
+    "jquery": "^1.11.1",
+    "ember": "./ext/ember-patched",
+    "ember-data": "components/ember-data#canary",
+    "ember-resolver": "~0.1.7",
+    "loader.js": "stefanpenner/loader.js#1.0.1",
+    "ember-cli-shims": "stefanpenner/ember-cli-shims#0.0.3",
+    "ember-cli-test-loader": "rwjblue/ember-cli-test-loader#0.0.4",
+    "ember-load-initializers": "stefanpenner/ember-load-initializers#0.0.2",
+    "ember-qunit": "0.1.8",
+    "ember-qunit-notifications": "0.0.4",
+    "bootswatch-scss": "~3.2.0",
+    "ember-validations": "http://builds.dockyard.com.s3.amazonaws.com/ember-validations/ember-validations-latest.js",
+    "ember-simple-auth": "0.6.7",
+    "moment": "~2.8.3"
+  },
+  "resolutions": {
+    "ember-data": "canary"
+  }
+}

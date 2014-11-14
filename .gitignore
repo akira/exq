@@ -4,6 +4,7 @@
 /tmp
 _build/
 *.swp
+*.log
 .*.swp
 *.swo
 stdout

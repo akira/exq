@@ -1,0 +1,4 @@
+h2
+  | Dashboard
+
+ember-chart type="Line" data=graph_dashboard_data options=chartOptions width=1170 height=300 legend=false
