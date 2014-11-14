@@ -1,0 +1,36 @@
+h2
+  | Workers
+
+table.table.table-bordered.table-hover
+  thead
+    tr
+      th
+        | Worker
+      th
+        | Queue
+      th
+        | Class
+      th
+        | Arguments
+      th
+        | Started
+  tbody
+    each process in model
+      tr
+        td
+          = process.host
+          | :
+          = process.pid
+        td
+          = process.job.queue
+        td
+          = process.job.class
+        td
+          = process.job.args
+        td
+          = process.started_at
+  tfoot
+    tr
+      td colspan="5"
+        button class="btn btn-danger btn-xs" click="clearProcesses"
+          | Clear worker list
