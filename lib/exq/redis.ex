@@ -14,6 +14,11 @@ defmodule Exq.Redis do
     res
   end
 
+  def decr!(redis, key) do
+    {:ok, count} = :eredis.q(redis, ["DECR", key])
+    count
+  end
+
   def incr!(redis, key) do
     {:ok, count} = :eredis.q(redis, ["INCR", key])
     count
@@ -28,24 +33,55 @@ defmodule Exq.Redis do
     :eredis.q(redis, ["SET", key, val])
   end
 
+  def del!(redis, key) do
+    :eredis.q(redis, ["DEL", key])
+  end
+
+  def expire!(redis, key, time \\ 10) do
+    :eredis.q(redis, ["EXPIRE", key, time])
+  end
+
   def llen!(redis, list) do
     {:ok, len} = :eredis.q(redis, ["LLEN", list])
     len
   end
 
-  def smembers!(redis, set) do
-    {:ok, members} = :eredis.q(redis, ["SMEMBERS", set])
-    members
+  def keys!(redis, search \\ "*") do
+    {:ok, keys} = :eredis.q(redis, ["KEYS", search])
   end
 
- def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
-    {:ok, items} = :eredis.q(redis, ["LRANGE", list, range_start, range_end])
-    items
+  def scan!(redis, cursor, search, count) do
+    {:ok, keys} = :eredis.q(redis, ["SCAN", cursor, "MATCH", search, "COUNT", count])
+  end
+
+  def scard!(redis, set) do
+    {:ok, count} = :eredis.q(redis, ["SCARD", set])
+    count
+  end
+
+  def smembers!(redis, set) do 
+    {:ok, members} = :eredis.q(redis, ["SMEMBERS", set])
+    members
   end
 
   def sadd!(redis, set, member) do
     {:ok, res} = :eredis.q(redis, ["SADD", set, member])
     res
+  end
+
+  def srem!(redis, set, member) do
+    {:ok, res} = :eredis.q(redis, ["SREM", set, member])
+    res
+  end
+
+  def llen!(redis, list) do
+    {:ok, count} = :eredis.q(redis, ["LLEN", list])
+    count
+  end
+
+  def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
+    {:ok, items} = :eredis.q(redis, ["LRANGE", list, range_start, range_end])
+    items
   end
 
   def rpush!(redis, key, value) do
