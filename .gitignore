@@ -1,7 +1,6 @@
 /ebin
 /deps
 /erl_crash.dump
-/priv
 /tmp
 _build/
 *.swp

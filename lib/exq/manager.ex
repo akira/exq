@@ -1,11 +1,12 @@
 defmodule Exq.Manager do
   require Logger
   use GenServer
+  use Timex
 
   @default_name :exq_manager
 
   defmodule State do
-    defstruct pid: nil, redis: nil, busy_workers: nil, namespace: nil,
+    defstruct pid: nil, host: nil, redis: nil, busy_workers: nil, namespace: nil,
               queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
   end
 
@@ -24,6 +25,7 @@ defmodule Exq.Manager do
     queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
+    {:ok, localhost} = :inet.gethostname()
 
     {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
 
@@ -35,11 +37,13 @@ defmodule Exq.Manager do
     state = %State{redis: redis,
                       busy_workers: [],
                       enqueuer: enq,
+                      host:  to_string(localhost),
                       namespace: namespace,
                       queues: queues,
                       pid: self(),
                       poll_timeout: poll_timeout,
                       stats: stats}
+
     {:ok, state, 0}
   end
 
@@ -48,8 +52,10 @@ defmodule Exq.Manager do
     {:noreply, state, 10}
   end
 
-  def handle_cast({:failure, error, job}, state) do
-    GenServer.cast(state.stats, {:record_failure, state.namespace, error, job})
+
+
+  def handle_cast({:worker_terminated, pid}, state) do
+    GenServer.cast(state.stats, {:process_terminated, state.namespace, state.host, pid})
     {:noreply, state, 0}
   end
 
@@ -58,14 +64,9 @@ defmodule Exq.Manager do
     {:noreply, state, 0}
   end
 
-  def handle_call({:find_failed, jid}, _from, state) do
-    {:ok, job, idx} = Exq.Stats.find_failed(state.redis, state.namespace, jid)
-    {:reply, {:ok, job, idx}, state, 0}
-  end
-
-  def handle_call({:find_job, queue, jid}, _from, state) do
-    {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, queue)
-    {:reply, {:ok, job, idx}, state, 0}
+  def handle_cast({:failure, error, job}, state) do
+    GenServer.cast(state.stats, {:record_failure, state.namespace, error, job})
+    {:noreply, state, 0}
   end
 
   def handle_call({:stop}, _from, state) do
@@ -101,6 +102,7 @@ defmodule Exq.Manager do
 ## Internal Functions
 ##===========================================================
 
+
   def dequeue_and_dispatch(state) do
     case dequeue(state.redis, state.namespace, state.queues) do
       :none -> {state, state.poll_timeout}
@@ -114,9 +116,14 @@ defmodule Exq.Manager do
 
   def dispatch_job(state, job) do
     {:ok, worker} = Exq.Worker.start(job, state.pid)
+    GenServer.cast(state.stats, {:add_process, state.namespace, %Exq.Process{pid: worker, host: state.host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
     Exq.Worker.work(worker)
     state
   end
 
   def default_name, do: @default_name
+
+  def stop(pid) do
+  end
+
 end
