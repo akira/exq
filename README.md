@@ -4,41 +4,128 @@
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 
-## Example Usage:
+Exq uses Redis as a store for background processing jobs.  It is especially useful for integrating
+with Ruby / Rails projects that already use Resque / Sidekiq for background jobs.
 
-Start process with:
+## Getting Started:
+
+This assumes you have an instance of [Redis](redis.io) to use.
+
+### Installation:
+Add exq to your mix.exs deps:
 
 ```elixir
-{:ok, pid} = Exq.start_link
-
-# Or with config (see source for all options)
-{:ok, pid} = Exq.start_link([host: '127.0.0.1', port: 6379, namespace: 'x'])
+  defp deps do
+    [
+      # ... other deps
+      {:exq, "~> 0.1.0"}
+    ]
+  end
 ```
+
+Then run ```mix deps.get```.
+
+### Configuration:
+
+By default, Exq will use configuration from your config.exs file.  You can use this
+to configure your Redis host, port, as well as namespace (which helps isolate the data in Redis).
+
+```elixir
+config :exq,
+  host: '127.0.0.1',
+  port: 6379,
+  namespace: "exq",
+  queues: ["default"]
+```
+
+### OTP Application:
+
+You can add Exq into your OTP application list, and it will start an instance of Exq along with your application startup.  It will use the configuration from your ```config.exs``` file.
+
+```elixir
+  def application do
+    [
+      applications: [:logger, :exq],
+      #other stuff...
+    ]
+  end
+```
+
+When using Exq through OTP, it will register a process under the name ```:exq``` - you can use this atom where expecting a process name in the Exq module.
+
+## Starting Exq manually:
+
+You can also start Exq manually and set configuration per instance.
+
+Here is an example of how to start Exq manually:
+
+```elixir
+{:ok, sup} = Exq.start_link
+```
+
+To connect with custom configuration options (if you need multiple instances of Exq for example), you can pass in options
+under start_link:
+
+```elixir
+{:ok, sup} = Exq.start_link([host: '127.0.0.1', port: 6379, namespace: 'x'])
+```
+
+By default, Exq will register itself under the ```:exq``` atom.  You can change this by passing in a name parameter:
+
+```elixir
+{:ok, exq} = Exq.start_link(name: :exq_custom)
+```
+
+### Standalone Exq:
+
+You can run Exq standalone from the command line, to run it:
+
+```
+> mix exq.run
+```
+
+## Workers
+
+
+### Enqueuing jobs:
 
 To enqueue jobs:
 
 ```elixir
-{:ok, ack} = Exq.enqueue(pid, "default", "MyWorker", ["arg1", "arg2"])
+{:ok, ack} = Exq.enqueue(:exq, "default", "MyWorker", ["arg1", "arg2"])
 
-{:ok, ack} = Exq.enqueue(pid, "default", "MyWorker/custom_method", [])
+{:ok, ack} = Exq.enqueue(:exq, "default", "MyWorker/custom_method", [])
 ```
 
 You can also enqueue jobs without starting workers:
 
 ```elixir
-{:ok, enq} = Exq.Enqueuer.start_link([port: 6555])
+{:ok, sup} = Exq.Enqueuer.start_link([port: 6379])
 
-{:ok, ack} = Exq.Enqueuer.enqueue(enq, "default", "MyWorker", [])
+{:ok, ack} = Exq.Enqueuer.enqueue(:exq_enqueuer, "default", "MyWorker", [])
 
 ```
 
-Example Worker:
+### Creating Workers:
+
+To create a worker, create an elixir module matching the worker name that will be
+enqueued.  To process a job with "MyWorker", create a MyWorker module.  Note that the perform also needs to
+match the number of arguments as well.
+
+Here is an example of a worker:
+
+
 ```elixir
 defmodule MyWorker do
   def perform do
     # will get called if no custom method passed in
   end
 end
+```
+
+We could enqueue a job to this worker:
+```elixir
+{:ok, jid} = Exq.enqueue(:exq, "default", "MyWorker", [])
 ```
 
 By default, the `perform` method will be called.  However, you can pass a method such as `MyWorker/custom_method`
@@ -52,6 +139,30 @@ defmodule MyWorker do
   end
 end
 ```
+
+Which can be enqueued by:
+```elixir
+{:ok, jid} = Exq.enqueue(exq, "default", "MyWorker/custom_method", [])
+```
+
+
+
+## Web UI:
+
+Exq comes with a Web UI to monitor your workers:
+
+![Screenshot](http://i.imgur.com/m57gRPY.png)
+
+To start the web UI:
+```
+> mix iex.ui
+```
+
+You can also use [Plug](https://github.com/elixir-lang/plug) to connect the web UI to your Web application.
+
+## Contributions
+
+Contributions are welcome.  Make sure to run ```mix test --no-start``` to ensure your changes have not caused any regressions.
 
 
 ## Contributors:
