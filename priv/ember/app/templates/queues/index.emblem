@@ -1,0 +1,23 @@
+h2
+  | Queues
+
+table.table.table-bordered.table-hover
+  thead
+    tr
+      th
+        | Queue
+      th
+        | Size
+      th
+        | Actions
+  tbody
+    each queue in model
+      tr
+        td
+          = queue.id
+        td
+          link-to 'queues.show' queue.id
+            = queue.size
+        td
+          button class="btn btn-danger btn-xs" click="deleteQueue queue"
+            | Delete

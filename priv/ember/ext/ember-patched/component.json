@@ -1,0 +1,13 @@
+{
+  "name": "ember",
+  "repo": "components/ember",
+  "version": "1.9.0-beta.1+canary.6c77a41b",
+  "main": "ember.js",
+  "scripts": [
+    "ember.js"
+  ],
+  "dependencies": {
+    "component/jquery": ">= 1.7.0 <= 2.1.0",
+    "components/handlebars.js": ">= 1.0.0 < 2.0.0"
+  }
+}
