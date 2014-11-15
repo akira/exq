@@ -3,9 +3,16 @@ defmodule Exq.Mixfile do
 
   def project do
     [ app: :exq,
-      version: "0.0.2",
+      version: "0.1.0",
       elixir: "~> 1.0.0",
       elixirc_paths: ["lib", "web"],
+      package: [
+        contributors: ["Alex Kira", "Justin McNally", "Benjamin Tan Wei Hao"],
+        links: [github: "https://github.com/akira/exq"]
+      ],
+      description: """
+      Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
+      """,
       deps: deps ]
   end
 

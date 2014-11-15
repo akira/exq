@@ -1,12 +1,12 @@
 defmodule Exq.Manager.Supervisor do
   use Supervisor
 
-  def start(opts) do
+  def start(opts \\ []) do
     {:ok, sup} = Supervisor.start_link(__MODULE__, {opts}, name: supervisor_name(opts))
     {:ok, manager_name(opts)}
   end
 
-  def start_link(opts) do
+  def start_link(opts \\ []) do
     {:ok, sup} = Supervisor.start_link(__MODULE__, {opts}, name: supervisor_name(opts))
     {:ok, manager_name(opts)}
   end

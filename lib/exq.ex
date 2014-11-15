@@ -1,6 +1,14 @@
 defmodule Exq do
   require Logger
   import Supervisor.Spec
+  use Application
+
+  # OTP Application
+  def start(_type, _args) do
+    Exq.Manager.Supervisor.start_link
+  end
+
+  # Exq methods
 
   def start(opts \\ []) do
     Exq.Manager.Supervisor.start_link(opts)
