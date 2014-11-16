@@ -3,6 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule PerformanceTest do
   use ExUnit.Case
   require Logger
+  import ExqTestUtil
 
   setup do
     TestRedis.setup
@@ -27,9 +28,9 @@ defmodule PerformanceTest do
     started = :os.timestamp
     max_timeout_ms = 5 * 1_000
 
-    {:ok, pid} = Exq.start([host: '127.0.0.1', port: 6555, namespace: "test", queues: ["default"]])
-    for n <- 1..5000, do: Exq.enqueue(pid, "default", "PerformanceTest.Worker", ["keep_on_trucking"])
-    Exq.enqueue(pid, "default", "PerformanceTest.Worker", ["last"])
+    {:ok, sup} = Exq.start([name: :perf, host: '127.0.0.1', port: 6555, namespace: "test"])
+    for n <- 1..5000, do: Exq.enqueue(:perf, "default", "PerformanceTest.Worker", ["keep_on_trucking"])
+    Exq.enqueue(:perf, "default", "PerformanceTest.Worker", ["last"])
 
     # Wait for last message
     receive do
@@ -45,6 +46,7 @@ defmodule PerformanceTest do
 
     assert count == "0"
     assert elapsed_ms < max_timeout_ms
+    stop_process(sup)
   end
 
 end

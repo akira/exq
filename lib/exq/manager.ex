@@ -3,7 +3,7 @@ defmodule Exq.Manager do
   use GenServer
   use Timex
 
-  @default_name :exq_manager
+  @default_name :exq
 
   defmodule State do
     defstruct pid: nil, host: nil, redis: nil, busy_workers: nil, namespace: nil,
@@ -29,9 +29,10 @@ defmodule Exq.Manager do
 
     {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
 
-    {:ok, enq} =  Exq.Enqueuer.Supervisor.start_link(
+    enq = String.to_atom("#{name}_enqueuer")
+    {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(
       redis: redis,
-      name: String.to_atom("#{name}_enqueuer"),
+      name: enq,
       namespace: namespace)
 
     state = %State{redis: redis,

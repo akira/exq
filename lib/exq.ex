@@ -18,8 +18,11 @@ defmodule Exq do
     Exq.Manager.Supervisor.start_link(opts)
   end
 
-  def stop(pid) do
-    GenServer.call(pid, {:stop})
+  def stop(pid) when is_pid(pid) do
+    Process.exit(pid, :shutdown)
+  end
+  def stop(sup) when is_atom(sup) do
+    stop(Process.whereis(sup))
   end
 
   def enqueue(pid, queue, worker, args) do

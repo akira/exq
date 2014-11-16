@@ -19,7 +19,8 @@ defmodule Exq.Mixfile do
   # Configuration for the OTP application
   def application do
     [
-      applications: [:logger, :cowboy, :plug]
+      mod: { Exq, [] },
+      applications: [:logger]
     ]
   end
 
