@@ -8,7 +8,7 @@ defmodule Exq.Mixfile do
       elixirc_paths: ["lib", "web"],
       package: [
         contributors: ["Alex Kira", "Justin McNally", "Benjamin Tan Wei Hao"],
-        links: [github: "https://github.com/akira/exq"]
+        links: %{"GitHub" => "https://github.com/akira/exq"}
       ],
       description: """
       Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
