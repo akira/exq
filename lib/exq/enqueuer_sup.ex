@@ -2,8 +2,7 @@ defmodule Exq.Enqueuer.Supervisor do
   use Supervisor
 
   def start_link(opts) do
-    {:ok, sup} = Supervisor.start_link(__MODULE__, [opts], name: supervisor_name(opts))
-    {:ok, server_name(opts)}
+    Supervisor.start_link(__MODULE__, [opts], name: supervisor_name(opts))
   end
 
   def init([opts]) do

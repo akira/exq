@@ -31,6 +31,14 @@ defmodule ExqTestUtil do
     Process.unregister(my_pid)
   end
 
+  def stop_process(pid) do
+    try do
+      Process.exit(pid, :shutdown)
+    rescue
+      e in RuntimeError -> e
+    end
+  end
+
   def wait do
     :timer.sleep(@timeout)
   end
@@ -78,5 +86,8 @@ end
 
 # Don't run parallel tests to prevent redis issues
 ExUnit.configure(seed: 0, max_cases: 1)
+
+# Start logger
+:application.start(:logger)
 
 ExUnit.start
