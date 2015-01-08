@@ -32,8 +32,8 @@ defmodule Exq.Mixfile do
       { :eredis, github: 'wooga/eredis', tag: 'v1.0.5' },
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, "~> 0.13.0" },
-      { :plug, "0.8.1"},
-      { :cowboy, "~> 1.0.0" }
+      { :plug, ">= 0.8.1 and < 1.0.0"},
+      { :cowboy, "~> 1.0" }
     ]
   end
 end
