@@ -9,7 +9,7 @@ with Ruby / Rails projects that already use Resque / Sidekiq for background jobs
 
 ## Getting Started:
 
-This assumes you have an instance of [Redis](redis.io) to use.
+This assumes you have an instance of [Redis](http://redis.io/) to use.
 
 ### Installation:
 Add exq to your mix.exs deps, as well as eredis:
