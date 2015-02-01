@@ -156,7 +156,7 @@ Exq comes with a Web UI to monitor your workers:
 
 To start the web UI:
 ```
-> mix iex.ui
+> mix exq.ui
 ```
 
 You can also use [Plug](https://github.com/elixir-lang/plug) to connect the web UI to your Web application.
