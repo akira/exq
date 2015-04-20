@@ -25,7 +25,7 @@ defmodule ExqTestUtil do
   def assert_exq_up(exq) do
     my_pid = String.to_atom(UUID.uuid4)
     Process.register(self, my_pid)
-    {:ok, jid} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [my_pid])
+    {:ok, _} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [my_pid])
     wait_long
     ExUnit.Assertions.assert_received {:worked}
     Process.unregister(my_pid)

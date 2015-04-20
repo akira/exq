@@ -94,12 +94,12 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
     state = :sys.get_state(:exq_t)
 
-    {:ok, jid} = Exq.enqueue(:exq_t, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
     wait
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "1"
 
-    {:ok, jid} = Exq.enqueue(:exq_t, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
     wait_long
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "2"
@@ -111,12 +111,12 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
     state = :sys.get_state(:exq_t)
 
-    {:ok, jid} = Exq.enqueue(:exq_t, "default", "ExqTest.MissingMethodWorker/fail", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.MissingMethodWorker/fail", [])
     wait_long
     {:ok, count} = TestStats.failed_count(state.redis, "test")
     assert count == "1"
 
-    {:ok, jid} = Exq.enqueue(:exq_t, "default", "ExqTest.MissingWorker", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.MissingWorker", [])
     wait_long
     {:ok, count} = TestStats.failed_count(state.redis, "test")
     assert count == "2"
@@ -130,7 +130,7 @@ defmodule ExqTest do
     {:ok, enq_sup} = Exq.Enqueuer.start_link([name: :exq_e, port: 6555, namespace: "test"])
 
     # Find the job in the processed queue
-    {:ok, job, idx} = Exq.Api.find_failed(:exq_e, jid)
+    {:ok, _, _} = Exq.Api.find_failed(:exq_e, jid)
 
     wait_long
 

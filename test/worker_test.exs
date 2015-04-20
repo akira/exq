@@ -9,7 +9,7 @@ defmodule WorkerTest do
   end
 
   defmodule ThreeArgWorker do
-    def perform(a1, a2, a3) do
+    def perform(_, _, _) do
     end
   end
 
@@ -25,9 +25,9 @@ defmodule WorkerTest do
     :erlang.monitor(:process, worker)
     Exq.Worker.work(worker)
     receive do
-      {:'DOWN', ref, _, _pid, :normal} -> assert normal_terminate
-      {:'DOWN', ref, _, _pid, _} -> assert !normal_terminate
-    after_timeout ->
+      {:'DOWN', _, _, _pid, :normal} -> assert normal_terminate
+      {:'DOWN', _, _, _pid, _} -> assert !normal_terminate
+    _ ->
       assert !normal_terminate
     end
   end
