@@ -5,4 +5,4 @@
   "poison": {:hex, :poison, "1.2.0"},
   "ranch": {:hex, :ranch, "1.0.0"},
   "timex": {:hex, :timex, "0.13.0"},
-  "uuid": {:git, "git://github.com/zyro/elixir-uuid.git", "7ffaa6df3fda51e52d293bebfb717bc859cfdb7f", []}}
+  "uuid": {:hex, :uuid, "1.0.0"}}
