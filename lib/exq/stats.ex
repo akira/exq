@@ -145,13 +145,13 @@ defmodule Exq.Stats do
 
     job_json = Exq.Json.encode(job)
 
-    Exq.Redis.sadd!(redis, Exq.RedisQueue.full_key(namespace, "failed"), job_json)
+    Exq.Redis.rpush!(redis, Exq.RedisQueue.full_key(namespace, "failed"), job_json)
 
     {:ok, count}
   end
 
   def find_failed(redis, namespace, jid) do
-    errors = Exq.Redis.smembers!(redis, Exq.RedisQueue.full_key(namespace, "failed"))
+    errors = Exq.Redis.lrange!(redis, Exq.RedisQueue.full_key(namespace, "failed"), 0, -1)
 
     finder = fn({j, idx}) ->
       job = Exq.Job.from_json(j)
@@ -177,7 +177,7 @@ defmodule Exq.Stats do
   def remove_failed(redis, namespace, jid) do
     Exq.Redis.decr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"))
     {:ok, failure, idx} = find_failed(redis, namespace, jid)
-    Exq.Redis.srem!(redis, Exq.RedisQueue.full_key(namespace, "failed"), failure)
+    Exq.Redis.lrem!(redis, Exq.RedisQueue.full_key(namespace, "failed"), failure)
   end
 
   def clear_failed(redis, namespace) do
