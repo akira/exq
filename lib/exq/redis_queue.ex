@@ -38,6 +38,7 @@ defmodule Exq.RedisQueue do
   end
 
   def full_key("", key), do: key
+  def full_key(nil, key), do: key
   def full_key(namespace, key) do
     "#{namespace}:#{key}"
   end
