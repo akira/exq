@@ -47,8 +47,7 @@ defmodule Exq.RouterPlug do
       {:ok, busy} = Exq.Api.busy(conn.assigns[:exq_name])
 
       {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
-      qtotal = 0
-      queue_sizes = for {q, size} <- queues do
+      queue_sizes = for {_q, size} <- queues do
         {size, _} = Integer.parse(size)
         size
       end
@@ -112,8 +111,8 @@ defmodule Exq.RouterPlug do
         [process, pjob]
       end
 
-      processes = for [process, job] <- process_jobs, do: process
-      jobs = for [process, job] <- process_jobs, do: job
+      processes = for [process, _job] <- process_jobs, do: process
+      jobs = for [_process, job] <- process_jobs, do: job
 
       {:ok, json} = Poison.encode(%{processes: processes, jobs: jobs})
       conn |> send_resp(200, json) |> halt
