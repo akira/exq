@@ -26,7 +26,7 @@ defmodule PerformanceTest do
 
     Process.register(self(), :tester)
     started = :os.timestamp
-    max_timeout_ms = 5 * 1_200
+    max_timeout_ms = 10 * 1_000
 
     {:ok, sup} = Exq.start([name: :perf, host: '127.0.0.1', port: 6555, namespace: "test"])
     for _ <- 1..5000, do: Exq.enqueue(:perf, "default", "PerformanceTest.Worker", ["keep_on_trucking"])
