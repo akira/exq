@@ -13,13 +13,14 @@ defmodule Exq.RouterPlug do
   end
 
   def call(conn, opts) do
-    conn = Plug.Conn.assign(conn, :namespace, opts[:namespace] || "exq")
+    namespace_opt = opts[:namespace] || "exq"
+    conn = Plug.Conn.assign(conn, :namespace, namespace_opt)
     conn = Plug.Conn.assign(conn, :exq_name, opts[:exqopts][:name])
-    case opts[:namespace] do
+    case namespace_opt do
       "" ->
         Router.call(conn, Router.init(opts))
       _ ->
-        namespace(conn, opts, opts[:namespace])
+        namespace(conn, opts, namespace_opt)
     end
   end
 
