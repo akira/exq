@@ -13,13 +13,14 @@ defmodule Exq.RouterPlug do
   end
 
   def call(conn, opts) do
-    conn = Plug.Conn.assign(conn, :namespace, opts[:namespace] || "exq")
+    namespace_opt = opts[:namespace] || "exq"
+    conn = Plug.Conn.assign(conn, :namespace, namespace_opt)
     conn = Plug.Conn.assign(conn, :exq_name, opts[:exqopts][:name])
-    case opts[:namespace] do
+    case namespace_opt do
       "" ->
         Router.call(conn, Router.init(opts))
       _ ->
-        namespace(conn, opts, opts[:namespace])
+        namespace(conn, opts, namespace_opt)
     end
   end
 
@@ -46,16 +47,14 @@ defmodule Exq.RouterPlug do
       {:ok, busy} = Exq.Api.busy(conn.assigns[:exq_name])
 
       {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
-      qtotal = 0
-      queue_sizes = for {q, size} <- queues do
+      queue_sizes = for {_q, size} <- queues do
         {size, _} = Integer.parse(size)
         size
       end
       qtotal = "#{Exq.Math.sum_list(queue_sizes)}"
 
       {:ok, json} = Poison.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, enqueued: qtotal}})
-      send_resp(conn, 200, json)
-      conn |> halt
+      conn |> send_resp(200, json) |> halt
     end
 
     get "/api/realtimes" do
@@ -71,8 +70,7 @@ defmodule Exq.RouterPlug do
       all = %{realtimes: f ++ s}
       
       {:ok, json} = Poison.encode(all)
-      send_resp(conn, 200, json)
-      conn |> halt
+      conn |> send_resp(200, json) |> halt
     end
 
     get "/api/failures" do
@@ -83,26 +81,21 @@ defmodule Exq.RouterPlug do
       end
       
       {:ok, json} = Poison.encode(%{failures: failures})
-
-      send_resp(conn, 200, json)
-      conn |> halt
+      conn |> send_resp(200, json) |> halt
     end
 
     delete "/api/failures/:id" do
       {:ok} = Exq.Api.remove_failed(conn.assigns[:exq_name], id)
-      send_resp(conn, 204, "")
-      conn |> halt
+      conn |> send_resp(204, "") |> halt
     end
 
     delete "/api/failures" do
       {:ok} = Exq.Api.clear_failed(conn.assigns[:exq_name])
-      send_resp(conn, 204, "")
-      conn |> halt
+      conn |> send_resp(204, "") |> halt
     end
 
     post "/api/failures/:id/retry" do
-      send_resp(conn, 200, "")
-      conn |> halt
+      conn |> send_resp(200, "") |> halt
     end
 
     get "/api/processes" do
@@ -118,20 +111,18 @@ defmodule Exq.RouterPlug do
         [process, pjob]
       end
 
-      processes = for [process, job] <- process_jobs, do: process
-      jobs = for [process, job] <- process_jobs, do: job
+      processes = for [process, _job] <- process_jobs, do: process
+      jobs = for [_process, job] <- process_jobs, do: job
 
       {:ok, json} = Poison.encode(%{processes: processes, jobs: jobs})
-      send_resp(conn, 200, json)
-      conn |> halt
+      conn |> send_resp(200, json) |> halt
     end
 
     get "/api/queues" do
       {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
       job_counts = for {q, size} <- queues, do: %{id: q, size: size}
       {:ok, json} = Poison.encode(%{queues: job_counts})
-      send_resp(conn, 200, json)
-      conn |> halt
+      conn |> send_resp(200, json) |> halt
     end
 
     get "/api/queues/:id" do
@@ -142,26 +133,22 @@ defmodule Exq.RouterPlug do
       end
       job_ids = for j <- jobs_structs, do: j[:id]
       {:ok, json} = Poison.encode(%{queue: %{id: id, job_ids: job_ids, partial: false}, jobs: jobs_structs})
-      send_resp(conn, 200, json)
-      conn |> halt
+      conn |> send_resp(200, json) |> halt
     end
 
     delete "/api/queues/:id" do
       Exq.Api.remove_queue(conn.assigns[:exq_name], id)
-      send_resp(conn, 204, "")
-      conn |> halt
+      conn |> send_resp(204, "") |> halt
     end
 
     # delete "/api/processes/:id" do
     #   {:ok} = Exq.Api.remove_process(:exq_enq_ui, id)
-    #   send_resp(conn, 204, "")
-    #   conn |> halt
+    #   conn |> send_resp(204, "") |> halt
     # end
 
     delete "/api/processes" do
       {:ok} = Exq.Api.clear_processes(conn.assigns[:exq_name])
-      send_resp(conn, 204, "")
-      conn |> halt
+      conn |> send_resp(204, "") |> halt
     end
 
     
@@ -176,10 +163,10 @@ defmodule Exq.RouterPlug do
         base = "#{conn.assigns[:namespace]}/"
       end
 
-      conn |>
-      put_resp_header("content-type", "text/html") |>
-      send_resp(200, render_index(base: base)) |>
-      halt
+      conn 
+        |> put_resp_header("content-type", "text/html")
+        |> send_resp(200, render_index(base: base))
+        |> halt
     end
 
   end
