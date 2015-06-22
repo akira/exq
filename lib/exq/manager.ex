@@ -6,8 +6,8 @@ defmodule Exq.Manager do
   @default_name :exq
 
   defmodule State do
-    defstruct pid: nil, host: nil, redis: nil, busy_workers: nil, namespace: nil,
-              queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
+    defstruct pid: nil, host: nil, redis: nil, namespace: nil, busy_workers: 0,
+              concurrency: :infinite, queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
   end
 
   def start_link(opts \\ []) do
@@ -25,6 +25,7 @@ defmodule Exq.Manager do
     queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
+    concurrency = Keyword.get(opts, :concurrency, Exq.Config.get(:concurrency, :infinite))
     {:ok, localhost} = :inet.gethostname()
 
     {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
@@ -36,7 +37,8 @@ defmodule Exq.Manager do
       namespace: namespace)
 
     state = %State{redis: redis,
-                      busy_workers: [],
+                      busy_workers: 0,
+                      concurrency: concurrency,
                       enqueuer: enq,
                       host:  to_string(localhost),
                       namespace: namespace,
@@ -57,7 +59,7 @@ defmodule Exq.Manager do
 
   def handle_cast({:worker_terminated, pid}, state) do
     GenServer.cast(state.stats, {:process_terminated, state.namespace, state.host, pid})
-    {:noreply, state, 0}
+    {:noreply, %{state | busy_workers: state.busy_workers - 1}, 0}
   end
 
   def handle_cast({:success, job}, state) do
@@ -103,11 +105,14 @@ defmodule Exq.Manager do
 ## Internal Functions
 ##===========================================================
 
-
   def dequeue_and_dispatch(state) do
-    case dequeue(state.redis, state.namespace, state.queues) do
-      :none -> {state, state.poll_timeout}
-      job -> {dispatch_job(state, job), 0}
+    if state.concurrency == :infinite || state.concurrency > state.busy_workers do
+      case dequeue(state.redis, state.namespace, state.queues) do
+        :none -> {state, state.poll_timeout}
+        job -> {dispatch_job(state, job), 0}
+      end
+    else
+      {state, state.poll_timeout}
     end
   end
 
@@ -119,7 +124,7 @@ defmodule Exq.Manager do
     {:ok, worker} = Exq.Worker.start(job, state.pid)
     GenServer.cast(state.stats, {:add_process, state.namespace, %Exq.Process{pid: worker, host: state.host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
     Exq.Worker.work(worker)
-    state
+    %{state | busy_workers: state.busy_workers + 1}
   end
 
   def default_name, do: @default_name

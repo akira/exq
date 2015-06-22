@@ -30,12 +30,14 @@ Then run ```mix deps.get```.
 
 By default, Exq will use configuration from your config.exs file.  You can use this
 to configure your Redis host, port, as well as namespace (which helps isolate the data in Redis).
+The "concurrency" setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
 
 ```elixir
 config :exq,
   host: '127.0.0.1',
   port: 6379,
   namespace: "exq",
+  concurrency: :infinite,
   queues: ["default"]
 ```
 
