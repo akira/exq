@@ -3,7 +3,7 @@ defmodule Exq.Mixfile do
 
   def project do
     [ app: :exq,
-      version: "0.1.2",
+      version: "0.1.3",
       elixir: "~> 1.0.0",
       elixirc_paths: ["lib", "web"],
       package: [
@@ -33,8 +33,6 @@ defmodule Exq.Mixfile do
       { :uuid, "~> 1.0.0" },
       { :eredis, github: 'wooga/eredis', tag: 'v1.0.5' },
       { :poison, ">= 1.2.0 and < 2.0.0"},
-      { :poolboy, github: "devinus/poolboy", tag: "1.5.1" },
-      { :pooler, github: "seth/pooler", tag: "1.1.0" },
       { :timex, "~> 0.13.0" },
       { :plug, ">= 0.8.1 and < 1.0.0"},
       { :cowboy, "~> 1.0" }
