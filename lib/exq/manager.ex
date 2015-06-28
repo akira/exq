@@ -108,8 +108,8 @@ defmodule Exq.Manager do
   def dequeue_and_dispatch(state) do
     if state.concurrency == :infinite || state.concurrency > state.busy_workers do
       case dequeue(state.redis, state.namespace, state.queues) do
-        :none -> {state, state.poll_timeout}
-        job -> {dispatch_job(state, job), 0}
+        {:none, _}   -> {state, state.poll_timeout}
+        {job, queue} -> {dispatch_job(state, job), 0}
       end
     else
       {state, state.poll_timeout}
