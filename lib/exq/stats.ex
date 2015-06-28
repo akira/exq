@@ -7,6 +7,10 @@ defmodule Exq.Stats do
     defstruct redis: nil
   end
 
+  def add_process(pid, namespace, worker, host, job) do
+    GenServer.cast(pid, {:add_process, namespace, %Exq.Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
+  end
+
 ##===========================================================
 ## gen server callbacks
 ##===========================================================

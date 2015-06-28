@@ -97,16 +97,21 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
-  test "throttle workers" do
+  test "throttle workers per queue" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", concurrency: 1])
-    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.SleepWorker", [40, :worked])
-    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.SleepWorker", [40, :worked2])
-    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.SleepWorker", [100, :finished])
+    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", concurrency: 1, queues: ["q1", "q2"]])
+    {:ok, _} = Exq.enqueue(:exq_t, "q1", "ExqTest.SleepWorker", [40, :worked])
+    {:ok, _} = Exq.enqueue(:exq_t, "q1", "ExqTest.SleepWorker", [40, :worked2])
+    {:ok, _} = Exq.enqueue(:exq_t, "q1", "ExqTest.SleepWorker", [100, :finished])
+    # q2 should be clear
+    {:ok, _} = Exq.enqueue(:exq_t, "q2", "ExqTest.SleepWorker", [100, :q2_finished])
+
     :timer.sleep(120)
+
     assert_received {"worked"}
     assert_received {"worked2"}
     refute_received {"finished"}
+    assert_received {"q2_finished"}
     stop_process(sup)
   end
 
