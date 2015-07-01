@@ -32,42 +32,42 @@ defmodule WorkerTest do
     end
   end
 
+  def start_worker(job) do
+    work_table = :ets.new(:work_table, [:set, :public])
+    Exq.Worker.start(
+      job,
+      nil,
+      "default",
+      work_table)
+  end
+
   test "execute valid job with perform" do
-    {:ok, worker} = Exq.Worker.start(
-      "{ \"queue\": \"default\", \"class\": \"WorkerTest.NoArgWorker\", \"args\": [] }")
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest.NoArgWorker\", \"args\": [] }")
     assert_terminate(worker, true)
   end
 
   test "execute valid job with perform args" do
-    {:ok, worker} = Exq.Worker.start(
-      "{ \"queue\": \"default\", \"class\": \"WorkerTest.ThreeArgWorker\", \"args\": [1, 2, 3] }")
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest.ThreeArgWorker\", \"args\": [1, 2, 3] }")
     assert_terminate(worker, true)
   end
 
   test "execute valid job with custom function" do
-    {:ok, worker} = Exq.Worker.start(
-      "{ \"queue\": \"default\", \"class\": \"WorkerTest.CustomMethodWorker/custom_perform\", \"args\": [] }")
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest.CustomMethodWorker/custom_perform\", \"args\": [] }")
     assert_terminate(worker, true)
   end
 
   test "execute job with invalid JSON" do
-    {:ok, worker} = Exq.Worker.start(
-      "{ invalid: json: this: is}")
+    {:ok, worker} = start_worker("{ invalid: json: this: is}")
     assert_terminate(worker, false)
   end
 
   test "execute invalid module perform" do
-    {:ok, worker} = Exq.Worker.start(
-      "{ \"queue\": \"default\", \"class\": \"NonExistant\", \"args\": [] }")
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"NonExistant\", \"args\": [] }")
     assert_terminate(worker, false)
   end
 
   test "execute invalid module function" do
-    {:ok, worker} = Exq.Worker.start(
-      "{ \"queue\": \"default\", \"class\": \"WorkerTest.MissingMethodWorker/nonexist\", \"args\": [] }")
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest.MissingMethodWorker/nonexist\", \"args\": [] }")
     assert_terminate(worker, false)
   end
-
-
-
 end

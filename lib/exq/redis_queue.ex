@@ -34,7 +34,7 @@ defmodule Exq.RedisQueue do
     dequeue_random(redis, namespace, queues)
   end
   def dequeue(redis, namespace, queue) do
-    Exq.Redis.lpop!(redis, queue_key(namespace, queue))
+    {Exq.Redis.lpop!(redis, queue_key(namespace, queue)), queue}
   end
 
   def full_key("", key), do: key
@@ -48,13 +48,13 @@ defmodule Exq.RedisQueue do
   end
 
   defp dequeue_random(redis, namespace, []) do
-    nil
+    {nil, nil}
   end
   defp dequeue_random(redis, namespace, queues) do
     [h | rq]  = Exq.Shuffle.shuffle(queues)
     case dequeue(redis, namespace, h) do
-      nil -> dequeue_random(redis, namespace, rq)
-      job -> job
+      {nil, _} -> dequeue_random(redis, namespace, rq)
+      {job, q} -> {job, q}
     end
   end
 

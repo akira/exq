@@ -3,11 +3,11 @@ defmodule Exq.Worker do
   use GenServer
 
   defmodule State do
-    defstruct job: nil, manager: nil
+    defstruct job: nil, manager: nil, queue: nil, work_table: nil
   end
 
-  def start(job, manager \\ nil) do
-    GenServer.start(__MODULE__, {job, manager}, [])
+  def start(job, manager, queue, work_table) do
+    GenServer.start(__MODULE__, {job, manager, queue, work_table}, [])
   end
 
   def work(pid) do
@@ -18,8 +18,8 @@ defmodule Exq.Worker do
 ## gen server callbacks
 ##===========================================================
 
-  def init({job, manager}) do
-    {:ok, %State{job: job, manager: manager}}
+  def init({job, manager, queue, work_table}) do
+    {:ok, %State{job: job, manager: manager, queue: queue, work_table: work_table}}
   end
 
   def handle_cast(:work, state) do
@@ -47,6 +47,7 @@ defmodule Exq.Worker do
       true ->
         GenServer.cast(state.manager, {:worker_terminated, self()})
         GenServer.cast(state.manager, {:success, state.job})
+        Exq.Manager.update_worker_count(state.work_table, state.queue, -1)
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end
@@ -61,6 +62,7 @@ defmodule Exq.Worker do
         GenServer.cast(state.manager, {:worker_terminated, self()})
         error_msg = Inspect.Algebra.format(Inspect.Algebra.to_doc(error, %Inspect.Opts{}), %Inspect.Opts{}.width)
         GenServer.cast(state.manager, {:failure, to_string(error_msg), state.job})
+        Exq.Manager.update_worker_count(state.work_table, state.queue, -1)
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end
