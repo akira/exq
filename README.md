@@ -43,7 +43,7 @@ config :exq,
 
 ### Concurrency:
 
-Exq supports concurrency setting per queue.  You can specify ```concurrency``` options to apply to all queues or on a per queue basis.
+Exq supports concurrency setting per queue.  You can specify the same ```concurrency``` option to apply to each queue or specify it based on a per queue basis.
 
 Concurrency for each queue will be set at ```1000```:
 
