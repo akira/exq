@@ -7,7 +7,7 @@ defmodule Exq.Manager do
 
   defmodule State do
     defstruct pid: nil, host: nil, redis: nil, namespace: nil, work_table: nil,
-              concurrency: nil, queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
+              queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
   end
 
   def start_link(opts \\ []) do
@@ -16,11 +16,8 @@ defmodule Exq.Manager do
   end
 
   def update_worker_count(work_table, queue, delta) do
-    worker_count = case :ets.lookup(work_table, queue) do
-      [{_, worker_count}] -> worker_count
-      [] -> 0
-    end
-    :ets.insert(work_table, {queue, worker_count + delta})
+    [{_, concurrency, worker_count}] = :ets.lookup(work_table, queue)
+    :ets.insert(work_table, {queue, concurrency, worker_count + delta})
   end
 
 
@@ -31,14 +28,10 @@ defmodule Exq.Manager do
   def init([opts]) do
     {:ok, redis} = Exq.Redis.connection(opts)
     name = Keyword.get(opts, :name, @default_name)
-    queues = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
-    work_table = :ets.new(:work_table, [:set, :public])
-    Enum.each(queues, fn (queue) ->
-      :ets.insert(work_table, {queue, 0})
-    end)
+
+    {queues, work_table} = setup_queues(opts)
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
-    concurrency = Keyword.get(opts, :concurrency, Exq.Config.get(:concurrency, 10_000))
     {:ok, localhost} = :inet.gethostname()
 
     {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
@@ -51,7 +44,6 @@ defmodule Exq.Manager do
 
     state = %State{redis: redis,
                       work_table: work_table,
-                      concurrency: concurrency,
                       enqueuer: enq,
                       host:  to_string(localhost),
                       namespace: namespace,
@@ -126,14 +118,10 @@ defmodule Exq.Manager do
   end
 
   def available_queues(state) do
-    if state.concurrency == :infinite do
-      state.queues
-    else
-      Enum.filter(state.queues, fn(q) ->
-        [{_, worker_count}] = :ets.lookup(state.work_table, q)
-        worker_count < state.concurrency
-      end)
-    end
+    Enum.filter(state.queues, fn(q) ->
+      [{_, concurrency, worker_count}] = :ets.lookup(state.work_table, q)
+      worker_count < concurrency
+    end)
   end
 
   def dispatch_job(state, job, queue) do
@@ -142,6 +130,26 @@ defmodule Exq.Manager do
     Exq.Worker.work(worker)
     update_worker_count(state.work_table, queue, 1)
     state
+  end
+
+  defp setup_queues(opts) do
+    queue_configs = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
+    queues = Enum.map(queue_configs, fn queue_config ->
+      case queue_config do
+        {queue, concurrency} -> queue
+        queue -> queue
+      end
+    end)
+    work_table = :ets.new(:work_table, [:set, :public])
+    per_queue_concurrency = Keyword.get(opts, :concurrency, Exq.Config.get(:concurrency, 10_000))
+    Enum.each(queue_configs, fn (queue_config) ->
+      queue_concurrency = case queue_config do
+        {queue, concurrency} -> {queue, concurrency, 0}
+        queue -> {queue, per_queue_concurrency, 0}
+      end
+      :ets.insert(work_table, queue_concurrency)
+    end)
+    {queues, work_table}
   end
 
   def default_name, do: @default_name
