@@ -19,7 +19,7 @@ Add exq to your mix.exs deps, as well as eredis:
     [
       # ... other deps
       {:exq, "~> 0.1.0"}
-      { :eredis, github: 'wooga/eredis', tag: 'v1.0.5' },
+      {:eredis, "~> 1.0.8"},
     ]
   end
 ```
