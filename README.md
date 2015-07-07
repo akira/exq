@@ -12,14 +12,13 @@ with Ruby / Rails projects that already use Resque / Sidekiq for background jobs
 This assumes you have an instance of [Redis](http://redis.io/) to use.
 
 ### Installation:
-Add exq to your mix.exs deps, as well as eredis:
+Add exq to your mix.exs deps (replace version with the latest hex.pm package version):
 
 ```elixir
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.1.0"}
-      {:eredis, "~> 1.0.8"},
+      {:exq, "~> 0.1.3"}
     ]
   end
 ```
