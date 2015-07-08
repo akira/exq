@@ -196,6 +196,8 @@ Contributions are welcome.  Make sure to run ```mix test --no-start``` to ensure
 
 Justin McNally (j-mcnally) (structtv)
 
+Mike Lawlor (disbelief)
+
 Roman Smirnov (romul)
 
 Rob Gilson (D1plo1d)
