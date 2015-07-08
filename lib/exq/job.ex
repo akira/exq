@@ -1,10 +1,18 @@
 
 defmodule Exq.Json do
   def decode(json) do
-    Poison.decode!(json)
+    Poison.decode(json)
   end
 
   def encode(e) do
+    Poison.encode(e)
+  end
+
+  def decode!(json) do
+    Poison.decode!(json)
+  end
+
+  def encode!(e) do
     Poison.encode!(e)
   end
 end
@@ -16,7 +24,7 @@ defmodule Exq.Job do
 
 
   def from_json(json_str) do
-    json = Exq.Json.decode(json_str)
+    json = Exq.Json.decode!(json_str)
     job = %Exq.Job{
       args: Dict.get(json, "args"),
       class: Dict.get(json, "class"),
@@ -46,6 +54,6 @@ defmodule Exq.Job do
       queue: job.queue,
       retry: job.retry,
       retry_count: job.retry_count], HashDict.new)
-    Exq.Json.encode(job)
+    Exq.Json.encode!(job)
   end
 end

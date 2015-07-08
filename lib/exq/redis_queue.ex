@@ -61,6 +61,6 @@ defmodule Exq.RedisQueue do
   defp job_json(queue, worker, args) do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, DateFormat.format!(Date.local, "{ISO}")}], HashDict.new)
-    {jid, Exq.Json.encode(job)}
+    {jid, Exq.Json.encode!(job)}
   end
 end
