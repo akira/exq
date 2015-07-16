@@ -8,3 +8,5 @@ before_script:
   - MIX_ENV=test mix do deps.get
 script:
   - mix test --no-start
+services:
+  - redis-server
