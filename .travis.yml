@@ -10,3 +10,4 @@ script:
   - mix test --no-start
 services:
   - redis-server
+sudo: false # to use container based infrastructure at Travis
