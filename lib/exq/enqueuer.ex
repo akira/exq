@@ -95,8 +95,10 @@ defmodule Exq.Enqueuer do
     {:ok, state}
   end
 
-  def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
+  def handle_cast({:enqueue, from, queue, worker, args}, state) do
+    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
+    GenServer.reply(from, {:ok, jid})
+    {:noreply, state}
   end
 
   def handle_call({:enqueue, queue, worker, args}, _from, state) do
@@ -104,10 +106,8 @@ defmodule Exq.Enqueuer do
     {:reply, {:ok, jid}, state}
   end
 
-  def handle_cast({:enqueue, from, queue, worker, args}, state) do
-    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
-    GenServer.reply(from, {:ok, jid})
-    {:noreply, state}
+  def handle_call({:stop}, _from, state) do
+    { :stop, :normal, :ok, state }
   end
 
   # WebUI Stats callbacks
