@@ -35,6 +35,7 @@ The "concurrency" setting will let you configure the amount of concurrent worker
 config :exq,
   host: '127.0.0.1',
   port: 6379,
+  password: "optional_redis_auth",
   namespace: "exq",
   concurrency: :infinite,
   queues: ["default"]
