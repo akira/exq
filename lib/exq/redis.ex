@@ -48,10 +48,12 @@ defmodule Exq.Redis do
 
   def keys!(redis, search \\ "*") do
     {:ok, keys} = :eredis.q(redis, ["KEYS", search])
+    keys
   end
 
   def scan!(redis, cursor, search, count) do
     {:ok, keys} = :eredis.q(redis, ["SCAN", cursor, "MATCH", search, "COUNT", count])
+    keys
   end
 
   def scard!(redis, set) do
@@ -59,7 +61,7 @@ defmodule Exq.Redis do
     count
   end
 
-  def smembers!(redis, set) do 
+  def smembers!(redis, set) do
     {:ok, members} = :eredis.q(redis, ["SMEMBERS", set])
     members
   end

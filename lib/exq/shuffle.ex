@@ -1,12 +1,12 @@
 #http://en.literateprograms.org/index.php?title=Special:DownloadCode/Fisher-Yates_shuffle_(Erlang)
-defmodule Exq.Shuffle do 
+defmodule Exq.Shuffle do
   def shuffle(list)  do
     shuffle(list, [])
   end
-  def shuffle([], acc) do 
+  def shuffle([], acc) do
     acc
   end
-  def shuffle(list, acc) do 
+  def shuffle(list, acc) do
     {leading, [h | t]} = :lists.split(:random.uniform(length(list)) - 1, list)
     shuffle(leading ++ t, [h | acc])
   end
