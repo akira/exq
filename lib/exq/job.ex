@@ -25,7 +25,7 @@ defmodule Exq.Job do
 
   def from_json(json_str) do
     json = Exq.Json.decode!(json_str)
-    job = %Exq.Job{
+    %Exq.Job{
       args: Dict.get(json, "args"),
       class: Dict.get(json, "class"),
       enqueued_at: Dict.get(json, "enqueued_at"),
@@ -41,7 +41,7 @@ defmodule Exq.Job do
   end
 
   def to_json(job) do
-    e = Enum.into([
+    Enum.into([
       args: job.args,
       class: job.class,
       enqueued_at: job.enqueued_at,

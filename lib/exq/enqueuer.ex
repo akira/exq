@@ -9,7 +9,6 @@ defmodule Exq.Enqueuer do
   end
 
   def start(opts \\ []) do
-    name = Keyword.get(opts, :name, @default_name)
     GenServer.start(__MODULE__, [opts])
   end
 
