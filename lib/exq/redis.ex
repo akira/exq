@@ -74,11 +74,6 @@ defmodule Exq.Redis do
     res
   end
 
-  def llen!(redis, list) do
-    {:ok, count} = :eredis.q(redis, ["LLEN", list])
-    count
-  end
-
   def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = :eredis.q(redis, ["LRANGE", list, range_start, range_end])
     items
