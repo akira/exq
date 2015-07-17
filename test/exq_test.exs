@@ -106,7 +106,7 @@ defmodule ExqTest do
     # q2 should be clear
     {:ok, _} = Exq.enqueue(:exq_t, "q2", "ExqTest.SleepWorker", [100, :q2_finished])
 
-    :timer.sleep(120)
+    :timer.sleep(160)
 
     assert_received {"worked"}
     assert_received {"worked2"}
