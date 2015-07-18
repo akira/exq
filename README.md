@@ -28,7 +28,7 @@ Then run ```mix deps.get```.
 ### Configuration:
 
 By default, Exq will use configuration from your config.exs file.  You can use this
-to configure your Redis host, port, as well as namespace (which helps isolate the data in Redis).
+to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis).
 The "concurrency" setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
 
 ```elixir
@@ -198,6 +198,8 @@ Contributions are welcome.  Make sure to run ```mix test --no-start``` to ensure
 Justin McNally (j-mcnally) (structtv)
 
 Mike Lawlor (disbelief)
+
+Udo Kramer (optikfluffel)
 
 Roman Smirnov (romul)
 
