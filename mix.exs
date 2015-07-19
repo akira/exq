@@ -15,7 +15,9 @@ defmodule Exq.Mixfile do
       description: """
       Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
       """,
-      deps: deps ]
+      deps: deps,
+      test_coverage: [tool: ExCoveralls]
+    ]
   end
 
   # Configuration for the OTP application
@@ -35,7 +37,8 @@ defmodule Exq.Mixfile do
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, "~> 0.13.0" },
       { :plug, ">= 0.8.1 and < 1.0.0"},
-      { :cowboy, "~> 1.0" }
+      { :cowboy, "~> 1.0" },
+      { :excoveralls, "~> 0.3", only: :test }
     ]
   end
 end

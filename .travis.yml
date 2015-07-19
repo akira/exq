@@ -7,7 +7,9 @@ otp_release:
 before_script:
   - MIX_ENV=test mix do deps.get
 script:
-  - mix test --no-start
+  - MIX_ENV=test mix test --no-start
+after_script:
+  - MIX_ENV=test mix coveralls.travis --no-start
 services:
   - redis-server
 sudo: false # to use container based infrastructure at Travis
