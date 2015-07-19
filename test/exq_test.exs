@@ -127,7 +127,7 @@ defmodule ExqTest do
     {:ok, _} = Exq.enqueue(:exq_t, "q2", "ExqTest.SleepWorker", [100, :q2_work])
     {:ok, _} = Exq.enqueue(:exq_t, "q2", "ExqTest.SleepWorker", [100, :q2_finished])
 
-    :timer.sleep(120)
+    :timer.sleep(150)
 
     assert_received {"worked"}
     assert_received {"worked2"}
