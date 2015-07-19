@@ -1,6 +1,8 @@
 # Exq
 
-[![Build Status](https://travis-ci.org/akira/exq.png?branch=master)](https://travis-ci.org/akira/exq?branch=master)
+[![Travis Build Status](https://img.shields.io/travis/akira/exq.svg)](https://travis-ci.org/akira/exq)
+[![Coveralls Coverage](https://img.shields.io/coveralls/akira/exq.svg)](https://coveralls.io/github/akira/exq)
+[![Hex.pm Version](https://img.shields.io/hexpm/v/exq.svg)](https://hex.pm/packages/exq)
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 
@@ -206,5 +208,3 @@ Roman Smirnov (romul)
 Rob Gilson (D1plo1d)
 
 Benjamin Tan Wei Hao (benjamintanweihao)
-
-
