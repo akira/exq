@@ -197,14 +197,14 @@ defmodule Exq.Stats do
 
   def realtime_stats(redis, namespace) do
 
-    {:ok, failure_keys} = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:*"))
+    failure_keys = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:*"))
     failures = for key <- failure_keys do
       date = Exq.Support.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:"))
       count = Exq.Redis.get!(redis, key)
       {date, count}
     end
 
-    {:ok, success_keys} = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:*"))
+    success_keys = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:*"))
     successes = for key <- success_keys do
       date = Exq.Support.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:"))
       count = Exq.Redis.get!(redis, key)
