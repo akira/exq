@@ -9,7 +9,7 @@ before_script:
 script:
   - MIX_ENV=test mix test --no-start
 after_script:
-  - MIX_ENV=test mix coveralls.travis
+  - MIX_ENV=test mix coveralls.travis --no-start
 services:
   - redis-server
 sudo: false # to use container based infrastructure at Travis
