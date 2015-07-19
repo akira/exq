@@ -54,7 +54,7 @@ defmodule Exq.Worker do
     :ok
   end
 
-  def terminate(error, %State{manager: nil}), do: :ok
+  def terminate(_error, %State{manager: nil}), do: :ok
 
   def terminate(error, state) do
     case Process.alive?(state.manager) do

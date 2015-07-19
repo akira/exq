@@ -9,7 +9,6 @@ defmodule Exq.Enqueuer do
   end
 
   def start(opts \\ []) do
-    name = Keyword.get(opts, :name, @default_name)
     GenServer.start(__MODULE__, [opts])
   end
 
@@ -34,11 +33,11 @@ defmodule Exq.Enqueuer do
 
   def busy(pid) do
     GenServer.call(pid, {:busy})
-  end 
+  end
 
   def stats(pid, key) do
     GenServer.call(pid, {:stats, key})
-  end 
+  end
 
   def stats(pid, key, date) do
     GenServer.call(pid, {:stats, key, date})
@@ -96,8 +95,10 @@ defmodule Exq.Enqueuer do
     {:ok, state}
   end
 
-  def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
+  def handle_cast({:enqueue, from, queue, worker, args}, state) do
+    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
+    GenServer.reply(from, {:ok, jid})
+    {:noreply, state}
   end
 
   def handle_call({:enqueue, queue, worker, args}, _from, state) do
@@ -105,10 +106,8 @@ defmodule Exq.Enqueuer do
     {:reply, {:ok, jid}, state}
   end
 
-  def handle_cast({:enqueue, from, queue, worker, args}, state) do
-    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
-    GenServer.reply(from, {:ok, jid})
-    {:noreply, state}
+  def handle_call({:stop}, _from, state) do
+    { :stop, :normal, :ok, state }
   end
 
   # WebUI Stats callbacks
@@ -200,7 +199,7 @@ defmodule Exq.Enqueuer do
     {:ok, failures, successes} = Exq.Stats.realtime_stats(state.redis, state.namespace)
     {:reply, {:ok, failures, successes}, state, 0}
   end
-  
+
   def code_change(_old_version, state, _extra) do
     {:ok, state}
   end
@@ -229,6 +228,5 @@ defmodule Exq.Enqueuer do
   def queue_size(redis, namespace, queue) do
     Exq.Redis.llen!(redis, "#{namespace}:queue:#{queue}")
   end
-
 
 end

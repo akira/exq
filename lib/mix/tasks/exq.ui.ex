@@ -4,9 +4,9 @@ defmodule Mix.Tasks.Exq.Ui do
   @shortdoc "Starts the Exq UI Server"
 
   def run(args) do
-    
-    
-    {opts, args, _} = OptionParser.parse args,
+
+
+    {opts, _args, _} = OptionParser.parse args,
       switches: [host: :string, port: :integer, namespace: :string, queues: :string, webport: :integer]
 
     webport = Keyword.get(opts, :webport, 4040)
@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Exq.Ui do
     IO.puts "Started ExqUI on Port #{webport}"
 
     Plug.Adapters.Cowboy.http Exq.RouterPlug, [namespace: "", exqopts: opts], port: webport
-    
+
     :timer.sleep(:infinity)
   end
 

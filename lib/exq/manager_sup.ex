@@ -22,4 +22,3 @@ defmodule Exq.Manager.Supervisor do
     String.to_atom("#{manager_name(opts)}_sup")
   end
 end
-
