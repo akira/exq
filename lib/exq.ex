@@ -29,4 +29,11 @@ defmodule Exq do
     GenServer.call(pid, {:enqueue, queue, worker, args})
   end
 
+  def enqueue_at(pid, queue, time, worker, args) do
+    GenServer.call(pid, {:enqueue_at, queue, time, worker, args})
+  end
+
+  def enqueue_in(pid, queue, offset, worker, args) do
+    GenServer.call(pid, {:enqueue_in, queue, offset, worker, args})
+  end
 end

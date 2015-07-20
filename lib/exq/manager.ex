@@ -7,7 +7,8 @@ defmodule Exq.Manager do
 
   defmodule State do
     defstruct pid: nil, host: nil, redis: nil, namespace: nil, work_table: nil,
-              queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil
+              queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil, scheduler: nil,
+              sched_poll_timeout: nil
   end
 
   def start_link(opts \\ []) do
@@ -32,32 +33,41 @@ defmodule Exq.Manager do
     {queues, work_table} = setup_queues(opts)
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
+    sched_poll_timeout = Keyword.get(opts, :sched_poll_timeout, Exq.Config.get(:sched_poll_timeout, 1000))
+
     {:ok, localhost} = :inet.gethostname()
 
     {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
 
-    enq = String.to_atom("#{name}_enqueuer")
+    enqueuer = String.to_atom("#{name}_enqueuer")
     {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(
       redis: redis,
-      name: enq,
+      name: enqueuer,
       namespace: namespace)
+
+    scheduler = String.to_atom("#{name}_scheduler")
+    {:ok, _} =  Exq.Scheduler.Supervisor.start_link(
+      redis: redis,
+      name: scheduler,
+      namespace: namespace,
+      queues: queues,
+      sched_poll_timeout: sched_poll_timeout)
+
+    Exq.Scheduler.start_timeout(scheduler)
 
     state = %State{redis: redis,
                       work_table: work_table,
-                      enqueuer: enq,
+                      enqueuer: enqueuer,
+                      scheduler: scheduler,
                       host:  to_string(localhost),
                       namespace: namespace,
                       queues: queues,
                       pid: self(),
                       poll_timeout: poll_timeout,
+                      sched_poll_timeout: sched_poll_timeout,
                       stats: stats}
 
     {:ok, state, 0}
-  end
-
-  def handle_call({:enqueue, queue, worker, args}, from, state) do
-    Exq.Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
-    {:noreply, state, 10}
   end
 
   def handle_cast({:worker_terminated, pid}, state) do
@@ -75,8 +85,33 @@ defmodule Exq.Manager do
     {:noreply, state, 0}
   end
 
+  def handle_cast(_request, state) do
+    Logger.error("UKNOWN CAST")
+    {:noreply, state, 0}
+  end
+
+  def handle_call({:enqueue, queue, worker, args}, from, state) do
+    Exq.Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
+    {:noreply, state, 10}
+  end
+
+  def handle_call({:enqueue_at, queue, time, worker, args}, from, state) do
+    Exq.Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args)
+    {:noreply, state, 10}
+  end
+
+  def handle_call({:enqueue_in, queue, offset, worker, args}, from, state) do
+    Exq.Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
+    {:noreply, state, 10}
+  end
+
   def handle_call({:stop}, _from, state) do
     { :stop, :normal, :ok, state }
+  end
+
+  def handle_call(_request, _from, state) do
+    Logger.error("UKNOWN CALL")
+    {:reply, :unknown, state, 0}
   end
 
   def handle_info(:timeout, state) do
@@ -92,16 +127,6 @@ defmodule Exq.Manager do
     GenServer.call(state.stats, {:stop})
     :eredis.stop(state.redis)
     :ok
-  end
-
-  def handle_call(_request, _from, state) do
-    Logger.error("UKNOWN CALL")
-    {:reply, :unknown, state, 0}
-  end
-
-  def handle_cast(_request, state) do
-    Logger.error("UKNOWN CAST")
-    {:noreply, state, 0}
   end
 
 ##===========================================================
@@ -136,7 +161,7 @@ defmodule Exq.Manager do
     queue_configs = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
     queues = Enum.map(queue_configs, fn queue_config ->
       case queue_config do
-        {queue, concurrency} -> queue
+        {queue, _concurrency} -> queue
         queue -> queue
       end
     end)
@@ -154,6 +179,6 @@ defmodule Exq.Manager do
 
   def default_name, do: @default_name
 
-  def stop(pid) do
+  def stop(_pid) do
   end
 end
