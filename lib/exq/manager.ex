@@ -8,7 +8,7 @@ defmodule Exq.Manager do
   defmodule State do
     defstruct pid: nil, host: nil, redis: nil, namespace: nil, work_table: nil,
               queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil, scheduler: nil,
-              sched_poll_timeout: nil
+              scheduler_poll_timeout: nil
   end
 
   def start_link(opts \\ []) do
@@ -33,7 +33,8 @@ defmodule Exq.Manager do
     {queues, work_table} = setup_queues(opts)
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
-    sched_poll_timeout = Keyword.get(opts, :sched_poll_timeout, Exq.Config.get(:sched_poll_timeout, 1000))
+    scheduler_enable = Keyword.get(opts, :scheduler_enable, Exq.Config.get(:scheduler_enable, false))
+    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Exq.Config.get(:scheduler_poll_timeout, 200))
 
     {:ok, localhost} = :inet.gethostname()
 
@@ -46,14 +47,17 @@ defmodule Exq.Manager do
       namespace: namespace)
 
     scheduler = String.to_atom("#{name}_scheduler")
-    {:ok, _} =  Exq.Scheduler.Supervisor.start_link(
-      redis: redis,
-      name: scheduler,
-      namespace: namespace,
-      queues: queues,
-      sched_poll_timeout: sched_poll_timeout)
 
-    Exq.Scheduler.start_timeout(scheduler)
+    if scheduler_enable do
+      {:ok, _} =  Exq.Scheduler.Supervisor.start_link(
+        redis: redis,
+        name: scheduler,
+        namespace: namespace,
+        queues: queues,
+        scheduler_poll_timeout: scheduler_poll_timeout)
+
+      Exq.Scheduler.start_timeout(scheduler)
+    end
 
     state = %State{redis: redis,
                       work_table: work_table,
@@ -64,7 +68,7 @@ defmodule Exq.Manager do
                       queues: queues,
                       pid: self(),
                       poll_timeout: poll_timeout,
-                      sched_poll_timeout: sched_poll_timeout,
+                      scheduler_poll_timeout: scheduler_poll_timeout,
                       stats: stats}
 
     {:ok, state, 0}

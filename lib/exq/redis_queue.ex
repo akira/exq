@@ -27,6 +27,11 @@ defmodule Exq.RedisQueue do
     enqueue(redis, namespace, queue, job_json)
     jid
   end
+  def enqueue(redis, namespace, job_json) do
+    job = Exq.Json.decode!(job_json)
+    enqueue(redis, namespace, job["queue"], job_json)
+    job["jid"]
+  end
   def enqueue(redis, namespace, queue, job_json) do
     [{:ok, _}, {:ok, _}] = :eredis.qp(redis, [
       ["SADD", full_key(namespace, "queues"), queue],
@@ -34,16 +39,19 @@ defmodule Exq.RedisQueue do
   end
 
   def enqueue_at(redis, namespace, queue, time, worker, args) do
-    {jid, job_json} = to_job_json(queue, worker, args)
-    score = round(time)
-    Exq.Redis.zadd!(redis, scheduled_queue_key(namespace, queue), score, job_json)
+    enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
+    {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
+    score = time_to_score(time)
+    Exq.Redis.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
     jid
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args) do
-    {jid, job_json} = to_job_json(queue, worker, args)
-    score = round(Time.now(:secs) + offset)
-    Exq.Redis.zadd!(redis, scheduled_queue_key(namespace, queue), score, job_json)
+    time = Time.add(Time.now, Time.from(offset, :secs))
+    enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
+    {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
+    score = time_to_score(time)
+    Exq.Redis.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
     jid
   end
 
@@ -55,21 +63,22 @@ defmodule Exq.RedisQueue do
   end
 
   def scheduler_dequeue(redis, namespace, queues) do
-    max_score = round(Time.now(:secs))
-    Exq.Shuffle.shuffle(queues)
-      |> Enum.each(fn(queue) ->
-        Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace, queue), 0, max_score)
-          |> scheduler_dequeue_requeue(redis, namespace, queue, 0)
-      end)
+    max_score = time_to_score(Time.now)
+    Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace), 0, max_score)
+      |> scheduler_dequeue_requeue(redis, namespace, queues, 0)
   end
 
-  def scheduler_dequeue_requeue([], _redis, _namespace, _queue, count), do: count
-  def scheduler_dequeue_requeue([h|t], redis, namespace, queue, count) do
-    if Exq.Redis.zrem!(redis, scheduled_queue_key(namespace, queue), h) == "1" do
-      enqueue(redis, namespace, queue, h)
+  def scheduler_dequeue_requeue([], _redis, _namespace, _queues, count), do: count
+  def scheduler_dequeue_requeue([job_json|t], redis, namespace, queues, count) do
+    if Exq.Redis.zrem!(redis, scheduled_queue_key(namespace), job_json) == "1" do
+      if Enum.count(queues) == 1 do
+        enqueue(redis, namespace, hd(queues), job_json)
+      else
+        enqueue(redis, namespace, job_json)
+      end
       count = count + 1
     end
-    scheduler_dequeue_requeue(t, redis, namespace, queue, count)
+    scheduler_dequeue_requeue(t, redis, namespace, queues, count)
   end
 
 
@@ -83,8 +92,12 @@ defmodule Exq.RedisQueue do
     full_key(namespace, "queue:#{queue}")
   end
 
-  def scheduled_queue_key(namespace, queue) do
-    full_key(namespace, "scheduled:#{queue}")
+  def scheduled_queue_key(namespace) do
+    full_key(namespace, "schedule")
+  end
+
+  def time_to_score(time) do
+    Float.to_string(time |> Time.to_secs, [decimals: 6])
   end
 
   defp dequeue_random(_redis, _namespace, []) do
@@ -99,8 +112,12 @@ defmodule Exq.RedisQueue do
   end
 
   defp to_job_json(queue, worker, args) do
+    enqueued_at = DateFormat.format!(Date.local, "{ISO}")
+    to_job_json(queue, worker, args, enqueued_at)
+  end
+  defp to_job_json(queue, worker, args, enqueued_at) do
     jid = UUID.uuid4
-    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, DateFormat.format!(Date.local, "{ISO}")}], HashDict.new)
+    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Exq.Json.encode!(job)}
   end
 end

@@ -6,7 +6,7 @@ defmodule Exq.Scheduler do
   @default_name :exq_scheduler
 
   defmodule State do
-    defstruct redis: nil, namespace: nil, queues: nil, sched_poll_timeout: nil
+    defstruct redis: nil, namespace: nil, queues: nil, scheduler_poll_timeout: nil
   end
 
   def start(opts \\ []) do
@@ -29,14 +29,14 @@ defmodule Exq.Scheduler do
   def init([opts]) do
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     queues = Keyword.get(opts, :queues)
-    sched_poll_timeout = Keyword.get(opts, :sched_poll_timeout, Exq.Config.get(:sched_poll_timeout, "exq"))
+    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Exq.Config.get(:scheduler_poll_timeout, "exq"))
     redis = case Keyword.get(opts, :redis) do
       nil ->
         {:ok, r} = Exq.Redis.connection(opts)
         r
       r -> r
     end
-    state = %State{redis: redis, namespace: namespace, queues: queues, sched_poll_timeout: sched_poll_timeout}
+    state = %State{redis: redis, namespace: namespace, queues: queues, scheduler_poll_timeout: scheduler_poll_timeout}
     {:ok, state}
   end
 
@@ -79,7 +79,7 @@ defmodule Exq.Scheduler do
 
   def dequeue(state) do
     Exq.RedisQueue.scheduler_dequeue(state.redis, state.namespace, state.queues)
-    {state, state.sched_poll_timeout}
+    {state, state.scheduler_poll_timeout}
   end
 
   def default_name, do: @default_name

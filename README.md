@@ -40,7 +40,10 @@ config :exq,
   password: "optional_redis_auth",
   namespace: "exq",
   concurrency: :infinite,
-  queues: ["default"]
+  queues: ["default"],
+  poll_timeout: 50,
+  scheduler_enable: false,
+  scheduler_poll_timeout: 200,
 ```
 
 ### Concurrency:
@@ -134,6 +137,18 @@ You can also enqueue jobs without starting workers:
 
 {:ok, ack} = Exq.Enqueuer.enqueue(:exq_enqueuer, "default", "MyWorker", [])
 
+```
+You can also schedule jobs to start at a future time:
+You need to make scheduler_enable is set to true
+
+Schedule a job to start in 5 mins
+```elixir
+{:ok, ack} = Exq.enqueue_in(:exq, "default", 300, "MyWorker", ["arg1", "arg2"])
+```
+Schedule a job to start at 8am 2015-12-25 UTC
+```elixir
+time = Timex.Date.from({{2015, 12, 25}, {8, 0, 0}}) |> Timex.Date.to_timestamp
+{:ok, ack} = Exq.enqueue_at(:exq, "default", time, "MyWorker", ["arg1", "arg2"])
 ```
 
 ### Creating Workers:

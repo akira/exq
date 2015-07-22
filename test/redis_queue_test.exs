@@ -27,6 +27,31 @@ defmodule Exq.RedisQueueTest do
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) == :none
   end
 
+  test "scheduler_dequeue single queue" do
+    Exq.RedisQueue.enqueue_in(:testredis, "test", "default", 0, "MyWorker", [])
+    Exq.RedisQueue.enqueue_in(:testredis, "test", "default", 0, "MyWorker", [])
+    assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"]) == 2
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default"]), 0) != :none
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default"]), 0) != :none
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default"]), 0) == :none
+  end
+
+  test "scheduler_dequeue multi queue" do
+    Exq.RedisQueue.enqueue_in(:testredis, "test", "default", -1, "MyWorker", [])
+    Exq.RedisQueue.enqueue_in(:testredis, "test", "myqueue", -1, "MyWorker", [])
+    assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default", "myqueue"]) == 2
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) != :none
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) != :none
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) == :none
+  end
+
+  test "enqueue_at" do
+    Exq.RedisQueue.enqueue_at(:testredis, "test", "default", Timex.Time.now, "MyWorker", [])
+    assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"]) == 1
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default"]), 0) != :none
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", ["default"]), 0) == :none
+  end
+
   test "full_key" do
     assert Exq.RedisQueue.full_key("exq","k1") == "exq:k1"
     assert Exq.RedisQueue.full_key("","k1") == "k1"
@@ -43,4 +68,3 @@ defmodule Exq.RedisQueueTest do
   end
 
 end
-

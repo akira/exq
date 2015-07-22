@@ -74,6 +74,26 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "enqueue_in and run a job" do
+    Process.register(self, :exqtest)
+    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test",
+                                 scheduler_enable: true, scheduler_poll_timeout: 5])
+    {:ok, _} = Exq.enqueue_in(:exq_t, "default", 0, "ExqTest.PerformWorker", [])
+    wait_long
+    assert_received {:worked}
+    stop_process(sup)
+  end
+
+  test "enqueue_at and run a job" do
+    Process.register(self, :exqtest)
+    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test",
+                                 scheduler_enable: true, scheduler_poll_timeout: 5])
+    {:ok, _} = Exq.enqueue_at(:exq_t, "default", Timex.Time.now, "ExqTest.PerformWorker", [])
+    wait_long
+    assert_received {:worked}
+    stop_process(sup)
+  end
+
   test "enqueue with separate enqueuer" do
     Process.register(self, :exqtest)
     {:ok, exq_sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
