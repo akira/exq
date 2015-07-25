@@ -1,6 +1,5 @@
 defmodule Exq do
   require Logger
-  import Supervisor.Spec
   use Application
 
   # OTP Application

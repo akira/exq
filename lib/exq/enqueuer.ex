@@ -67,7 +67,9 @@ defmodule Exq.Enqueuer do
   def jobs(pid) do
     GenServer.call(pid, {:jobs})
   end
-
+  def jobs(pid, :scheduled) do
+    GenServer.call(pid, {:jobs, :scheduled})
+  end
   def jobs(pid, queue) do
     GenServer.call(pid, {:jobs, queue})
   end
@@ -75,7 +77,9 @@ defmodule Exq.Enqueuer do
   def queue_size(pid) do
     GenServer.call(pid, {:queue_size})
   end
-
+  def queue_size(pid, :scheduled) do
+    GenServer.call(pid, {:queue_size, :scheduled})
+  end
   def queue_size(pid, queue) do
     GenServer.call(pid, {:queue_size, queue})
   end
@@ -181,13 +185,15 @@ defmodule Exq.Enqueuer do
    {:reply, {:ok, jobs}, state, 0}
   end
 
-
   def handle_call({:jobs}, _from, state) do
     queues = list_queues(state.redis, state.namespace)
     jobs = for q <- queues, do: {q, list_jobs(state.redis, state.namespace, q)}
     {:reply, {:ok, jobs}, state, 0}
   end
-
+  def handle_call({:jobs, :scheduled}, _from, state) do
+    jobs = list_jobs(state.redis, state.namespace, :scheduled)
+    {:reply, {:ok, jobs}, state, 0}
+  end
   def handle_call({:jobs, queue}, _from, state) do
     jobs = list_jobs(state.redis, state.namespace, queue)
     {:reply, {:ok, jobs}, state, 0}
@@ -198,7 +204,10 @@ defmodule Exq.Enqueuer do
     sizes = for q <- queues, do: {q, queue_size(state.redis, state.namespace, q)}
     {:reply, {:ok, sizes}, state, 0}
   end
-
+  def handle_call({:queue_size, :scheduled}, _from, state) do
+    size = queue_size(state.redis, state.namespace, :scheduled)
+    {:reply, {:ok, size}, state, 0}
+  end
   def handle_call({:queue_size, queue}, _from, state) do
     size = queue_size(state.redis, state.namespace, queue)
     {:reply, {:ok, size}, state, 0}
@@ -211,6 +220,11 @@ defmodule Exq.Enqueuer do
 
   def handle_call({:find_job, queue, jid}, _from, state) do
     {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, queue)
+    {:reply, {:ok, job, idx}, state, 0}
+  end
+
+  def handle_call({:find_scheduled_job, jid}, _from, state) do
+    {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, :scheduled)
     {:reply, {:ok, job, idx}, state, 0}
   end
 
@@ -256,6 +270,9 @@ defmodule Exq.Enqueuer do
     Exq.Redis.smembers!(redis, "#{namespace}:queues")
   end
 
+  def list_jobs(redis, namespace, :scheduled) do
+    Exq.Redis.zrangebyscore!(redis, "#{namespace}:schedule")
+  end
   def list_jobs(redis, namespace, queue) do
     Exq.Redis.lrange!(redis, "#{namespace}:queue:#{queue}")
   end
@@ -264,6 +281,9 @@ defmodule Exq.Enqueuer do
     Exq.Redis.smembers!(redis, "#{namespace}:failed")
   end
 
+  def queue_size(redis, namespace, :scheduled) do
+    Exq.Redis.zcard!(redis, "#{namespace}:schedule")
+  end
   def queue_size(redis, namespace, queue) do
     Exq.Redis.llen!(redis, "#{namespace}:queue:#{queue}")
   end

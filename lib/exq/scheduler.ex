@@ -50,7 +50,7 @@ defmodule Exq.Scheduler do
   end
 
   def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
+    {:stop, :normal, :ok, state}
   end
 
   def handle_call(_request, _from, state) do
@@ -61,16 +61,6 @@ defmodule Exq.Scheduler do
   def handle_info(:timeout, state) do
     {updated_state, timeout} = dequeue(state)
     {:noreply, updated_state, timeout}
-  end
-
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
-  end
-
-  def terminate(_reason, state) do
-    GenServer.call(state.stats, {:stop})
-    :eredis.stop(state.redis)
-    :ok
   end
 
 ##===========================================================

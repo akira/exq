@@ -81,6 +81,11 @@ defmodule Exq.Redis do
     items
   end
 
+  def lrem!(redis, list, value, count \\ 1) do
+    {:ok, res} = :eredis.q(redis, ["LREM", list, count, value])
+    res
+  end
+
   def rpush!(redis, key, value) do
     {:ok, res} = :eredis.q(redis, ["RPUSH", key, value])
     res
@@ -103,7 +108,7 @@ defmodule Exq.Redis do
     count
   end
 
-  def zrangebyscore!(redis, set, min, max) do
+  def zrangebyscore!(redis, set, min \\ "0", max \\ "+inf") do
     {:ok, items} = :eredis.q(redis, ["ZRANGEBYSCORE", set, min, max])
     items
   end

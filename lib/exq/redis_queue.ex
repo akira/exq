@@ -3,10 +3,19 @@ defmodule Exq.RedisQueue do
 
   @default_queue "default"
 
-  def find_job(redis, namespace, jid, queue) do
-    jobs = Exq.Redis.lrange!(redis, queue_key(namespace, queue))
 
-    finder = fn({j, idx}) ->
+  def find_job(redis, namespace, jid, :scheduled) do
+    Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace))
+      |> find_job(jid)
+  end
+  def find_job(redis, namespace, jid, queue) do
+    Exq.Redis.lrange!(redis, queue_key(namespace, queue))
+      |> find_job(jid)
+  end
+
+  def find_job(jobs, jid) do
+
+    finder = fn({j, _idx}) ->
       job = Exq.Job.from_json(j)
       job.jid == jid
     end
@@ -62,8 +71,10 @@ defmodule Exq.RedisQueue do
     {Exq.Redis.lpop!(redis, queue_key(namespace, queue)), queue}
   end
 
-  def scheduler_dequeue(redis, namespace, queues) do
-    max_score = time_to_score(Time.now)
+  def scheduler_dequeue(redis, namespace, queues) when is_list(queues) do
+    scheduler_dequeue(redis, namespace, queues, time_to_score(Time.now))
+  end
+  def scheduler_dequeue(redis, namespace, queues, max_score) when is_list(queues) do
     Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace), 0, max_score)
       |> scheduler_dequeue_requeue(redis, namespace, queues, 0)
   end
@@ -112,8 +123,7 @@ defmodule Exq.RedisQueue do
   end
 
   defp to_job_json(queue, worker, args) do
-    enqueued_at = DateFormat.format!(Date.local, "{ISO}")
-    to_job_json(queue, worker, args, enqueued_at)
+    to_job_json(queue, worker, args, DateFormat.format!(Date.local, "{ISO}"))
   end
   defp to_job_json(queue, worker, args, enqueued_at) do
     jid = UUID.uuid4
