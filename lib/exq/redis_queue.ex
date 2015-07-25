@@ -47,16 +47,12 @@ defmodule Exq.RedisQueue do
       ["RPUSH", queue_key(namespace, queue), job_json]])
   end
 
-  def enqueue_at(redis, namespace, queue, time, worker, args) do
-    enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
-    {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
-    score = time_to_score(time)
-    Exq.Redis.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
-    jid
-  end
-
   def enqueue_in(redis, namespace, queue, offset, worker, args) do
     time = Time.add(Time.now, Time.from(offset, :secs))
+    enqueue_at(redis, namespace, queue, time, worker, args)
+  end
+
+  def enqueue_at(redis, namespace, queue, time, worker, args) do
     enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
     {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
     score = time_to_score(time)
