@@ -12,4 +12,4 @@ after_script:
   - MIX_ENV=test mix coveralls.travis --no-start
 services:
   - redis-server
-sudo: false # to use container based infrastructure at Travis
+#sudo: false # container based infrastructure at Travis - disable until we figure out intermittent test issues
