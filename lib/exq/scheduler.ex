@@ -1,7 +1,6 @@
 defmodule Exq.Scheduler do
   require Logger
   use GenServer
-  use Timex
 
   @default_name :exq_scheduler
 

@@ -48,7 +48,7 @@ defmodule Exq.RedisQueue do
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args) do
-    time = Time.add(Time.now, Time.from(offset, :secs))
+    time = Time.add(Time.now, Time.from(offset * 1_000_000, :usecs))
     enqueue_at(redis, namespace, queue, time, worker, args)
   end
 
@@ -118,10 +118,10 @@ defmodule Exq.RedisQueue do
     end
   end
 
-  defp to_job_json(queue, worker, args) do
+  def to_job_json(queue, worker, args) do
     to_job_json(queue, worker, args, DateFormat.format!(Date.local, "{ISO}"))
   end
-  defp to_job_json(queue, worker, args, enqueued_at) do
+  def to_job_json(queue, worker, args, enqueued_at) do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Exq.Json.encode!(job)}

@@ -139,7 +139,7 @@ You can also enqueue jobs without starting workers:
 
 ```
 You can also schedule jobs to start at a future time:
-You need to make scheduler_enable is set to true
+You need to make sure scheduler_enable is set to true
 
 Schedule a job to start in 5 mins
 ```elixir

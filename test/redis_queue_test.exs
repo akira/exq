@@ -47,37 +47,41 @@ defmodule Exq.RedisQueueTest do
   end
 
   test "scheduler_dequeue enqueue_at" do
-    Exq.RedisQueue.enqueue_at(:testredis, "test", "default", Timex.Time.now, "MyWorker", [])
+    Exq.RedisQueue.enqueue_at(:testredis, "test", "default", Time.now, "MyWorker", [])
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"]) == 1
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) != :none
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) == :none
   end
 
   test "scheduler_dequeue max_score" do
+    Exq.RedisQueue.enqueue_in(:testredis, "test", "default", 300, "MyWorker", [])
     now = Time.now
-    time1 = Time.add(now, Time.from(340, :secs))
+    time1 = Time.add(now, Time.from(140, :secs))
     Exq.RedisQueue.enqueue_at(:testredis, "test", "default", time1, "MyWorker", [])
-    time2 = Time.add(now, Time.from(350, :secs))
-    time2a = Time.add(now, Time.from(351, :secs))
+    time2 = Time.add(now, Time.from(150, :secs))
     Exq.RedisQueue.enqueue_at(:testredis, "test", "default", time2, "MyWorker", [])
-    time3 = Time.add(now, Time.from(360, :secs))
-    time3a = Time.add(now, Time.from(359, :secs))
+    time2a = Time.add(now, Time.from(151, :secs))
+    time2b = Time.add(now, Time.from(159, :secs))
+    time3 = Time.add(now, Time.from(160, :secs))
     Exq.RedisQueue.enqueue_at(:testredis, "test", "default", time3, "MyWorker", [])
-    time4 = Time.add(now, Time.from(360000001, :usecs))
+    time4 = Time.add(now, Time.from(160000001, :usecs))
     Exq.RedisQueue.enqueue_at(:testredis, "test", "default", time4, "MyWorker", [])
+    time5 = Time.add(now, Time.from(300, :secs))
 
     assert Exq.Enqueuer.queue_size(:testredis, "test", "default") == "0"
-    assert Exq.Enqueuer.queue_size(:testredis, "test", :scheduled) == "4"
+    assert Exq.Enqueuer.queue_size(:testredis, "test", :scheduled) == "5"
 
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time2a)) == 2
-    assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time3a)) == 0
+    assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time2b)) == 0
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time3)) == 1
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time3)) == 0
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time4)) == 1
+    assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time5)) == 1
 
-    assert Exq.Enqueuer.queue_size(:testredis, "test", "default") == "4"
+    assert Exq.Enqueuer.queue_size(:testredis, "test", "default") == "5"
     assert Exq.Enqueuer.queue_size(:testredis, "test", :scheduled) == "0"
 
+    assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) != :none
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) != :none
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) != :none
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) != :none
