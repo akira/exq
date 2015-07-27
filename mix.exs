@@ -7,7 +7,7 @@ defmodule Exq.Mixfile do
       elixir: "~> 1.0.0",
       elixirc_paths: ["lib", "web"],
       package: [
-        contributors: ["Alex Kira", "Justin McNally", "Udo Kramer", "Roman Smirnov", "Mike Lawlor", "Benjamin Tan Wei Hao", "Rob Gilson"],
+        contributors: ["Alex Kira", "Justin McNally", "Nick Sanders", "Udo Kramer", "Roman Smirnov", "Mike Lawlor", "Benjamin Tan Wei Hao", "Rob Gilson"],
         links: %{"GitHub" => "https://github.com/akira/exq"},
         files: ~w(lib priv test web) ++
                ~w(LICENSE mix.exs README.md)
