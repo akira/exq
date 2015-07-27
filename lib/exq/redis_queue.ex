@@ -3,10 +3,19 @@ defmodule Exq.RedisQueue do
 
   @default_queue "default"
 
-  def find_job(redis, namespace, jid, queue) do
-    jobs = Exq.Redis.lrange!(redis, queue_key(namespace, queue))
 
-    finder = fn({j, idx}) ->
+  def find_job(redis, namespace, jid, :scheduled) do
+    Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace))
+      |> find_job(jid)
+  end
+  def find_job(redis, namespace, jid, queue) do
+    Exq.Redis.lrange!(redis, queue_key(namespace, queue))
+      |> find_job(jid)
+  end
+
+  def find_job(jobs, jid) do
+
+    finder = fn({j, _idx}) ->
       job = Exq.Job.from_json(j)
       job.jid == jid
     end
@@ -23,10 +32,31 @@ defmodule Exq.RedisQueue do
   end
 
   def enqueue(redis, namespace, queue, worker, args) do
-    {jid, job} = job_json(queue, worker, args)
+    {jid, job_json} = to_job_json(queue, worker, args)
+    enqueue(redis, namespace, queue, job_json)
+    jid
+  end
+  def enqueue(redis, namespace, job_json) do
+    job = Exq.Json.decode!(job_json)
+    enqueue(redis, namespace, job["queue"], job_json)
+    job["jid"]
+  end
+  def enqueue(redis, namespace, queue, job_json) do
     [{:ok, _}, {:ok, _}] = :eredis.qp(redis, [
       ["SADD", full_key(namespace, "queues"), queue],
-      ["RPUSH", queue_key(namespace, queue), job]])
+      ["RPUSH", queue_key(namespace, queue), job_json]])
+  end
+
+  def enqueue_in(redis, namespace, queue, offset, worker, args) do
+    time = Time.add(Time.now, Time.from(offset * 1_000_000, :usecs))
+    enqueue_at(redis, namespace, queue, time, worker, args)
+  end
+
+  def enqueue_at(redis, namespace, queue, time, worker, args) do
+    enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
+    {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
+    score = time_to_score(time)
+    Exq.Redis.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
     jid
   end
 
@@ -36,6 +66,28 @@ defmodule Exq.RedisQueue do
   def dequeue(redis, namespace, queue) do
     {Exq.Redis.lpop!(redis, queue_key(namespace, queue)), queue}
   end
+
+  def scheduler_dequeue(redis, namespace, queues) when is_list(queues) do
+    scheduler_dequeue(redis, namespace, queues, time_to_score(Time.now))
+  end
+  def scheduler_dequeue(redis, namespace, queues, max_score) when is_list(queues) do
+    Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace), 0, max_score)
+      |> scheduler_dequeue_requeue(redis, namespace, queues, 0)
+  end
+
+  def scheduler_dequeue_requeue([], _redis, _namespace, _queues, count), do: count
+  def scheduler_dequeue_requeue([job_json|t], redis, namespace, queues, count) do
+    if Exq.Redis.zrem!(redis, scheduled_queue_key(namespace), job_json) == "1" do
+      if Enum.count(queues) == 1 do
+        enqueue(redis, namespace, hd(queues), job_json)
+      else
+        enqueue(redis, namespace, job_json)
+      end
+      count = count + 1
+    end
+    scheduler_dequeue_requeue(t, redis, namespace, queues, count)
+  end
+
 
   def full_key("", key), do: key
   def full_key(nil, key), do: key
@@ -47,7 +99,15 @@ defmodule Exq.RedisQueue do
     full_key(namespace, "queue:#{queue}")
   end
 
-  defp dequeue_random(redis, namespace, []) do
+  def scheduled_queue_key(namespace) do
+    full_key(namespace, "schedule")
+  end
+
+  def time_to_score(time) do
+    Float.to_string(time |> Time.to_secs, [decimals: 6])
+  end
+
+  defp dequeue_random(_redis, _namespace, []) do
     {nil, nil}
   end
   defp dequeue_random(redis, namespace, queues) do
@@ -58,9 +118,12 @@ defmodule Exq.RedisQueue do
     end
   end
 
-  defp job_json(queue, worker, args) do
+  def to_job_json(queue, worker, args) do
+    to_job_json(queue, worker, args, DateFormat.format!(Date.local, "{ISO}"))
+  end
+  def to_job_json(queue, worker, args, enqueued_at) do
     jid = UUID.uuid4
-    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, DateFormat.format!(Date.local, "{ISO}")}], HashDict.new)
+    job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Exq.Json.encode!(job)}
   end
 end

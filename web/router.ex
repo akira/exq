@@ -45,6 +45,7 @@ defmodule Exq.RouterPlug do
       {:ok, processed} = Exq.Api.stats(conn.assigns[:exq_name], "processed")
       {:ok, failed} = Exq.Api.stats(conn.assigns[:exq_name], "failed")
       {:ok, busy} = Exq.Api.busy(conn.assigns[:exq_name])
+      {:ok, scheduled} = Exq.Api.queue_size(conn.assigns[:exq_name], :scheduled)
 
       {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
       queue_sizes = for {_q, size} <- queues do
@@ -53,7 +54,7 @@ defmodule Exq.RouterPlug do
       end
       qtotal = "#{Exq.Math.sum_list(queue_sizes)}"
 
-      {:ok, json} = Poison.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, enqueued: qtotal}})
+      {:ok, json} = Poison.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, scheduled: scheduled, enqueued: qtotal}})
       conn |> send_resp(200, json) |> halt
     end
 
@@ -68,7 +69,7 @@ defmodule Exq.RouterPlug do
         %{id: "s#{date}", date: date, count: count, type: "success"}
       end
       all = %{realtimes: f ++ s}
-      
+
       {:ok, json} = Poison.encode(all)
       conn |> send_resp(200, json) |> halt
     end
@@ -79,7 +80,7 @@ defmodule Exq.RouterPlug do
         {:ok, fail} = Poison.decode(f, %{})
         Map.put(fail, :id, fail["jid"])
       end
-      
+
       {:ok, json} = Poison.encode(%{failures: failures})
       conn |> send_resp(200, json) |> halt
     end
@@ -151,19 +152,19 @@ defmodule Exq.RouterPlug do
       conn |> send_resp(204, "") |> halt
     end
 
-    
+
 
     # precompile index.html into render_index/1 function
     index_path = Path.join([Application.app_dir(:exq), "priv/static/index.html"])
     EEx.function_from_file :defp, :render_index, index_path, [:assigns]
 
     match _ do
-      base = "" 
+      base = ""
       if conn.assigns[:namespace] != "" do
         base = "#{conn.assigns[:namespace]}/"
       end
 
-      conn 
+      conn
         |> put_resp_header("content-type", "text/html")
         |> send_resp(200, render_index(base: base))
         |> halt

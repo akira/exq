@@ -10,5 +10,5 @@
   "poison": {:hex, :poison, "1.4.0"},
   "ranch": {:hex, :ranch, "1.0.0"},
   "ssl_verify_hostname": {:hex, :ssl_verify_hostname, "1.0.5"},
-  "timex": {:hex, :timex, "0.13.0"},
+  "timex": {:hex, :timex, "0.13.5"},
   "uuid": {:hex, :uuid, "1.0.0"}}

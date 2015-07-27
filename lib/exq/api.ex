@@ -36,7 +36,9 @@ defmodule Exq.Api do
   def queue_size(pid) do
     GenServer.call(pid, {:queue_size})
   end
-
+  def queue_size(pid, :scheduled) do
+    GenServer.call(pid, {:queue_size, :scheduled})
+  end
   def queue_size(pid, queue) do
     GenServer.call(pid, {:queue_size, queue})
   end

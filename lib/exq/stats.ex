@@ -121,7 +121,7 @@ defmodule Exq.Stats do
 
   end
 
-  def record_processed(redis, namespace, job) do
+  def record_processed(redis, namespace, _job) do
     count = Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed"))
 
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
@@ -157,22 +157,8 @@ defmodule Exq.Stats do
   end
 
   def find_failed(redis, namespace, jid) do
-    errors = Exq.Redis.lrange!(redis, Exq.RedisQueue.full_key(namespace, "failed"), 0, -1)
-
-    finder = fn({j, idx}) ->
-      job = Exq.Job.from_json(j)
-      job.jid == jid
-    end
-
-    error = Enum.find(Enum.with_index(errors), finder)
-
-    case error do
-      nil ->
-        {:not_found, nil}
-      _ ->
-        {job, idx} = error
-        {:ok, job, idx}
-    end
+    Exq.Redis.lrange!(redis, Exq.RedisQueue.full_key(namespace, "failed"), 0, -1)
+      |> Exq.RedisQueue.find_job(jid)
   end
 
   def remove_queue(redis, namespace, queue) do
@@ -182,7 +168,7 @@ defmodule Exq.Stats do
 
   def remove_failed(redis, namespace, jid) do
     Exq.Redis.decr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"))
-    {:ok, failure, idx} = find_failed(redis, namespace, jid)
+    {:ok, failure, _idx} = find_failed(redis, namespace, jid)
     Exq.Redis.lrem!(redis, Exq.RedisQueue.full_key(namespace, "failed"), failure)
   end
 
