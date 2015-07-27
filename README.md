@@ -214,6 +214,8 @@ Contributions are welcome.  Make sure to run ```mix test --no-start``` to ensure
 
 Justin McNally (j-mcnally) (structtv)
 
+Nick Sanders (nicksanders)
+
 Mike Lawlor (disbelief)
 
 Udo Kramer (optikfluffel)
