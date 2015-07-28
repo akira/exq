@@ -43,7 +43,7 @@ config :exq,
   queues: ["default"],
   poll_timeout: 50,
   scheduler_enable: false,
-  scheduler_poll_timeout: 200,
+  scheduler_poll_timeout: 200
 ```
 
 ### Concurrency:

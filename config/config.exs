@@ -7,4 +7,6 @@ config :exq,
   host: '127.0.0.1',
   port: 6379,
   namespace: "exq",
-  queues: ["default"]
+  queues: ["default"],
+  scheduler_enable: false,
+  scheduler_poll_timeout: 200
