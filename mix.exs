@@ -36,7 +36,7 @@ defmodule Exq.Mixfile do
       { :eredis, "~> 1.0.8"},
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, "~> 0.13.5" },
-      { :plug, ">= 0.8.1 and < 1.0.0"},
+      { :plug, ">= 0.8.1 and < 2.0.0"},
       { :cowboy, "~> 1.0" },
       { :excoveralls, "~> 0.3", only: :test }
     ]
