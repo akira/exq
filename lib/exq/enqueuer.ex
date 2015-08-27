@@ -278,7 +278,7 @@ defmodule Exq.Enqueuer do
   end
 
   def list_failed(redis, namespace) do
-    Exq.Redis.smembers!(redis, "#{namespace}:failed")
+    Exq.Redis.lrange!(redis, "#{namespace}:failed")
   end
 
   def queue_size(redis, namespace, :scheduled) do
