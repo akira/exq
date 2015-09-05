@@ -86,9 +86,12 @@ You can add Exq into your OTP application list, and it will start an instance of
 
 When using Exq through OTP, it will register a process under the name ```:exq``` - you can use this atom where expecting a process name in the Exq module.
 
+## Using iex:
+If you'd like to try Exq out on the iex console, you can do this by typing ```iex -S mix``` after ```mix deps.get```.
+
 ## Starting Exq manually:
 
-You can also start Exq manually and set configuration per instance.
+Typically, Exq will start as part of the application along with the configuration you have set.  However, you can also start Exq manually and set your own configuration per instance.
 
 Here is an example of how to start Exq manually:
 
