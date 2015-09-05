@@ -1,6 +1,8 @@
 defmodule Exq.Enqueuer do
   require Logger
+  import Exq.RedisQueue, only: [full_key: 2]
   use GenServer
+
 
   @default_name :exq_enqueuer
 
@@ -267,25 +269,25 @@ defmodule Exq.Enqueuer do
   # Internal Functions
 
   def list_queues(redis, namespace) do
-    Exq.Redis.smembers!(redis, "#{namespace}:queues")
+    Exq.Redis.smembers!(redis, full_key(namespace, "queues"))
   end
 
   def list_jobs(redis, namespace, :scheduled) do
-    Exq.Redis.zrangebyscore!(redis, "#{namespace}:schedule")
+    Exq.Redis.zrangebyscore!(redis, full_key(namespace, "schedule"))
   end
   def list_jobs(redis, namespace, queue) do
-    Exq.Redis.lrange!(redis, "#{namespace}:queue:#{queue}")
+    Exq.Redis.lrange!(redis, full_key(namespace, "queue:#{queue}"))
   end
 
   def list_failed(redis, namespace) do
-    Exq.Redis.lrange!(redis, "#{namespace}:failed")
+    Exq.Redis.lrange!(redis, full_key(namespace, "failed"))
   end
 
   def queue_size(redis, namespace, :scheduled) do
-    Exq.Redis.zcard!(redis, "#{namespace}:schedule")
+    Exq.Redis.zcard!(redis, full_key(namespace, "schedule"))
   end
   def queue_size(redis, namespace, queue) do
-    Exq.Redis.llen!(redis, "#{namespace}:queue:#{queue}")
+    Exq.Redis.llen!(redis, full_key(namespace, "queue:#{queue}"))
   end
 
 end
