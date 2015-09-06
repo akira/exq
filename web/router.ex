@@ -52,7 +52,7 @@ defmodule Exq.RouterPlug do
         {size, _} = Integer.parse(size)
         size
       end
-      qtotal = "#{Exq.Math.sum_list(queue_sizes)}"
+      qtotal = "#{Enum.sum(queue_sizes)}"
 
       {:ok, json} = Poison.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, scheduled: scheduled, enqueued: qtotal}})
       conn |> send_resp(200, json) |> halt
