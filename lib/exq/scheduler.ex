@@ -28,7 +28,7 @@ defmodule Exq.Scheduler do
   def init([opts]) do
     namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
     queues = Keyword.get(opts, :queues)
-    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Exq.Config.get(:scheduler_poll_timeout, "exq"))
+    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Exq.Config.get(:scheduler_poll_timeout, 200))
     redis = case Keyword.get(opts, :redis) do
       nil ->
         {:ok, r} = Exq.Redis.connection(opts)
