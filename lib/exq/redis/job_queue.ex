@@ -18,7 +18,7 @@ defmodule Exq.Redis.JobQueue do
   def find_job(jobs, jid) do
 
     finder = fn({j, _idx}) ->
-      job = Exq.Job.from_json(j)
+      job = Exq.Support.Job.from_json(j)
       job.jid == jid
     end
 

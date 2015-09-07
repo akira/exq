@@ -23,7 +23,7 @@ defmodule Exq.Worker do
   end
 
   def handle_cast(:work, state) do
-    job = Exq.Job.from_json(state.job)
+    job = Exq.Support.Job.from_json(state.job)
 
     target = job.class
     [mod | func_or_empty] = Regex.split(~r/\//, target)

@@ -1,4 +1,4 @@
-defmodule Exq.Job do
+defmodule Exq.Support.Job do
   defstruct error_message: nil, error_class: nil, failed_at: nil, retry: false,
             retry_count: 0, processor: nil, queue: nil, class: nil, args: nil,
             jid: nil, finished_at: nil, enqueued_at: nil
@@ -7,7 +7,7 @@ defmodule Exq.Job do
 
   def from_json(json_str) do
     json = Json.decode!(json_str)
-    %Exq.Job{
+    %Exq.Support.Job{
       args: Dict.get(json, "args"),
       class: Dict.get(json, "class"),
       enqueued_at: Dict.get(json, "enqueued_at"),

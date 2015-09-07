@@ -151,7 +151,7 @@ defmodule Exq.Stats.Server do
 
     failed_at = DateFormat.format!(Date.local, "{ISO}")
 
-    job = Exq.Job.from_json(json)
+    job = Exq.Support.Job.from_json(json)
     job = Enum.into([{:failed_at, failed_at}, {:error_class, "ExqGenericError"}, {:error_message, error}, {:queue, job.queue}, {:class, job.class}, {:args, job.args}, {:jid, job.jid}, {:enqueued_at, job.enqueued_at}], HashDict.new)
 
     job_json = Json.encode!(job)
