@@ -1,4 +1,4 @@
-defmodule Exq.Worker do
+defmodule Exq.Worker.Server do
   require Logger
   use GenServer
 

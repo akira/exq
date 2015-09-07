@@ -2,7 +2,7 @@ defmodule Exq.Manager.Server do
   require Logger
   use GenServer
   alias Exq.Stats.Server, as: Stats
-  alias Exq.Enqueuer.Server, as: Enqueuer
+  alias Exq.Enqueuer
   alias Exq.Support.Config
 
   @default_name :exq
@@ -156,9 +156,9 @@ defmodule Exq.Manager.Server do
   end
 
   def dispatch_job(state, job, queue) do
-    {:ok, worker} = Exq.Worker.start(job, state.pid, queue, state.work_table)
+    {:ok, worker} = Exq.Worker.Server.start(job, state.pid, queue, state.work_table)
     Stats.add_process(state.stats, state.namespace, worker, state.host, job)
-    Exq.Worker.work(worker)
+    Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
     state
   end
