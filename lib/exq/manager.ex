@@ -3,6 +3,7 @@ defmodule Exq.Manager do
   use GenServer
   alias Exq.Stats.Server, as: Stats
   alias Exq.Enqueuer.Server, as: Enqueuer
+  alias Exq.Support.Config
 
   @default_name :exq
 
@@ -32,10 +33,10 @@ defmodule Exq.Manager do
     name = Keyword.get(opts, :name, @default_name)
 
     {queues, work_table} = setup_queues(opts)
-    namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
-    poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
-    scheduler_enable = Keyword.get(opts, :scheduler_enable, Exq.Config.get(:scheduler_enable, false))
-    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Exq.Config.get(:scheduler_poll_timeout, 200))
+    namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
+    poll_timeout = Keyword.get(opts, :poll_timeout, Config.get(:poll_timeout, 50))
+    scheduler_enable = Keyword.get(opts, :scheduler_enable, Config.get(:scheduler_enable, false))
+    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
 
     {:ok, localhost} = :inet.gethostname()
 
@@ -163,7 +164,7 @@ defmodule Exq.Manager do
   end
 
   defp setup_queues(opts) do
-    queue_configs = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
+    queue_configs = Keyword.get(opts, :queues, Config.get(:queues, ["default"]))
     queues = Enum.map(queue_configs, fn queue_config ->
       case queue_config do
         {queue, _concurrency} -> queue
@@ -171,7 +172,7 @@ defmodule Exq.Manager do
       end
     end)
     work_table = :ets.new(:work_table, [:set, :public])
-    per_queue_concurrency = Keyword.get(opts, :concurrency, Exq.Config.get(:concurrency, 10_000))
+    per_queue_concurrency = Keyword.get(opts, :concurrency, Config.get(:concurrency, 10_000))
     Enum.each(queue_configs, fn (queue_config) ->
       queue_concurrency = case queue_config do
         {queue, concurrency} -> {queue, concurrency, 0}

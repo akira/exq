@@ -1,6 +1,7 @@
 defmodule Exq.Enqueuer.Server do
   require Logger
   alias Exq.Stats.Server, as: Stats
+  alias Exq.Support.Config
   import Exq.RedisQueue, only: [full_key: 2]
   use GenServer
 
@@ -107,7 +108,7 @@ defmodule Exq.Enqueuer.Server do
 ##===========================================================
 
   def init([opts]) do
-    namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
+    namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     redis = case Keyword.get(opts, :redis) do
       nil ->
         {:ok, r} = Exq.Redis.connection(opts)
