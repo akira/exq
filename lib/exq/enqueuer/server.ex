@@ -1,4 +1,4 @@
-defmodule Exq.Enqueuer do
+defmodule Exq.Enqueuer.Server do
   require Logger
   alias Exq.Stats.Server, as: Stats
   import Exq.RedisQueue, only: [full_key: 2]

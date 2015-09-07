@@ -2,6 +2,7 @@ defmodule Exq.Manager do
   require Logger
   use GenServer
   alias Exq.Stats.Server, as: Stats
+  alias Exq.Enqueuer.Server, as: Enqueuer
 
   @default_name :exq
 
@@ -95,17 +96,17 @@ defmodule Exq.Manager do
   end
 
   def handle_call({:enqueue, queue, worker, args}, from, state) do
-    Exq.Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
+    Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
     {:noreply, state, 10}
   end
 
   def handle_call({:enqueue_at, queue, time, worker, args}, from, state) do
-    Exq.Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args)
+    Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args)
     {:noreply, state, 10}
   end
 
   def handle_call({:enqueue_in, queue, offset, worker, args}, from, state) do
-    Exq.Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
+    Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
     {:noreply, state, 10}
   end
 

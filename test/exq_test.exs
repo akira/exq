@@ -98,8 +98,8 @@ defmodule ExqTest do
   test "enqueue with separate enqueuer" do
     Process.register(self, :exqtest)
     {:ok, exq_sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
-    {:ok, enq_sup} = Exq.Enqueuer.start_link([name: :exq_e, port: 6555, namespace: "test"])
-    {:ok, _} = Exq.Enqueuer.enqueue(:exq_e, "default", "ExqTest.PerformWorker", [])
+    {:ok, enq_sup} = Exq.Enqueuer.Server.start_link([name: :exq_e, port: 6555, namespace: "test"])
+    {:ok, _} = Exq.Enqueuer.Server.enqueue(:exq_e, "default", "ExqTest.PerformWorker", [])
     wait_long
     assert_received {:worked}
     stop_process(exq_sup)
@@ -195,7 +195,7 @@ defmodule ExqTest do
     # if we kill Exq too fast we dont record the failure because exq is gone
     wait_long
 
-    {:ok, enq_sup} = Exq.Enqueuer.start_link([name: :exq_e, port: 6555, namespace: "test"])
+    {:ok, enq_sup} = Exq.Enqueuer.Server.start_link([name: :exq_e, port: 6555, namespace: "test"])
 
     # Find the job in the processed queue
     {:ok, _, _} = Exq.Api.find_failed(:exq_e, jid)

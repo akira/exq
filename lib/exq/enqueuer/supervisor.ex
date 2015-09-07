@@ -6,12 +6,12 @@ defmodule Exq.Enqueuer.Supervisor do
   end
 
   def init([opts]) do
-    children = [worker(Exq.Enqueuer, [opts])]
+    children = [worker(Exq.Enqueuer.Server, [opts])]
     supervise(children, strategy: :one_for_one, max_restarts: 20)
   end
 
   defp server_name(opts) do
-    Keyword.get(opts, :name, Exq.Enqueuer.default_name)
+    Keyword.get(opts, :name, Exq.Enqueuer.Server.default_name)
   end
 
   defp supervisor_name(opts) do

@@ -3,6 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Exq.RedisQueueTest do
   use ExUnit.Case
   use Timex
+  alias Exq.Enqueuer.Server, as: Enqueuer
 
   setup_all do
     TestRedis.setup
@@ -68,8 +69,8 @@ defmodule Exq.RedisQueueTest do
     Exq.RedisQueue.enqueue_at(:testredis, "test", "default", time4, "MyWorker", [])
     time5 = Time.add(now, Time.from(300, :secs))
 
-    assert Exq.Enqueuer.queue_size(:testredis, "test", "default") == "0"
-    assert Exq.Enqueuer.queue_size(:testredis, "test", :scheduled) == "5"
+    assert Enqueuer.queue_size(:testredis, "test", "default") == "0"
+    assert Enqueuer.queue_size(:testredis, "test", :scheduled) == "5"
 
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time2a)) == 2
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time2b)) == 0
@@ -78,8 +79,8 @@ defmodule Exq.RedisQueueTest do
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time4)) == 1
     assert Exq.RedisQueue.scheduler_dequeue(:testredis, "test", ["default"], Exq.RedisQueue.time_to_score(time5)) == 1
 
-    assert Exq.Enqueuer.queue_size(:testredis, "test", "default") == "5"
-    assert Exq.Enqueuer.queue_size(:testredis, "test", :scheduled) == "0"
+    assert Enqueuer.queue_size(:testredis, "test", "default") == "5"
+    assert Enqueuer.queue_size(:testredis, "test", :scheduled) == "0"
 
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) != :none
     assert elem(Exq.RedisQueue.dequeue(:testredis, "test", "default"), 0) != :none
