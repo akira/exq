@@ -32,7 +32,7 @@ defmodule Exq.Scheduler.Server do
     scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
     redis = case Keyword.get(opts, :redis) do
       nil ->
-        {:ok, r} = Exq.Redis.connection(opts)
+        {:ok, r} = Exq.Redis.Connection.connection(opts)
         r
       r -> r
     end
@@ -68,7 +68,7 @@ defmodule Exq.Scheduler.Server do
 ##===========================================================
 
   def dequeue(state) do
-    Exq.RedisQueue.scheduler_dequeue(state.redis, state.namespace, state.queues)
+    Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace, state.queues)
     {state, state.scheduler_poll_timeout}
   end
 

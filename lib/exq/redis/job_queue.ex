@@ -1,16 +1,17 @@
-defmodule Exq.RedisQueue do
+defmodule Exq.Redis.JobQueue do
   use Timex
 
+  alias Exq.Redis.Connection
   alias Exq.Support.Json
 
   @default_queue "default"
 
   def find_job(redis, namespace, jid, :scheduled) do
-    Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace))
+    Connection.zrangebyscore!(redis, scheduled_queue_key(namespace))
       |> find_job(jid)
   end
   def find_job(redis, namespace, jid, queue) do
-    Exq.Redis.lrange!(redis, queue_key(namespace, queue))
+    Connection.lrange!(redis, queue_key(namespace, queue))
       |> find_job(jid)
   end
 
@@ -57,7 +58,7 @@ defmodule Exq.RedisQueue do
     enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
     {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
     score = time_to_score(time)
-    Exq.Redis.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
+    Connection.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
     jid
   end
 
@@ -65,20 +66,20 @@ defmodule Exq.RedisQueue do
     dequeue_random(redis, namespace, queues)
   end
   def dequeue(redis, namespace, queue) do
-    {Exq.Redis.lpop!(redis, queue_key(namespace, queue)), queue}
+    {Connection.lpop!(redis, queue_key(namespace, queue)), queue}
   end
 
   def scheduler_dequeue(redis, namespace, queues) when is_list(queues) do
     scheduler_dequeue(redis, namespace, queues, time_to_score(Time.now))
   end
   def scheduler_dequeue(redis, namespace, queues, max_score) when is_list(queues) do
-    Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace), 0, max_score)
+    Connection.zrangebyscore!(redis, scheduled_queue_key(namespace), 0, max_score)
       |> scheduler_dequeue_requeue(redis, namespace, queues, 0)
   end
 
   def scheduler_dequeue_requeue([], _redis, _namespace, _queues, count), do: count
   def scheduler_dequeue_requeue([job_json|t], redis, namespace, queues, count) do
-    if Exq.Redis.zrem!(redis, scheduled_queue_key(namespace), job_json) == "1" do
+    if Connection.zrem!(redis, scheduled_queue_key(namespace), job_json) == "1" do
       if Enum.count(queues) == 1 do
         enqueue(redis, namespace, hd(queues), job_json)
       else

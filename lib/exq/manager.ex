@@ -29,7 +29,7 @@ defmodule Exq.Manager do
 ##===========================================================
 
   def init([opts]) do
-    {:ok, redis} = Exq.Redis.connection(opts)
+    {:ok, redis} = Exq.Redis.Connection.connection(opts)
     name = Keyword.get(opts, :name, @default_name)
 
     {queues, work_table} = setup_queues(opts)
@@ -142,7 +142,7 @@ defmodule Exq.Manager do
   def dequeue_and_dispatch(state), do: dequeue_and_dispatch(state, available_queues(state))
   def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
   def dequeue_and_dispatch(state, queues) do
-    case Exq.RedisQueue.dequeue(state.redis, state.namespace, queues) do
+    case Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, queues) do
       {:none, _}   -> {state, state.poll_timeout}
       {job, queue} -> {dispatch_job(state, job, queue), 0}
     end

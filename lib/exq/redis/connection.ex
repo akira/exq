@@ -1,4 +1,4 @@
-defmodule Exq.Redis do
+defmodule Exq.Redis.Connection do
 
   alias Exq.Support.Config
 

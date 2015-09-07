@@ -2,7 +2,9 @@ defmodule Exq.Enqueuer.Server do
   require Logger
   alias Exq.Stats.Server, as: Stats
   alias Exq.Support.Config
-  import Exq.RedisQueue, only: [full_key: 2]
+  alias Exq.Redis.Connection
+  alias Exq.Redis.JobQueue
+  import Exq.Redis.JobQueue, only: [full_key: 2]
   use GenServer
 
   @default_name :exq_enqueuer
@@ -111,7 +113,7 @@ defmodule Exq.Enqueuer.Server do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     redis = case Keyword.get(opts, :redis) do
       nil ->
-        {:ok, r} = Exq.Redis.connection(opts)
+        {:ok, r} = Connection.connection(opts)
         r
       r -> r
     end
@@ -120,35 +122,35 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def handle_cast({:enqueue, from, queue, worker, args}, state) do
-    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
+    jid = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args)
     GenServer.reply(from, {:ok, jid})
     {:noreply, state}
   end
 
   def handle_cast({:enqueue_at, from, queue, time, worker, args}, state) do
-    jid = Exq.RedisQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
+    jid = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
     GenServer.reply(from, {:ok, jid})
     {:noreply, state}
   end
 
   def handle_cast({:enqueue_in, from, queue, offset, worker, args}, state) do
-    jid = Exq.RedisQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
+    jid = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
     GenServer.reply(from, {:ok, jid})
     {:noreply, state}
   end
 
   def handle_call({:enqueue, queue, worker, args}, _from, state) do
-    jid = Exq.RedisQueue.enqueue(state.redis, state.namespace, queue, worker, args)
+    jid = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args)
     {:reply, {:ok, jid}, state}
   end
 
   def handle_call({:enqueue_at, queue, time, worker, args}, _from, state) do
-    jid = Exq.RedisQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
+    jid = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
     {:reply, {:ok, jid}, state}
   end
 
   def handle_call({:enqueue_in, queue, offset, worker, args}, _from, state) do
-    jid = Exq.RedisQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
+    jid = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
     {:reply, {:ok, jid}, state}
   end
 
@@ -222,12 +224,12 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def handle_call({:find_job, queue, jid}, _from, state) do
-    {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, queue)
+    {:ok, job, idx} = JobQueue.find_job(state.redis, state.namespace, jid, queue)
     {:reply, {:ok, job, idx}, state, 0}
   end
 
   def handle_call({:find_scheduled_job, jid}, _from, state) do
-    {:ok, job, idx} = Exq.RedisQueue.find_job(state.redis, state.namespace, jid, :scheduled)
+    {:ok, job, idx} = JobQueue.find_job(state.redis, state.namespace, jid, :scheduled)
     {:reply, {:ok, job, idx}, state, 0}
   end
 
@@ -270,25 +272,25 @@ defmodule Exq.Enqueuer.Server do
   # Internal Functions
 
   def list_queues(redis, namespace) do
-    Exq.Redis.smembers!(redis, full_key(namespace, "queues"))
+    Connection.smembers!(redis, full_key(namespace, "queues"))
   end
 
   def list_jobs(redis, namespace, :scheduled) do
-    Exq.Redis.zrangebyscore!(redis, full_key(namespace, "schedule"))
+    Connection.zrangebyscore!(redis, full_key(namespace, "schedule"))
   end
   def list_jobs(redis, namespace, queue) do
-    Exq.Redis.lrange!(redis, full_key(namespace, "queue:#{queue}"))
+    Connection.lrange!(redis, full_key(namespace, "queue:#{queue}"))
   end
 
   def list_failed(redis, namespace) do
-    Exq.Redis.lrange!(redis, full_key(namespace, "failed"))
+    Connection.lrange!(redis, full_key(namespace, "failed"))
   end
 
   def queue_size(redis, namespace, :scheduled) do
-    Exq.Redis.zcard!(redis, full_key(namespace, "schedule"))
+    Connection.zcard!(redis, full_key(namespace, "schedule"))
   end
   def queue_size(redis, namespace, queue) do
-    Exq.Redis.llen!(redis, full_key(namespace, "queue:#{queue}"))
+    Connection.llen!(redis, full_key(namespace, "queue:#{queue}"))
   end
 
 end
