@@ -47,7 +47,7 @@ defmodule Exq.Worker do
       true ->
         GenServer.cast(state.manager, {:worker_terminated, self()})
         GenServer.cast(state.manager, {:success, state.job})
-        Exq.Manager.update_worker_count(state.work_table, state.queue, -1)
+        Exq.Manager.Server.update_worker_count(state.work_table, state.queue, -1)
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end
@@ -62,7 +62,7 @@ defmodule Exq.Worker do
         GenServer.cast(state.manager, {:worker_terminated, self()})
         error_msg = Inspect.Algebra.format(Inspect.Algebra.to_doc(error, %Inspect.Opts{}), %Inspect.Opts{}.width)
         GenServer.cast(state.manager, {:failure, to_string(error_msg), state.job})
-        Exq.Manager.update_worker_count(state.work_table, state.queue, -1)
+        Exq.Manager.Server.update_worker_count(state.work_table, state.queue, -1)
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end

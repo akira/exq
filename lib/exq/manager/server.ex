@@ -1,4 +1,4 @@
-defmodule Exq.Manager do
+defmodule Exq.Manager.Server do
   require Logger
   use GenServer
   alias Exq.Stats.Server, as: Stats

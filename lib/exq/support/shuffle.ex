@@ -1,5 +1,5 @@
 #http://en.literateprograms.org/index.php?title=Special:DownloadCode/Fisher-Yates_shuffle_(Erlang)
-defmodule Exq.Shuffle do
+defmodule Exq.Support.Shuffle do
   def shuffle(list)  do
     shuffle(list, [])
   end
