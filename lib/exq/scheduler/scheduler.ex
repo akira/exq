@@ -1,4 +1,4 @@
-defmodule Exq.Scheduler do
+defmodule Exq.Scheduler.Server do
   require Logger
   use GenServer
 

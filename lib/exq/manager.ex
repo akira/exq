@@ -56,7 +56,7 @@ defmodule Exq.Manager do
         queues: queues,
         scheduler_poll_timeout: scheduler_poll_timeout)
 
-      Exq.Scheduler.start_timeout(scheduler)
+      Exq.Scheduler.Server.start_timeout(scheduler)
     end
 
     state = %State{redis: redis,
