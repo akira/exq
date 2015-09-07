@@ -1,7 +1,9 @@
-defmodule Exq.Stats do
+defmodule Exq.Stats.Server do
   use GenServer
   use Timex
   alias Exq.Support.Json
+  alias Exq.Support.Binary
+  alias Exq.Stats.Process
   require Logger
 
   defmodule State do
@@ -9,7 +11,7 @@ defmodule Exq.Stats do
   end
 
   def add_process(pid, namespace, worker, host, job) do
-    GenServer.cast(pid, {:add_process, namespace, %Exq.Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
+    GenServer.cast(pid, {:add_process, namespace, %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
   end
 
 ##===========================================================
@@ -183,17 +185,16 @@ defmodule Exq.Stats do
   end
 
   def realtime_stats(redis, namespace) do
-
     failure_keys = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:*"))
     failures = for key <- failure_keys do
-      date = Exq.Support.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:"))
+      date = Binary.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:"))
       count = Exq.Redis.get!(redis, key)
       {date, count}
     end
 
     success_keys = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:*"))
     successes = for key <- success_keys do
-      date = Exq.Support.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:"))
+      date = Binary.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:"))
       count = Exq.Redis.get!(redis, key)
       {date, count}
     end

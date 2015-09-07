@@ -1,6 +1,7 @@
 defmodule Exq.Manager do
   require Logger
   use GenServer
+  alias Exq.Stats.Server, as: Stats
 
   @default_name :exq
 
@@ -37,7 +38,7 @@ defmodule Exq.Manager do
 
     {:ok, localhost} = :inet.gethostname()
 
-    {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
+    {:ok, stats} =  GenServer.start_link(Stats, {redis}, [])
 
     enqueuer = String.to_atom("#{name}_enqueuer")
     {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(
@@ -154,7 +155,7 @@ defmodule Exq.Manager do
 
   def dispatch_job(state, job, queue) do
     {:ok, worker} = Exq.Worker.start(job, state.pid, queue, state.work_table)
-    Exq.Stats.add_process(state.stats, state.namespace, worker, state.host, job)
+    Stats.add_process(state.stats, state.namespace, worker, state.host, job)
     Exq.Worker.work(worker)
     update_worker_count(state.work_table, queue, 1)
     state

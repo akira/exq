@@ -1,8 +1,8 @@
 defmodule Exq.Enqueuer do
   require Logger
+  alias Exq.Stats.Server, as: Stats
   import Exq.RedisQueue, only: [full_key: 2]
   use GenServer
-
 
   @default_name :exq_enqueuer
 
@@ -158,22 +158,22 @@ defmodule Exq.Enqueuer do
   # WebUI Stats callbacks
 
   def handle_call({:processes}, _from, state) do
-    processes = Exq.Stats.processes(state.redis, state.namespace)
+    processes = Stats.processes(state.redis, state.namespace)
     {:reply, {:ok, processes}, state, 0}
   end
 
   def handle_call({:busy}, _from, state) do
-    count = Exq.Stats.busy(state.redis, state.namespace)
+    count = Stats.busy(state.redis, state.namespace)
     {:reply, {:ok, count}, state, 0}
   end
 
   def handle_call({:stats, key}, _from, state) do
-    count = Exq.Stats.get(state.redis, state.namespace, key)
+    count = Stats.get(state.redis, state.namespace, key)
     {:reply, {:ok, count}, state, 0}
   end
 
   def handle_call({:stats, key, date}, _from, state) do
-    count = Exq.Stats.get(state.redis, state.namespace, "#{key}:#{date}")
+    count = Stats.get(state.redis, state.namespace, "#{key}:#{date}")
     {:reply, {:ok, count}, state, 0}
   end
 
@@ -216,7 +216,7 @@ defmodule Exq.Enqueuer do
   end
 
   def handle_call({:find_failed, jid}, _from, state) do
-    {:ok, job, idx} = Exq.Stats.find_failed(state.redis, state.namespace, jid)
+    {:ok, job, idx} = Stats.find_failed(state.redis, state.namespace, jid)
     {:reply, {:ok, job, idx}, state, 0}
   end
 
@@ -231,27 +231,27 @@ defmodule Exq.Enqueuer do
   end
 
   def handle_call({:remove_queue, queue}, _from, state) do
-    Exq.Stats.remove_queue(state.redis, state.namespace, queue)
+    Stats.remove_queue(state.redis, state.namespace, queue)
     {:reply, {:ok}, state, 0}
   end
 
   def handle_call({:remove_failed, jid}, _from, state) do
-    Exq.Stats.remove_failed(state.redis, state.namespace, jid)
+    Stats.remove_failed(state.redis, state.namespace, jid)
     {:reply, {:ok}, state, 0}
   end
 
   def handle_call({:clear_failed}, _from, state) do
-    Exq.Stats.clear_failed(state.redis, state.namespace)
+    Stats.clear_failed(state.redis, state.namespace)
     {:reply, {:ok}, state, 0}
   end
 
   def handle_call({:clear_processes}, _from, state) do
-    Exq.Stats.clear_processes(state.redis, state.namespace)
+    Stats.clear_processes(state.redis, state.namespace)
     {:reply, {:ok}, state, 0}
   end
 
   def handle_call({:realtime_stats}, _from, state) do
-    {:ok, failures, successes} = Exq.Stats.realtime_stats(state.redis, state.namespace)
+    {:ok, failures, successes} = Stats.realtime_stats(state.redis, state.namespace)
     {:reply, {:ok, failures, successes}, state, 0}
   end
 
