@@ -2,7 +2,6 @@ defmodule Exq.RouterPlug do
   require Logger
   require EEx
   alias Exq.RouterPlug.Router
-  alias Exq.Support.Json
 
   def init(options) do
     if options[:exqopts] do
@@ -41,7 +40,6 @@ defmodule Exq.RouterPlug do
     plug :match
     plug :dispatch
 
-
     get "/api/stats/all" do
       {:ok, processed} = Exq.Api.stats(conn.assigns[:exq_name], "processed")
       {:ok, failed} = Exq.Api.stats(conn.assigns[:exq_name], "failed")
@@ -55,7 +53,7 @@ defmodule Exq.RouterPlug do
       end
       qtotal = "#{Enum.sum(queue_sizes)}"
 
-      {:ok, json} = Json.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, scheduled: scheduled, enqueued: qtotal}})
+      {:ok, json} = Poison.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, scheduled: scheduled, enqueued: qtotal}})
       conn |> send_resp(200, json) |> halt
     end
 
@@ -71,18 +69,18 @@ defmodule Exq.RouterPlug do
       end
       all = %{realtimes: f ++ s}
 
-      {:ok, json} = Json.encode(all)
+      {:ok, json} = Poison.encode(all)
       conn |> send_resp(200, json) |> halt
     end
 
     get "/api/failures" do
       {:ok, failed} = Exq.Api.failed(conn.assigns[:exq_name])
       failures = for f <- failed do
-        {:ok, fail} = Json.decode(f, %{})
+        {:ok, fail} = Poison.decode(f, %{})
         Map.put(fail, :id, fail["jid"])
       end
 
-      {:ok, json} = Json.encode(%{failures: failures})
+      {:ok, json} = Poison.encode(%{failures: failures})
       conn |> send_resp(200, json) |> halt
     end
 
@@ -104,8 +102,8 @@ defmodule Exq.RouterPlug do
       {:ok, processes} = Exq.Api.processes(conn.assigns[:exq_name])
 
       process_jobs = for p <- processes do
-        {:ok, process} = Json.decode(p, %{})
-        {:ok, pjob} = Json.decode(process["job"], %{})
+        {:ok, process} = Poison.decode(p, %{})
+        {:ok, pjob} = Poison.decode(process["job"], %{})
         process = Map.delete(process, "job")
         process = Map.put(process, :job_id, pjob["jid"])
         process = Map.put(process, :id, "#{process["host"]}:#{process["pid"]}")
@@ -116,25 +114,25 @@ defmodule Exq.RouterPlug do
       processes = for [process, _job] <- process_jobs, do: process
       jobs = for [_process, job] <- process_jobs, do: job
 
-      {:ok, json} = Json.encode(%{processes: processes, jobs: jobs})
+      {:ok, json} = Poison.encode(%{processes: processes, jobs: jobs})
       conn |> send_resp(200, json) |> halt
     end
 
     get "/api/queues" do
       {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
       job_counts = for {q, size} <- queues, do: %{id: q, size: size}
-      {:ok, json} = Json.encode(%{queues: job_counts})
+      {:ok, json} = Poison.encode(%{queues: job_counts})
       conn |> send_resp(200, json) |> halt
     end
 
     get "/api/queues/:id" do
       {:ok, jobs} = Exq.Api.jobs(conn.assigns[:exq_name], id)
       jobs_structs = for j <- jobs do
-        {:ok, job} = Json.decode(j, %{})
+        {:ok, job} = Poison.decode(j, %{})
         Map.put(job, :id, job["jid"])
       end
       job_ids = for j <- jobs_structs, do: j[:id]
-      {:ok, json} = Json.encode(%{queue: %{id: id, job_ids: job_ids, partial: false}, jobs: jobs_structs})
+      {:ok, json} = Poison.encode(%{queue: %{id: id, job_ids: job_ids, partial: false}, jobs: jobs_structs})
       conn |> send_resp(200, json) |> halt
     end
 
