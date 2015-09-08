@@ -123,6 +123,12 @@ defmodule Exq.Redis.JobQueue do
   def to_job_json(queue, worker, args) do
     to_job_json(queue, worker, args, DateFormat.format!(Date.local, "{ISO}"))
   end
+  def to_job_json(queue, worker, args, enqueued_at) when is_atom(worker) do
+    to_job_json(queue, to_string(worker), args, enqueued_at)
+  end
+  def to_job_json(queue, "Elixir." <> worker, args, enqueued_at) do
+    to_job_json(queue, worker, args, enqueued_at)
+  end
   def to_job_json(queue, worker, args, enqueued_at) do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
