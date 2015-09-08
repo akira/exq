@@ -1,6 +1,7 @@
 defmodule Exq.Stats do
   use GenServer
   use Timex
+  alias Exq.Support.Json
   require Logger
 
   defmodule State do
@@ -91,7 +92,7 @@ defmodule Exq.Stats do
     pid = to_string(:io_lib.format("~p", [process.pid]))
 
     process = Enum.into([{:pid, pid}, {:host, process.host}, {:job, process.job}, {:started_at, process.started_at}], HashDict.new)
-    json = Exq.Json.encode!(process)
+    json = Json.encode!(process)
 
     Exq.Redis.sadd!(redis, Exq.RedisQueue.full_key(namespace, "processes"), json)
     :ok
@@ -103,7 +104,7 @@ defmodule Exq.Stats do
     processes = Exq.Redis.smembers!(redis, Exq.RedisQueue.full_key(namespace, "processes"))
 
     finder = fn(p) ->
-      case Exq.Json.decode(p) do
+      case Json.decode(p) do
         { :ok, proc } -> (Dict.get(proc, "pid") == pid) && (Dict.get(proc, "host") == hostname)
         { :error, _ } -> false
       end
@@ -149,7 +150,7 @@ defmodule Exq.Stats do
     job = Exq.Job.from_json(json)
     job = Enum.into([{:failed_at, failed_at}, {:error_class, "ExqGenericError"}, {:error_message, error}, {:queue, job.queue}, {:class, job.class}, {:args, job.args}, {:jid, job.jid}, {:enqueued_at, job.enqueued_at}], HashDict.new)
 
-    job_json = Exq.Json.encode!(job)
+    job_json = Json.encode!(job)
 
     Exq.Redis.rpush!(redis, Exq.RedisQueue.full_key(namespace, "failed"), job_json)
 

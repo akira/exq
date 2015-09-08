@@ -1,8 +1,9 @@
 defmodule Exq.RedisQueue do
   use Timex
 
-  @default_queue "default"
+  alias Exq.Support.Json
 
+  @default_queue "default"
 
   def find_job(redis, namespace, jid, :scheduled) do
     Exq.Redis.zrangebyscore!(redis, scheduled_queue_key(namespace))
@@ -37,7 +38,7 @@ defmodule Exq.RedisQueue do
     jid
   end
   def enqueue(redis, namespace, job_json) do
-    job = Exq.Json.decode!(job_json)
+    job = Json.decode!(job_json)
     enqueue(redis, namespace, job["queue"], job_json)
     job["jid"]
   end
@@ -124,6 +125,6 @@ defmodule Exq.RedisQueue do
   def to_job_json(queue, worker, args, enqueued_at) do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
-    {jid, Exq.Json.encode!(job)}
+    {jid, Json.encode!(job)}
   end
 end

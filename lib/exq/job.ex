@@ -1,30 +1,12 @@
-
-defmodule Exq.Json do
-  def decode(json) do
-    Poison.decode(json)
-  end
-
-  def encode(e) do
-    Poison.encode(e)
-  end
-
-  def decode!(json) do
-    Poison.decode!(json)
-  end
-
-  def encode!(e) do
-    Poison.encode!(e)
-  end
-end
-
 defmodule Exq.Job do
   defstruct error_message: nil, error_class: nil, failed_at: nil, retry: false,
             retry_count: 0, processor: nil, queue: nil, class: nil, args: nil,
             jid: nil, finished_at: nil, enqueued_at: nil
 
+  alias Exq.Support.Json
 
   def from_json(json_str) do
-    json = Exq.Json.decode!(json_str)
+    json = Json.decode!(json_str)
     %Exq.Job{
       args: Dict.get(json, "args"),
       class: Dict.get(json, "class"),
@@ -54,6 +36,6 @@ defmodule Exq.Job do
       queue: job.queue,
       retry: job.retry,
       retry_count: job.retry_count], HashDict.new)
-    Exq.Json.encode!(job)
+    Json.encode!(job)
   end
 end
