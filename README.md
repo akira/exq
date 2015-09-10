@@ -175,7 +175,7 @@ end
 
 We could enqueue a job to this worker:
 ```elixir
-{:ok, jid} = Exq.enqueue(:exq, "default", "MyWorker", [])
+{:ok, jid} = Exq.enqueue(:exq, "default", MyWorker, [])
 ```
 
 By default, the `perform` method will be called.  However, you can pass a method such as `MyWorker/custom_method`
