@@ -1,6 +1,11 @@
-defmodule Exq.Stats do
+defmodule Exq.Stats.Server do
   use GenServer
   use Timex
+  alias Exq.Redis.Connection
+  alias Exq.Redis.JobQueue
+  alias Exq.Support.Json
+  alias Exq.Support.Binary
+  alias Exq.Stats.Process
   require Logger
 
   defmodule State do
@@ -8,7 +13,7 @@ defmodule Exq.Stats do
   end
 
   def add_process(pid, namespace, worker, host, job) do
-    GenServer.cast(pid, {:add_process, namespace, %Exq.Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
+    GenServer.cast(pid, {:add_process, namespace, %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
   end
 
 ##===========================================================
@@ -71,7 +76,7 @@ defmodule Exq.Stats do
 ##===========================================================
 
   def get(redis, namespace, key) do
-    case Exq.Redis.get!(redis, Exq.RedisQueue.full_key(namespace, "stat:#{key}")) do
+    case Connection.get!(redis, JobQueue.full_key(namespace, "stat:#{key}")) do
       :undefined ->
         0
       count ->
@@ -80,30 +85,30 @@ defmodule Exq.Stats do
   end
 
   def busy(redis, namespace) do
-    Exq.Redis.scard!(redis, Exq.RedisQueue.full_key(namespace, "processes"))
+    Connection.scard!(redis, JobQueue.full_key(namespace, "processes"))
   end
 
   def processes(redis, namespace) do
-    Exq.Redis.smembers!(redis, Exq.RedisQueue.full_key(namespace, "processes"))
+    Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
   end
 
   def add_process(redis, namespace, process) do
     pid = to_string(:io_lib.format("~p", [process.pid]))
 
     process = Enum.into([{:pid, pid}, {:host, process.host}, {:job, process.job}, {:started_at, process.started_at}], HashDict.new)
-    json = Exq.Json.encode!(process)
+    json = Json.encode!(process)
 
-    Exq.Redis.sadd!(redis, Exq.RedisQueue.full_key(namespace, "processes"), json)
+    Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), json)
     :ok
   end
 
   def remove_process(redis, namespace, hostname, pid) do
     pid = to_string(:io_lib.format("~p", [pid]))
 
-    processes = Exq.Redis.smembers!(redis, Exq.RedisQueue.full_key(namespace, "processes"))
+    processes = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
 
     finder = fn(p) ->
-      case Exq.Json.decode(p) do
+      case Json.decode(p) do
         { :ok, proc } -> (Dict.get(proc, "pid") == pid) && (Dict.get(proc, "host") == hostname)
         { :error, _ } -> false
       end
@@ -115,85 +120,84 @@ defmodule Exq.Stats do
       nil ->
         {:not_found, nil}
       p ->
-        Exq.Redis.srem!(redis, Exq.RedisQueue.full_key(namespace, "processes"), proc)
+        Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), proc)
         {:ok, p}
     end
 
   end
 
   def record_processed(redis, namespace, _job) do
-    count = Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed"))
+    count = Connection.incr!(redis, JobQueue.full_key(namespace, "stat:processed"))
 
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
-    Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:#{time}"))
-    Exq.Redis.expire!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:#{time}"), 120)
+    Connection.incr!(redis, JobQueue.full_key(namespace, "stat:processed_rt:#{time}"))
+    Connection.expire!(redis, JobQueue.full_key(namespace, "stat:processed_rt:#{time}"), 120)
 
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
-    Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed:#{date}"))
+    Connection.incr!(redis, JobQueue.full_key(namespace, "stat:processed:#{date}"))
     {:ok, count}
   end
 
   def record_failure(redis, namespace, error, json) do
-    count = Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"))
+    count = Connection.incr!(redis, JobQueue.full_key(namespace, "stat:failed"))
 
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
-    Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:#{time}"))
-    Exq.Redis.expire!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:#{time}"), 120)
+    Connection.incr!(redis, JobQueue.full_key(namespace, "stat:failed_rt:#{time}"))
+    Connection.expire!(redis, JobQueue.full_key(namespace, "stat:failed_rt:#{time}"), 120)
 
 
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
-    Exq.Redis.incr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed:#{date}"))
+    Connection.incr!(redis, JobQueue.full_key(namespace, "stat:failed:#{date}"))
 
     failed_at = DateFormat.format!(Date.local, "{ISO}")
 
-    job = Exq.Job.from_json(json)
+    job = Exq.Support.Job.from_json(json)
     job = Enum.into([{:failed_at, failed_at}, {:error_class, "ExqGenericError"}, {:error_message, error}, {:queue, job.queue}, {:class, job.class}, {:args, job.args}, {:jid, job.jid}, {:enqueued_at, job.enqueued_at}], HashDict.new)
 
-    job_json = Exq.Json.encode!(job)
+    job_json = Json.encode!(job)
 
-    Exq.Redis.rpush!(redis, Exq.RedisQueue.full_key(namespace, "failed"), job_json)
+    Connection.rpush!(redis, JobQueue.full_key(namespace, "failed"), job_json)
 
     {:ok, count}
   end
 
   def find_failed(redis, namespace, jid) do
-    Exq.Redis.lrange!(redis, Exq.RedisQueue.full_key(namespace, "failed"), 0, -1)
-      |> Exq.RedisQueue.find_job(jid)
+    Connection.lrange!(redis, JobQueue.full_key(namespace, "failed"), 0, -1)
+      |> JobQueue.find_job(jid)
   end
 
   def remove_queue(redis, namespace, queue) do
-    Exq.Redis.srem!(redis, Exq.RedisQueue.full_key(namespace, "queues"), queue)
-    Exq.Redis.del!(redis, Exq.RedisQueue.queue_key(namespace, queue))
+    Connection.srem!(redis, JobQueue.full_key(namespace, "queues"), queue)
+    Connection.del!(redis, JobQueue.queue_key(namespace, queue))
   end
 
   def remove_failed(redis, namespace, jid) do
-    Exq.Redis.decr!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"))
+    Connection.decr!(redis, JobQueue.full_key(namespace, "stat:failed"))
     {:ok, failure, _idx} = find_failed(redis, namespace, jid)
-    Exq.Redis.lrem!(redis, Exq.RedisQueue.full_key(namespace, "failed"), failure)
+    Connection.lrem!(redis, JobQueue.full_key(namespace, "failed"), failure)
   end
 
   def clear_failed(redis, namespace) do
-    Exq.Redis.set!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"), 0)
-    Exq.Redis.del!(redis, Exq.RedisQueue.full_key(namespace, "failed"))
+    Connection.set!(redis, JobQueue.full_key(namespace, "stat:failed"), 0)
+    Connection.del!(redis, JobQueue.full_key(namespace, "failed"))
   end
 
   def clear_processes(redis, namespace) do
-    Exq.Redis.del!(redis, Exq.RedisQueue.full_key(namespace, "processes"))
+    Connection.del!(redis, JobQueue.full_key(namespace, "processes"))
   end
 
   def realtime_stats(redis, namespace) do
-
-    failure_keys = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:*"))
+    failure_keys = Connection.keys!(redis, JobQueue.full_key(namespace, "stat:failed_rt:*"))
     failures = for key <- failure_keys do
-      date = Exq.Support.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:failed_rt:"))
-      count = Exq.Redis.get!(redis, key)
+      date = Binary.take_prefix(key, JobQueue.full_key(namespace, "stat:failed_rt:"))
+      count = Connection.get!(redis, key)
       {date, count}
     end
 
-    success_keys = Exq.Redis.keys!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:*"))
+    success_keys = Connection.keys!(redis, JobQueue.full_key(namespace, "stat:processed_rt:*"))
     successes = for key <- success_keys do
-      date = Exq.Support.take_prefix(key, Exq.RedisQueue.full_key(namespace, "stat:processed_rt:"))
-      count = Exq.Redis.get!(redis, key)
+      date = Binary.take_prefix(key, JobQueue.full_key(namespace, "stat:processed_rt:"))
+      count = Connection.get!(redis, key)
       {date, count}
     end
 

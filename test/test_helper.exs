@@ -1,11 +1,14 @@
 defmodule TestStats do
+  alias Exq.Redis.Connection
+  alias Exq.Redis.JobQueue
+
   def processed_count(redis, namespace) do
-    count = Exq.Redis.get!(redis, Exq.RedisQueue.full_key(namespace, "stat:processed"))
+    count = Connection.get!(redis, JobQueue.full_key(namespace, "stat:processed"))
     {:ok, count}
   end
 
   def failed_count(redis, namespace) do
-    count = Exq.Redis.get!(redis, Exq.RedisQueue.full_key(namespace, "stat:failed"))
+    count = Connection.get!(redis, JobQueue.full_key(namespace, "stat:failed"))
     {:ok, count}
   end
 end
@@ -50,6 +53,8 @@ defmodule ExqTestUtil do
 end
 
 defmodule TestRedis do
+  alias Exq.Redis.Connection
+
   #TODO: Automate config
   def start do
     [] = :os.cmd('redis-server test/test-redis.conf')
@@ -68,7 +73,7 @@ defmodule TestRedis do
   end
 
   def flush_all do
-      Exq.Redis.flushdb! :testredis
+      Connection.flushdb! :testredis
   end
 
   def teardown do

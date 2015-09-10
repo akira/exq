@@ -40,7 +40,6 @@ defmodule Exq.RouterPlug do
     plug :match
     plug :dispatch
 
-
     get "/api/stats/all" do
       {:ok, processed} = Exq.Api.stats(conn.assigns[:exq_name], "processed")
       {:ok, failed} = Exq.Api.stats(conn.assigns[:exq_name], "failed")

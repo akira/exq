@@ -1,4 +1,4 @@
-defmodule Exq.Support do 
+defmodule Exq.Support.Binary do
   def take_prefix(full, prefix) do
     base = byte_size(prefix)
     <<_ :: binary-size(base), rest :: binary>> = full

@@ -23,7 +23,7 @@ defmodule WorkerTest do
 
   def assert_terminate(worker, normal_terminate) do
     :erlang.monitor(:process, worker)
-    Exq.Worker.work(worker)
+    Exq.Worker.Server.work(worker)
     receive do
       {:'DOWN', _, _, _pid, :normal} -> assert normal_terminate
       {:'DOWN', _, _, _pid, _} -> assert !normal_terminate
@@ -34,7 +34,7 @@ defmodule WorkerTest do
 
   def start_worker(job) do
     work_table = :ets.new(:work_table, [:set, :public])
-    Exq.Worker.start(
+    Exq.Worker.Server.start(
       job,
       nil,
       "default",

@@ -1,6 +1,9 @@
-defmodule Exq.Manager do
+defmodule Exq.Manager.Server do
   require Logger
   use GenServer
+  alias Exq.Stats.Server, as: Stats
+  alias Exq.Enqueuer
+  alias Exq.Support.Config
 
   @default_name :exq
 
@@ -26,18 +29,18 @@ defmodule Exq.Manager do
 ##===========================================================
 
   def init([opts]) do
-    {:ok, redis} = Exq.Redis.connection(opts)
+    {:ok, redis} = Exq.Redis.Connection.connection(opts)
     name = Keyword.get(opts, :name, @default_name)
 
     {queues, work_table} = setup_queues(opts)
-    namespace = Keyword.get(opts, :namespace, Exq.Config.get(:namespace, "exq"))
-    poll_timeout = Keyword.get(opts, :poll_timeout, Exq.Config.get(:poll_timeout, 50))
-    scheduler_enable = Keyword.get(opts, :scheduler_enable, Exq.Config.get(:scheduler_enable, false))
-    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Exq.Config.get(:scheduler_poll_timeout, 200))
+    namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
+    poll_timeout = Keyword.get(opts, :poll_timeout, Config.get(:poll_timeout, 50))
+    scheduler_enable = Keyword.get(opts, :scheduler_enable, Config.get(:scheduler_enable, false))
+    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
 
     {:ok, localhost} = :inet.gethostname()
 
-    {:ok, stats} =  GenServer.start_link(Exq.Stats, {redis}, [])
+    {:ok, stats} =  GenServer.start_link(Stats, {redis}, [])
 
     enqueuer = String.to_atom("#{name}_enqueuer")
     {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(
@@ -55,7 +58,7 @@ defmodule Exq.Manager do
         queues: queues,
         scheduler_poll_timeout: scheduler_poll_timeout)
 
-      Exq.Scheduler.start_timeout(scheduler)
+      Exq.Scheduler.Server.start_timeout(scheduler)
     end
 
     state = %State{redis: redis,
@@ -94,17 +97,17 @@ defmodule Exq.Manager do
   end
 
   def handle_call({:enqueue, queue, worker, args}, from, state) do
-    Exq.Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
+    Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
     {:noreply, state, 10}
   end
 
   def handle_call({:enqueue_at, queue, time, worker, args}, from, state) do
-    Exq.Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args)
+    Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args)
     {:noreply, state, 10}
   end
 
   def handle_call({:enqueue_in, queue, offset, worker, args}, from, state) do
-    Exq.Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
+    Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
     {:noreply, state, 10}
   end
 
@@ -139,7 +142,7 @@ defmodule Exq.Manager do
   def dequeue_and_dispatch(state), do: dequeue_and_dispatch(state, available_queues(state))
   def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
   def dequeue_and_dispatch(state, queues) do
-    case Exq.RedisQueue.dequeue(state.redis, state.namespace, queues) do
+    case Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, queues) do
       {:none, _}   -> {state, state.poll_timeout}
       {job, queue} -> {dispatch_job(state, job, queue), 0}
     end
@@ -153,15 +156,15 @@ defmodule Exq.Manager do
   end
 
   def dispatch_job(state, job, queue) do
-    {:ok, worker} = Exq.Worker.start(job, state.pid, queue, state.work_table)
-    Exq.Stats.add_process(state.stats, state.namespace, worker, state.host, job)
-    Exq.Worker.work(worker)
+    {:ok, worker} = Exq.Worker.Server.start(job, state.pid, queue, state.work_table)
+    Stats.add_process(state.stats, state.namespace, worker, state.host, job)
+    Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
     state
   end
 
   defp setup_queues(opts) do
-    queue_configs = Keyword.get(opts, :queues, Exq.Config.get(:queues, ["default"]))
+    queue_configs = Keyword.get(opts, :queues, Config.get(:queues, ["default"]))
     queues = Enum.map(queue_configs, fn queue_config ->
       case queue_config do
         {queue, _concurrency} -> queue
@@ -169,7 +172,7 @@ defmodule Exq.Manager do
       end
     end)
     work_table = :ets.new(:work_table, [:set, :public])
-    per_queue_concurrency = Keyword.get(opts, :concurrency, Exq.Config.get(:concurrency, 10_000))
+    per_queue_concurrency = Keyword.get(opts, :concurrency, Config.get(:concurrency, 10_000))
     Enum.each(queue_configs, fn (queue_config) ->
       queue_concurrency = case queue_config do
         {queue, concurrency} -> {queue, concurrency, 0}
