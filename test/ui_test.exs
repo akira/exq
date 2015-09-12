@@ -48,7 +48,7 @@ defmodule Exq.ApiTest do
     conn = conn(:get, "/api/processes") |> call
     assert conn.status == 200
     {:ok, json} = Json.decode(conn.resp_body)
-    assert json["processes"] == []
+    assert json["processes"] != nil
   end
 
   test "serves the queues" do
