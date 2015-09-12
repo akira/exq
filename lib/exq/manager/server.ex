@@ -19,8 +19,7 @@ defmodule Exq.Manager.Server do
   end
 
   def update_worker_count(work_table, queue, delta) do
-    [{_, concurrency, worker_count}] = :ets.lookup(work_table, queue)
-    :ets.insert(work_table, {queue, concurrency, worker_count + delta})
+    :ets.update_counter(work_table, queue, {3, delta})
   end
 
 
