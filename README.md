@@ -35,7 +35,7 @@ The "concurrency" setting will let you configure the amount of concurrent worker
 
 ```elixir
 config :exq,
-  host: '127.0.0.1',
+  host: "127.0.0.1",
   port: 6379,
   password: "optional_redis_auth",
   namespace: "exq",
@@ -54,7 +54,7 @@ Concurrency for each queue will be set at ```1000```:
 
 ```elixir
 config :exq,
-  host: '127.0.0.1',
+  host: "127.0.0.1",
   port: 6379,
   namespace: "exq",
   concurrency: 1000,
@@ -65,7 +65,7 @@ Concurrency for ```q1``` is set at ```10_000``` while ```q2``` is set at ```10``
 
 ```elixir
 config :exq,
-  host: '127.0.0.1',
+  host: "127.0.0.1",
   port: 6379,
   namespace: "exq",
   queues: [{"q1", 10_000}, {"q2", 10}]
@@ -103,7 +103,7 @@ To connect with custom configuration options (if you need multiple instances of 
 under start_link:
 
 ```elixir
-{:ok, sup} = Exq.start_link([host: '127.0.0.1', port: 6379, namespace: 'x'])
+{:ok, sup} = Exq.start_link([host: "127.0.0.1", port: 6379, namespace: "x"])
 ```
 
 By default, Exq will register itself under the ```:exq``` atom.  You can change this by passing in a name parameter:
