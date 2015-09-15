@@ -50,6 +50,11 @@ defmodule ExqTestUtil do
     :timer.sleep(@long_timeout)
   end
 
+  def reset_config do
+    config = Mix.Config.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
+    Mix.Config.persist(config)
+  end
+
 end
 
 defmodule TestRedis do

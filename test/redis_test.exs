@@ -6,6 +6,7 @@ defmodule Exq.RedisTest do
   alias Exq.Redis.Connection
 
   setup_all do
+    ExqTestUtil.reset_config
     TestRedis.setup
     on_exit fn ->
       TestRedis.teardown
@@ -17,6 +18,28 @@ defmodule Exq.RedisTest do
       Connection.flushdb! :testredis
     end
     :ok
+  end
+
+  test "info" do
+    {host, port, database, password, reconnect_on_sleep} = Connection.info
+    assert host == '127.0.0.1'
+    assert port == 6379
+    assert password == ''
+    assert database == 0
+    assert reconnect_on_sleep == 100
+
+    Mix.Config.persist([exq: [host: '127.1.1.1', password: 'password']])
+    {host, _, _, password, _} = Connection.info
+    assert host == '127.1.1.1'
+    assert password == 'password'
+
+    Mix.Config.persist([exq: [password: "string_password"]])
+    {_, _, _, password, _} = Connection.info
+    assert password == 'string_password'
+
+    Mix.Config.persist([exq: [password: nil]])
+    {_, _, _, password, _} = Connection.info
+    assert password == ''
   end
 
   test "smembers empty" do
