@@ -9,6 +9,7 @@ defmodule Exq.RedisTest do
     ExqTestUtil.reset_config
     TestRedis.setup
     on_exit fn ->
+      ExqTestUtil.reset_config
       TestRedis.teardown
     end
   end
