@@ -25,7 +25,7 @@ defmodule Exq.Worker.Server do
   def handle_cast(:work, state) do
     job = Exq.Support.Job.from_json(state.job)
 
-    target = job.class
+    target = String.replace(job.class, "::", ".")
     [mod | func_or_empty] = Regex.split(~r/\//, target)
     func = case func_or_empty do
       [] -> :perform
