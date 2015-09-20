@@ -46,6 +46,11 @@ defmodule WorkerTest do
     assert_terminate(worker, true)
   end
 
+  test "execute valid rubyish job with perform" do
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest::NoArgWorker\", \"args\": [] }")
+    assert_terminate(worker, true)
+  end
+
   test "execute valid job with perform args" do
     {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest.ThreeArgWorker\", \"args\": [1, 2, 3] }")
     assert_terminate(worker, true)
