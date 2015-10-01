@@ -1,4 +1,5 @@
-%{"cowboy": {:hex, :cowboy, "1.0.0"},
+%{"combine": {:hex, :combine, "0.5.2"},
+  "cowboy": {:hex, :cowboy, "1.0.0"},
   "cowlib": {:hex, :cowlib, "1.0.0"},
   "eredis": {:hex, :eredis, "1.0.8"},
   "excoveralls": {:hex, :excoveralls, "0.3.11"},
@@ -10,5 +11,6 @@
   "poison": {:hex, :poison, "1.4.0"},
   "ranch": {:hex, :ranch, "1.0.0"},
   "ssl_verify_hostname": {:hex, :ssl_verify_hostname, "1.0.5"},
-  "timex": {:hex, :timex, "0.13.5"},
+  "timex": {:hex, :timex, "0.19.5"},
+  "tzdata": {:hex, :tzdata, "0.5.3"},
   "uuid": {:hex, :uuid, "1.0.0"}}
