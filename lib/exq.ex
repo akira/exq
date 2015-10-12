@@ -35,4 +35,17 @@ defmodule Exq do
   def enqueue_in(pid, queue, offset, worker, args) do
     GenServer.call(pid, {:enqueue_in, queue, offset, worker, args})
   end
+  
+  def subscribe(pid, queue) do
+    GenServer.call(pid, {:subscribe, queue})
+  end
+  
+  def subscribe(pid, queue, concurrency) do
+    GenServer.call(pid, {:subscribe, queue, concurrency})
+  end
+  
+  def unsubscribe(pid, queue) do
+    GenServer.call(pid, {:unsubscribe, queue})
+  end
+  
 end

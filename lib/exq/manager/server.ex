@@ -109,6 +109,21 @@ defmodule Exq.Manager.Server do
     Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
     {:noreply, state, 10}
   end
+  
+  def handle_call({:subscribe, queue}, from, state) do
+    updated_state = add_queue(state, queue)
+    {:reply, :ok, updated_state}
+  end
+  
+  def handle_call({:subscribe, queue, concurrency}, from, state) do
+    updated_state = add_queue(state, queue, concurrency)
+    {:reply, :ok, updated_state}
+  end
+  
+  def handle_call({:unsubscribe, queue}, from, state) do
+    updated_state = remove_queue(state, queue)
+    {:reply, :ok, updated_state}
+  end
 
   def handle_call({:stop}, _from, state) do
     { :stop, :normal, :ok, state }
@@ -180,6 +195,19 @@ defmodule Exq.Manager.Server do
       :ets.insert(work_table, queue_concurrency)
     end)
     {queues, work_table}
+  end
+  
+  defp add_queue(state, queue, concurrency \\ Config.get(:concurrency, 10_000)) do
+    queue_concurrency = {queue, concurrency, 0}
+    :ets.insert(state.work_table, queue_concurrency)
+    updated_queues = [queue | state.queues]
+    %{state | queues: updated_queues}
+  end
+  
+  defp remove_queue(state, queue) do
+    :ets.delete(state.work_table, queue)
+    updated_queues = List.delete(state.queues, queue)
+    %{state | queues: updated_queues}
   end
 
   def default_name, do: @default_name

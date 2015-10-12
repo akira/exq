@@ -117,6 +117,30 @@ defmodule ExqTest do
     assert_received {:worked, 2}
     stop_process(sup)
   end
+  
+  test "register queue and run job" do
+    Process.register(self, :exqtest)
+    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1"]])
+    {:ok, _} = Exq.subscribe(:exq_t, "q2", 10)
+    {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
+    {:ok, _} = Exq.enqueue(:exq_t, "q2", ExqTest.PerformArgWorker, [2])
+    wait_long
+    assert_received {:worked, 1}
+    assert_received {:worked, 2}
+    stop_process(sup)
+  end
+  
+  test "unregister queue and run job" do
+    Process.register(self, :exqtest)
+    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1","to_remove"]])
+    {:ok, _} = Exq.unsubscribe(:exq_t, "to_remove")
+    {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
+    {:ok, _} = Exq.enqueue(:exq_t, "to_remove", ExqTest.PerformArgWorker, [2])
+    wait_long
+    assert_received {:worked, 1}
+    refute_received {:worked, 2}
+    stop_process(sup)
+  end
 
   test "throttle workers per queue" do
     Process.register(self, :exqtest)
