@@ -112,17 +112,17 @@ defmodule Exq.Manager.Server do
   
   def handle_call({:subscribe, queue}, from, state) do
     updated_state = add_queue(state, queue)
-    {:reply, :ok, updated_state}
+    {:reply, :ok, updated_state,0}
   end
   
   def handle_call({:subscribe, queue, concurrency}, from, state) do
     updated_state = add_queue(state, queue, concurrency)
-    {:reply, :ok, updated_state}
+    {:reply, :ok, updated_state,0}
   end
   
   def handle_call({:unsubscribe, queue}, from, state) do
     updated_state = remove_queue(state, queue)
-    {:reply, :ok, updated_state}
+    {:reply, :ok, updated_state,0}
   end
 
   def handle_call({:stop}, _from, state) do

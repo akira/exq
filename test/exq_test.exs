@@ -106,7 +106,6 @@ defmodule ExqTest do
     stop_process(enq_sup)
   end
 
-
   test "run jobs on multiple queues" do
     Process.register(self, :exqtest)
     {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1", "q2"]])
@@ -121,9 +120,10 @@ defmodule ExqTest do
   test "register queue and run job" do
     Process.register(self, :exqtest)
     {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1"]])
-    {:ok, _} = Exq.subscribe(:exq_t, "q2", 10)
+    :ok = Exq.subscribe(:exq_t, "q2", 10)
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "q2", ExqTest.PerformArgWorker, [2])
+    
     wait_long
     assert_received {:worked, 1}
     assert_received {:worked, 2}
@@ -133,7 +133,7 @@ defmodule ExqTest do
   test "unregister queue and run job" do
     Process.register(self, :exqtest)
     {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1","to_remove"]])
-    {:ok, _} = Exq.unsubscribe(:exq_t, "to_remove")
+    :ok = Exq.unsubscribe(:exq_t, "to_remove")
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "to_remove", ExqTest.PerformArgWorker, [2])
     wait_long
