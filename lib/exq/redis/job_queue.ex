@@ -110,12 +110,13 @@ defmodule Exq.Redis.JobQueue do
   end
 
   defp dequeue_random(_redis, _namespace, []) do
-    {nil, nil}
+    {:none, nil}
   end
   defp dequeue_random(redis, namespace, queues) do
     [h | rq]  = Exq.Support.Shuffle.shuffle(queues)
     case dequeue(redis, namespace, h) do
       {nil, _} -> dequeue_random(redis, namespace, rq)
+      {:none, _} -> dequeue_random(redis, namespace, rq)
       {job, q} -> {job, q}
     end
   end
