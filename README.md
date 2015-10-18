@@ -158,7 +158,7 @@ time = Timex.Date.from({{2015, 12, 25}, {8, 0, 0}}) |> Timex.Date.to_timestamp
 
 ### Dynamic queue subscriptions:
 
-The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start.  However, we can also dynamically add and remove queue subscriptions after exq has started. 
+The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start.  However, we can also dynamically add and remove queue subscriptions after exq has started.
 
 To subscribe to a new queue:
 ```elixir
@@ -241,6 +241,8 @@ Mike Lawlor (disbelief)
 Udo Kramer (optikfluffel)
 
 Daniel Perez (tuvistavie)
+
+David Le (dl103)
 
 Roman Smirnov (romul)
 
