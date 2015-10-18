@@ -156,6 +156,21 @@ time = Timex.Date.from({{2015, 12, 25}, {8, 0, 0}}) |> Timex.Date.to_timestamp
 {:ok, ack} = Exq.enqueue_at(:exq, "default", time, MyWorker, ["arg1", "arg2"])
 ```
 
+### Dynamic queue subscriptions:
+
+The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start.  However, we can also dynamically add and remove queue subscriptions after exq has started. 
+
+To subscribe to a new queue:
+```elixir
+# last arg is optional and is the max concurrency for the queue
+:ok = Exq.subscribe(:exq, "new_queue_name", 10)
+```
+
+To unsubscribe from a queue:
+```elixir
+:ok = Exq.unsubscribe(:exq, "queue_to_unsubscribe")
+```
+
 ### Creating Workers:
 
 To create a worker, create an elixir module matching the worker name that will be
