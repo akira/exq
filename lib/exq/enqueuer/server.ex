@@ -40,36 +40,36 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def handle_cast({:enqueue, from, queue, worker, args}, state) do
-    jid = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args)
-    GenServer.reply(from, {:ok, jid})
+    response = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args)
+    GenServer.reply(from, response)
     {:noreply, state}
   end
 
   def handle_cast({:enqueue_at, from, queue, time, worker, args}, state) do
-    jid = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
-    GenServer.reply(from, {:ok, jid})
+    response = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
+    GenServer.reply(from, response)
     {:noreply, state}
   end
 
   def handle_cast({:enqueue_in, from, queue, offset, worker, args}, state) do
-    jid = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
-    GenServer.reply(from, {:ok, jid})
+    response = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
+    GenServer.reply(from, response)
     {:noreply, state}
   end
 
   def handle_call({:enqueue, queue, worker, args}, _from, state) do
-    jid = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args)
-    {:reply, {:ok, jid}, state}
+    response = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args)
+    {:reply, response, state}
   end
 
   def handle_call({:enqueue_at, queue, time, worker, args}, _from, state) do
-    jid = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
-    {:reply, {:ok, jid}, state}
+    response = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
+    {:reply, response, state}
   end
 
   def handle_call({:enqueue_in, queue, offset, worker, args}, _from, state) do
-    jid = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
-    {:reply, {:ok, jid}, state}
+    response = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args)
+    {:reply, response, state}
   end
 
   def handle_call({:stop}, _from, state) do

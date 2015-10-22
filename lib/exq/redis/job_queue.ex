@@ -37,19 +37,29 @@ defmodule Exq.Redis.JobQueue do
 
   def enqueue(redis, namespace, queue, worker, args) do
     {jid, job_json} = to_job_json(queue, worker, args)
-    enqueue(redis, namespace, queue, job_json)
-    jid
+    case enqueue(redis, namespace, queue, job_json) do
+      :ok    -> {:ok, jid}
+      other  -> other
+    end
   end
   def enqueue(redis, namespace, job_json) do
     job = Json.decode!(job_json)
-    enqueue(redis, namespace, job["queue"], job_json)
-    job["jid"]
+    case enqueue(redis, namespace, job["queue"], job_json) do
+      :ok   -> {:ok, job["jid"]}
+      error -> error
+    end
+
   end
   def enqueue(redis, namespace, queue, job_json) do
     try do
-      [{:ok, _}, {:ok, _}] = :eredis.qp(redis, [
+      response = :eredis.qp(redis, [
         ["SADD", full_key(namespace, "queues"), queue],
         ["RPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
+
+      case response do
+        [{:ok, _}, {:ok, _}] -> :ok
+        other                -> other
+      end
     catch
       :exit, e ->
         Logger.info("Error enqueueing -  #{Kernel.inspect e}")
@@ -63,12 +73,14 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def enqueue_at(redis, namespace, queue, time, worker, args) do
+    enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
+    {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
+    score = time_to_score(time)
     try do
-      enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
-      {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
-      score = time_to_score(time)
-      Connection.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
-      jid
+      case Connection.zadd(redis, scheduled_queue_key(namespace), score, job_json) do
+        {:ok, _} -> {:ok, jid}
+        other    -> other
+      end
     catch
       :exit, e ->
         Logger.info("Error enqueueing -  #{Kernel.inspect e}")
@@ -80,7 +92,12 @@ defmodule Exq.Redis.JobQueue do
     dequeue_random(redis, namespace, queues)
   end
   def dequeue(redis, namespace, queue) do
-    {Connection.lpop!(redis, queue_key(namespace, queue)), queue}
+    # normalize empty return values
+    case Connection.lpop(redis, queue_key(namespace, queue)) do
+      {status, :undefined} -> {status, {:none, queue}}
+      {status, nil}        -> {status, {:none, queue}}
+      {status, value}      -> {status, {value, queue}}
+    end
   end
 
   def scheduler_dequeue(redis, namespace, queues) when is_list(queues) do
@@ -124,14 +141,14 @@ defmodule Exq.Redis.JobQueue do
   end
 
   defp dequeue_random(_redis, _namespace, []) do
-    {:none, nil}
+    {:ok, {:none, nil}}
   end
   defp dequeue_random(redis, namespace, queues) do
     [h | rq]  = Exq.Support.Shuffle.shuffle(queues)
     case dequeue(redis, namespace, h) do
-      {nil, _} -> dequeue_random(redis, namespace, rq)
-      {:none, _} -> dequeue_random(redis, namespace, rq)
-      {job, q} -> {job, q}
+      {:ok, {:none, _}}      -> dequeue_random(redis, namespace, rq)
+      {:ok, {job, q}}        -> {:ok, {job, q}}
+      {:error, reason}       -> {:error, reason}
     end
   end
 

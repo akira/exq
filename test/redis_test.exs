@@ -57,13 +57,13 @@ defmodule Exq.RedisTest do
   end
 
   test "lpop empty" do
-    assert Connection.lpop!(:testredis, "bogus")  == :none
+    assert Connection.lpop(:testredis, "bogus")  == {:ok, :undefined}
   end
 
   test "rpush / lpop" do
     Connection.rpush!(:testredis, "akey", "avalue")
-    assert Connection.lpop!(:testredis, "akey")  == "avalue"
-    assert Connection.lpop!(:testredis, "akey")  == :none
+    assert Connection.lpop(:testredis, "akey")  == {:ok, "avalue"}
+    assert Connection.lpop(:testredis, "akey")  == {:ok, :undefined}
   end
 
   test "zadd / zcard / zrem" do

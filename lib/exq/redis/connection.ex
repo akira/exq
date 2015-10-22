@@ -1,4 +1,5 @@
 defmodule Exq.Redis.Connection do
+  require Logger
 
   alias Exq.Support.Config
 
@@ -101,11 +102,12 @@ defmodule Exq.Redis.Connection do
     res
   end
 
-  def lpop!(redis, key) do
-    case q(redis, ["LPOP", key]) do
-      {:ok, :undefined} -> :none
-      {:ok, value} -> value
-    end
+  def lpop(redis, key) do
+    q(redis, ["LPOP", key])
+  end
+
+  def zadd(redis, set, score, member) do
+    q(redis, ["ZADD", set, score, member])
   end
 
   def zadd!(redis, set, score, member) do

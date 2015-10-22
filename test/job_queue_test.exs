@@ -13,46 +13,54 @@ defmodule JobQueueTest do
     end
   end
 
+  def assert_dequeue_job(queues, expect_result) do
+    result = JobQueue.dequeue(:testredis, "test", queues)
+    if expect_result do
+      refute {:ok, {:none, _}} = result
+    else
+      assert {:ok, {:none, _}} = result
+    end
+  end
 
   test "enqueue/dequeue single queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
-    {deq, _} = JobQueue.dequeue(:testredis, "test", "default")
+    {:ok, {deq, _}} = JobQueue.dequeue(:testredis, "test", "default")
     assert deq != :none
-    {deq, _} = JobQueue.dequeue(:testredis, "test", "default")
+    {:ok, {deq, _}} = JobQueue.dequeue(:testredis, "test", "default")
     assert deq == :none
   end
 
   test "enqueue/dequeue multi queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
     JobQueue.enqueue(:testredis, "test", "myqueue", MyWorker, [])
-    assert elem(JobQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) == :none
+    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], false)
   end
 
   test "scheduler_dequeue single queue" do
     JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [])
     JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [])
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default"]) == 2
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) == :none
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", false)
   end
 
   test "scheduler_dequeue multi queue" do
     JobQueue.enqueue_in(:testredis, "test", "default", -1, MyWorker, [])
     JobQueue.enqueue_in(:testredis, "test", "myqueue", -1, MyWorker, [])
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default", "myqueue"]) == 2
-    assert elem(JobQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", ["default", "myqueue"]), 0) == :none
+    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], false)
   end
 
   test "scheduler_dequeue enqueue_at" do
     JobQueue.enqueue_at(:testredis, "test", "default", Time.now, MyWorker, [])
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default"]) == 1
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) == :none
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", false)
   end
 
   test "scheduler_dequeue max_score" do
@@ -83,12 +91,13 @@ defmodule JobQueueTest do
     assert Exq.Enqueuer.Server.queue_size(:testredis, "test", "default") == "5"
     assert Exq.Enqueuer.Server.queue_size(:testredis, "test", :scheduled) == "0"
 
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) != :none
-    assert elem(JobQueue.dequeue(:testredis, "test", "default"), 0) == :none
+
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", true)
+    assert_dequeue_job("default", false)
   end
 
   test "full_key" do
@@ -98,10 +107,10 @@ defmodule JobQueueTest do
   end
 
   test "creates and returns a jid" do
-    jid = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
     assert jid != nil
 
-    {job_str, _} = JobQueue.dequeue(:testredis, "test", "default")
+    {:ok, {job_str, _}} = JobQueue.dequeue(:testredis, "test", "default")
     job = Poison.decode!(job_str, as: Exq.Support.Job)
     assert job.jid == jid
   end
