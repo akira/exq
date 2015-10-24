@@ -10,6 +10,7 @@ config :exq,
   queues: ["default"],
   scheduler_enable: false,
   scheduler_poll_timeout: 200,
+  redis_timeout: 5000,
   test_with_local_redis: true
 
 
