@@ -35,31 +35,31 @@ defmodule ExqTest do
 
   defmodule FailWorker do
     def failure_perform do
-      :num + 1
+      _ = :num + 1
       send :exqtest, {:worked}
     end
   end
 
   setup do
-    TestRedis.start
+    TestRedis.setup
     on_exit fn ->
       wait
-      TestRedis.stop
+      TestRedis.teardown
     end
     :ok
   end
 
   test "start using registered name" do
-    {:ok, exq_sup} = Exq.start_link([port: 6555, name: :custom_manager, namespace: "test"])
+    {:ok, exq_sup} = Exq.start_link([host: redis_host, port: redis_port, name: :custom_manager, namespace: "test"])
     assert_exq_up(:custom_manager)
     stop_process(exq_sup)
   end
 
   test "start multiple exq instances using registered name" do
-    {:ok, sup1} = Exq.start_link([port: 6555, name: :custom_manager1, namespace: "test"])
+    {:ok, sup1} = Exq.start_link([host: redis_host, port: redis_port, name: :custom_manager1, namespace: "test"])
     assert_exq_up(:custom_manager1)
 
-    {:ok, sup2} = Exq.start_link([port: 6555, name: :custom_manager2, namespace: "test"])
+    {:ok, sup2} = Exq.start_link([host: redis_host, port: redis_port, name: :custom_manager2, namespace: "test"])
     assert_exq_up(:custom_manager2)
 
     stop_process(sup1)
@@ -68,7 +68,7 @@ defmodule ExqTest do
 
   test "enqueue and run job" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.PerformWorker, [])
     wait
     assert_received {:worked}
@@ -77,7 +77,7 @@ defmodule ExqTest do
 
   test "enqueue_in and run a job" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test",
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test",
                                  scheduler_enable: true, scheduler_poll_timeout: 5])
     {:ok, _} = Exq.enqueue_in(:exq_t, "default", 0, ExqTest.PerformWorker, [])
     wait_long
@@ -87,7 +87,7 @@ defmodule ExqTest do
 
   test "enqueue_at and run a job" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test",
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test",
                                  scheduler_enable: true, scheduler_poll_timeout: 5])
     {:ok, _} = Exq.enqueue_at(:exq_t, "default", Time.now, ExqTest.PerformWorker, [])
     wait_long
@@ -97,8 +97,8 @@ defmodule ExqTest do
 
   test "enqueue with separate enqueuer" do
     Process.register(self, :exqtest)
-    {:ok, exq_sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
-    {:ok, enq_sup} = Exq.Enqueuer.start_link([name: :exq_e, port: 6555, namespace: "test"])
+    {:ok, exq_sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
+    {:ok, enq_sup} = Exq.Enqueuer.start_link([name: :exq_e, host: redis_host, port: redis_port, namespace: "test"])
     {:ok, _} = Exq.Enqueuer.enqueue(:exq_e, "default", ExqTest.PerformWorker, [])
     wait_long
     assert_received {:worked}
@@ -108,7 +108,7 @@ defmodule ExqTest do
 
   test "run jobs on multiple queues" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1", "q2"]])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: ["q1", "q2"]])
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "q2", ExqTest.PerformArgWorker, [2])
     wait_long
@@ -116,23 +116,23 @@ defmodule ExqTest do
     assert_received {:worked, 2}
     stop_process(sup)
   end
-  
+
   test "register queue and run job" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1"]])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: ["q1"]])
     :ok = Exq.subscribe(:exq_t, "q2", 10)
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "q2", ExqTest.PerformArgWorker, [2])
-    
+
     wait_long
     assert_received {:worked, 1}
     assert_received {:worked, 2}
     stop_process(sup)
   end
-  
+
   test "unregister queue and run job" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: ["q1","to_remove"]])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: ["q1","to_remove"]])
     :ok = Exq.unsubscribe(:exq_t, "to_remove")
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "to_remove", ExqTest.PerformArgWorker, [2])
@@ -144,7 +144,7 @@ defmodule ExqTest do
 
   test "throttle workers per queue" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", concurrency: 1, queues: ["q1", "q2"]])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test", concurrency: 1, queues: ["q1", "q2"]])
     {:ok, _} = Exq.enqueue(:exq_t, "q1",ExqTest.SleepWorker, [40, :worked])
     {:ok, _} = Exq.enqueue(:exq_t, "q1",ExqTest.SleepWorker, [40, :worked2])
     {:ok, _} = Exq.enqueue(:exq_t, "q1",ExqTest.SleepWorker, [100, :finished])
@@ -162,7 +162,7 @@ defmodule ExqTest do
 
   test "throttle workers different concurrency per queue" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test", queues: [{"q1", 1}, {"q2", 20}]])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: [{"q1", 1}, {"q2", 20}]])
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.SleepWorker, [40, :worked])
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.SleepWorker, [40, :worked2])
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.SleepWorker, [100, :finished])
@@ -183,7 +183,7 @@ defmodule ExqTest do
 
 
   test "record processed jobs" do
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     state = :sys.get_state(:exq_t)
 
     {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
@@ -200,7 +200,7 @@ defmodule ExqTest do
   end
 
   test "record failed jobs" do
-    {:ok, sup} = Exq.start_link([name: :exq_t, port: 6555, namespace: "test"])
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     state = :sys.get_state(:exq_t)
 
     {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.MissingMethodWorker/fail", [])
@@ -219,7 +219,7 @@ defmodule ExqTest do
     # if we kill Exq too fast we dont record the failure because exq is gone
     wait_long
 
-    {:ok, enq_sup} = Exq.Enqueuer.Server.start_link([name: :exq_e, port: 6555, namespace: "test"])
+    {:ok, enq_sup} = Exq.Enqueuer.Server.start_link([name: :exq_e, host: redis_host, port: redis_port, namespace: "test"])
 
     # Find the job in the processed queue
     {:ok, _, _} = Exq.Api.find_failed(:exq_e, jid)

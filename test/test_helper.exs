@@ -17,6 +17,14 @@ defmodule ExqTestUtil do
   @timeout 20
   @long_timeout 100
 
+  def redis_host do
+    Exq.Support.Config.get(:host)
+  end
+
+  def redis_port do
+    Exq.Support.Config.get(:port)
+  end
+
   import ExUnit.Assertions
 
   defmodule SendWorker do
@@ -54,25 +62,29 @@ defmodule ExqTestUtil do
     config = Mix.Config.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
     Mix.Config.persist(config)
   end
-
 end
 
 defmodule TestRedis do
+  import ExqTestUtil
   alias Exq.Redis.Connection
 
   #TODO: Automate config
   def start do
-    [] = :os.cmd('redis-server test/test-redis.conf')
-    :timer.sleep(100)
+    unless Exq.Support.Config.get(:test_with_local_redis) == false do
+      [] = :os.cmd('redis-server test/test-redis.conf')
+      :timer.sleep(100)
+    end
   end
 
   def stop do
-    [] = :os.cmd('redis-cli -p 6555 shutdown')
+    unless Exq.Support.Config.get(:test_with_local_redis) == false do
+      [] = :os.cmd('redis-cli -p 6555 shutdown')
+    end
   end
 
   def setup do
     start
-    {:ok, redis} = :eredis.start_link('127.0.0.1', 6555)
+    {:ok, redis} = :eredis.start_link(redis_host, redis_port)
     Process.register(redis, :testredis)
     :ok
   end
@@ -84,7 +96,7 @@ defmodule TestRedis do
   def teardown do
     if !Process.whereis(:testredis) do
       # For some reason at the end of test the link is down, before we acutally stop and unregister?
-      {:ok, redis} = :eredis.start_link('127.0.0.1', 6555)
+      {:ok, redis} = :eredis.start_link(redis_host, redis_port)
       Process.register(redis, :testredis)
     end
     flush_all

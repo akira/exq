@@ -38,7 +38,9 @@ defmodule Exq.Mixfile do
       { :timex, "~> 0.19.5" },
       { :plug, ">= 0.8.1 and < 2.0.0"},
       { :cowboy, "~> 1.0" },
-      { :excoveralls, "~> 0.3", only: :test }
+      { :excoveralls, "~> 0.3", only: :test },
+      { :ranch, "~> 1.1.0", override: true, hex: :ranch },
+      { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test}
     ]
   end
 end

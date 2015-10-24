@@ -6,7 +6,7 @@ defmodule Exq.ApiTest do
 
   setup_all do
     TestRedis.setup
-    {:ok, sup} = Exq.Enqueuer.start_link([name: :exq_ui_enqueuer])
+    {:ok, sup} = Exq.Enqueuer.start_link([host: redis_host, port: redis_port, name: :exq_ui_enqueuer])
     on_exit fn ->
       TestRedis.teardown
       stop_process(sup)

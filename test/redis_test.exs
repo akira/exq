@@ -22,6 +22,7 @@ defmodule Exq.RedisTest do
   end
 
   test "info" do
+    Mix.Config.persist([exq: [host: '127.0.0.1', port: 6379, password: '', database: 0, reconnect_on_sleep: 100]])
     {host, port, database, password, reconnect_on_sleep} = Connection.info
     assert host == '127.0.0.1'
     assert port == 6379
