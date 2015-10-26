@@ -3,6 +3,7 @@ defmodule Exq.Redis.JobQueue do
 
   alias Exq.Redis.Connection
   alias Exq.Support.Json
+  alias Exq.Support.Config
 
   @default_queue "default"
 
@@ -46,7 +47,7 @@ defmodule Exq.Redis.JobQueue do
   def enqueue(redis, namespace, queue, job_json) do
     [{:ok, _}, {:ok, _}] = :eredis.qp(redis, [
       ["SADD", full_key(namespace, "queues"), queue],
-      ["RPUSH", queue_key(namespace, queue), job_json]])
+      ["RPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args) do

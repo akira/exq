@@ -35,7 +35,7 @@ defmodule FlakyConnectionTest do
     stop_process(sup)
   end
 
-  test "redis_timeout higher than 5000 fails =(" do
+  test "redis_timeout higher than 5000" do
     Application.start(:ranch)
     conn = FlakyConnection.start(redis_host, redis_port)
 
