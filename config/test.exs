@@ -11,4 +11,4 @@ config :exq,
   scheduler_enable: false,
   scheduler_poll_timeout: 200,
   redis_timeout: 5000,
-  test_with_local_redis: false
+  test_with_local_redis: true
