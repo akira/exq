@@ -44,7 +44,7 @@ defmodule FlakyConnectionTest do
 
     FlakyConnection.set_latency(conn, 6000)
 
-    Mix.Config.persist([exq: [redis_timeout: 10000]])
+    Mix.Config.persist([exq: [redis_timeout: 10000, genserver_timeout: 10000]])
 
     {:ok, _} = Exq.enqueue(:perf, "default", FlakyConnectionTest.Worker, ["work"])
 
