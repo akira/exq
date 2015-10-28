@@ -1,4 +1,5 @@
 /ebin
+priv/tmp_downloads/
 /deps
 /erl_crash.dump
 /tmp

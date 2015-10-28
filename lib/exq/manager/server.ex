@@ -156,9 +156,15 @@ defmodule Exq.Manager.Server do
   def dequeue_and_dispatch(state), do: dequeue_and_dispatch(state, available_queues(state))
   def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
   def dequeue_and_dispatch(state, queues) do
-    case Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, queues) do
-      {:none, _}   -> {state, state.poll_timeout}
-      {job, queue} -> {dispatch_job(state, job, queue), 0}
+    try do
+      case Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, queues) do
+        {:none, _}   -> {state, state.poll_timeout}
+        {job, queue} -> {dispatch_job(state, job, queue), 0}
+      end
+    catch
+      :exit, e ->
+        Logger.info("Manager timeout occurred #{Kernel.inspect e}")
+        {state, state.poll_timeout}
     end
   end
 

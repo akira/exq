@@ -22,24 +22,26 @@ defmodule Exq.RedisTest do
   end
 
   test "info" do
-    {host, port, database, password, reconnect_on_sleep} = Connection.info
+    Mix.Config.persist([exq: [host: '127.0.0.1', port: 6379, password: '', database: 0, reconnect_on_sleep: 100, redis_timeout: 5000]])
+    {host, port, database, password, reconnect_on_sleep, redis_timeout} = Connection.info
     assert host == '127.0.0.1'
     assert port == 6379
     assert password == ''
     assert database == 0
     assert reconnect_on_sleep == 100
+    assert redis_timeout == 5000
 
     Mix.Config.persist([exq: [host: '127.1.1.1', password: 'password']])
-    {host, _, _, password, _} = Connection.info
+    {host, _, _, password, _, _} = Connection.info
     assert host == '127.1.1.1'
     assert password == 'password'
 
     Mix.Config.persist([exq: [password: "string_password"]])
-    {_, _, _, password, _} = Connection.info
+    {_, _, _, password, _, _} = Connection.info
     assert password == 'string_password'
 
     Mix.Config.persist([exq: [password: nil]])
-    {_, _, _, password, _} = Connection.info
+    {_, _, _, password, _, _} = Connection.info
     assert password == ''
   end
 
