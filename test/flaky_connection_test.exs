@@ -14,7 +14,7 @@ defmodule FlakyConnectionTest do
   end
 
   defmodule Worker do
-    def perform(arg) do
+    def perform(_) do
       send(:tester, :done)
     end
   end
@@ -30,7 +30,7 @@ defmodule FlakyConnectionTest do
 
     Mix.Config.persist([exq: [redis_timeout: 2000]])
 
-    {:ok, _} = Exq.enqueue(:perf, "default", FlakyConnectionTest.Worker, ["work"])
+    {:ok, _} = Exq.enqueue(:perf_enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
 
     stop_process(sup)
   end
@@ -44,9 +44,9 @@ defmodule FlakyConnectionTest do
 
     FlakyConnection.set_latency(conn, 6000)
 
-    Mix.Config.persist([exq: [redis_timeout: 10000, genserver_timeout: 10000]])
+    Mix.Config.persist([exq: [redis_timeout: 13000, genserver_timeout: 13000]])
 
-    {:ok, _} = Exq.enqueue(:perf, "default", FlakyConnectionTest.Worker, ["work"])
+    {:ok, _} = Exq.enqueue(:perf_enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
 
     stop_process(sup)
   end

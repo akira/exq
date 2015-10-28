@@ -1,5 +1,6 @@
 defmodule Exq.Redis.JobQueue do
   use Timex
+  require Logger
 
   alias Exq.Redis.Connection
   alias Exq.Support.Json
@@ -45,9 +46,15 @@ defmodule Exq.Redis.JobQueue do
     job["jid"]
   end
   def enqueue(redis, namespace, queue, job_json) do
-    [{:ok, _}, {:ok, _}] = :eredis.qp(redis, [
-      ["SADD", full_key(namespace, "queues"), queue],
-      ["RPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
+    try do
+      [{:ok, _}, {:ok, _}] = :eredis.qp(redis, [
+        ["SADD", full_key(namespace, "queues"), queue],
+        ["RPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
+    catch
+      :exit, e ->
+        Logger.info("Error enqueueing -  #{Kernel.inspect e}")
+        {:error, :timeout}
+    end
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args) do
@@ -56,11 +63,17 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def enqueue_at(redis, namespace, queue, time, worker, args) do
-    enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
-    {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
-    score = time_to_score(time)
-    Connection.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
-    jid
+    try do
+      enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.local, "{ISO}")
+      {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
+      score = time_to_score(time)
+      Connection.zadd!(redis, scheduled_queue_key(namespace), score, job_json)
+      jid
+    catch
+      :exit, e ->
+        Logger.info("Error enqueueing -  #{Kernel.inspect e}")
+        {:error, :timeout}
+    end
   end
 
   def dequeue(redis, namespace, queues) when is_list(queues) do
