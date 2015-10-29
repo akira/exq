@@ -39,7 +39,10 @@ defmodule Exq.Manager.Server do
 
     {:ok, localhost} = :inet.gethostname()
 
-    {:ok, stats} =  GenServer.start_link(Stats, {redis}, [])
+    stats = String.to_atom("#{name}_stats")
+    {:ok, _} =  Exq.Stats.Supervisor.start_link(
+      redis: redis,
+      name: stats)
 
     enqueuer = String.to_atom("#{name}_enqueuer")
     {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(
@@ -149,7 +152,6 @@ defmodule Exq.Manager.Server do
   end
 
   def terminate(_reason, state) do
-    GenServer.call(state.stats, {:stop})
     :eredis.stop(state.redis)
     :ok
   end
