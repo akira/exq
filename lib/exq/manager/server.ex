@@ -39,7 +39,10 @@ defmodule Exq.Manager.Server do
 
     {:ok, localhost} = :inet.gethostname()
 
-    {:ok, stats} =  GenServer.start_link(Stats, {redis}, [])
+    stats = String.to_atom("#{name}_stats")
+    {:ok, _} =  Exq.Stats.Supervisor.start_link(
+      redis: redis,
+      name: stats)
 
     enqueuer = String.to_atom("#{name}_enqueuer")
     {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(
@@ -109,17 +112,17 @@ defmodule Exq.Manager.Server do
     Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
     {:noreply, state, 10}
   end
-  
+
   def handle_call({:subscribe, queue}, from, state) do
     updated_state = add_queue(state, queue)
     {:reply, :ok, updated_state,0}
   end
-  
+
   def handle_call({:subscribe, queue, concurrency}, from, state) do
     updated_state = add_queue(state, queue, concurrency)
     {:reply, :ok, updated_state,0}
   end
-  
+
   def handle_call({:unsubscribe, queue}, from, state) do
     updated_state = remove_queue(state, queue)
     {:reply, :ok, updated_state,0}
@@ -139,12 +142,16 @@ defmodule Exq.Manager.Server do
     {:noreply, updated_state, timeout}
   end
 
+  def handle_info(info, state) do
+    Logger.error("UKNOWN CALL #{Kernel.inspect info}")
+    {:noreply, state, state.timeout}
+  end
+
   def code_change(_old_version, state, _extra) do
     {:ok, state}
   end
 
   def terminate(_reason, state) do
-    GenServer.call(state.stats, {:stop})
     :eredis.stop(state.redis)
     :ok
   end
@@ -158,8 +165,11 @@ defmodule Exq.Manager.Server do
   def dequeue_and_dispatch(state, queues) do
     try do
       case Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, queues) do
-        {:none, _}   -> {state, state.poll_timeout}
-        {job, queue} -> {dispatch_job(state, job, queue), 0}
+        {:ok, {:none, _}}   -> {state, state.poll_timeout}
+        {:ok, {job, queue}} -> {dispatch_job(state, job, queue), 0}
+        {status, reason}    ->
+          Logger.error("Redis Error #{Kernel.inspect(status)} #{Kernel.inspect(reason)}.  Backing off...")
+          {state, state.poll_timeout * 10}
       end
     catch
       :exit, e ->
@@ -202,14 +212,14 @@ defmodule Exq.Manager.Server do
     end)
     {queues, work_table}
   end
-  
+
   defp add_queue(state, queue, concurrency \\ Config.get(:concurrency, 10_000)) do
     queue_concurrency = {queue, concurrency, 0}
     :ets.insert(state.work_table, queue_concurrency)
     updated_queues = [queue | state.queues]
     %{state | queues: updated_queues}
   end
-  
+
   defp remove_queue(state, queue) do
     :ets.delete(state.work_table, queue)
     updated_queues = List.delete(state.queues, queue)
