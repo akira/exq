@@ -12,7 +12,8 @@ defmodule FailureScenariosTest do
   end
 
   setup do
-    TestRedis.start
+    TestRedis.setup
+    Application.start(:ranch)
     on_exit fn ->
       wait
       TestRedis.teardown
@@ -21,26 +22,33 @@ defmodule FailureScenariosTest do
   end
 
   test "handle Redis connection lost on manager" do
-    {:ok, _} = Exq.start_link([name: :exq_f, port: 6555 ])
+    conn = FlakyConnection.start(redis_host, redis_port)
+
+    {:ok, _} = Exq.start_link([name: :exq_f, port: conn.port ])
 
     # Stop Redis and wait for a bit
-    TestRedis.stop
+    FlakyConnection.stop(conn)
     # Not ideal - but seems to be min time for manager to die past supervision
-    :timer.sleep(5000)
+    :timer.sleep(5100)
 
-    # Starting Redis again, things should be back to normal
-    TestRedis.start
+    # Restart Flakey connection manually, things should be back to normal
+    {:ok, agent} = Agent.start_link(fn -> [] end)
+    {:ok, _} = :ranch.start_listener(conn.ref, 100, :ranch_tcp, [port: conn.port],
+                  FlakyConnectionHandler, ['127.0.0.1', redis_port, agent])
+
     wait_long
     assert_exq_up(:exq_f)
     Exq.stop(:exq_f)
   end
 
   test "handle Redis connection lost on enqueue" do
+    conn = FlakyConnection.start(redis_host, redis_port)
+
     # Start Exq but don't listen to any queues
-    {:ok, _} = Exq.start_link([name: :exq_f, port: 6555])
+    {:ok, _} = Exq.start_link([name: :exq_f, port: conn.port])
 
     # Stop Redis
-    TestRedis.stop
+    FlakyConnection.stop(conn)
     wait_long
 
     # enqueue with redis stopped
@@ -52,7 +60,11 @@ defmodule FailureScenariosTest do
 
     # Starting Redis again and things should be back to normal
     wait_long
-    TestRedis.start
+
+    # Restart Flakey connection manually
+    {:ok, agent} = Agent.start_link(fn -> [] end)
+    {:ok, _} = :ranch.start_listener(conn.ref, 100, :ranch_tcp, [port: conn.port],
+                  FlakyConnectionHandler, ['127.0.0.1', redis_port, agent])
     wait_long
 
     assert_exq_up(:exq_f)
