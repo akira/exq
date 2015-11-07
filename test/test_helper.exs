@@ -83,14 +83,14 @@ defmodule TestRedis do
   end
 
   def setup do
-    start
     {:ok, redis} = :eredis.start_link(redis_host, redis_port)
     Process.register(redis, :testredis)
+    flush_all
     :ok
   end
 
   def flush_all do
-      Connection.flushdb! :testredis
+    Connection.flushdb! :testredis
   end
 
   def teardown do
@@ -99,17 +99,23 @@ defmodule TestRedis do
       {:ok, redis} = :eredis.start_link(redis_host, redis_port)
       Process.register(redis, :testredis)
     end
-    flush_all
-    stop
     Process.unregister(:testredis)
     :ok
   end
 end
+
+
 
 # Don't run parallel tests to prevent redis issues
 ExUnit.configure(seed: 0, max_cases: 1)
 
 # Start logger
 :application.start(:logger)
+
+TestRedis.start
+
+System.at_exit fn(status) ->
+  TestRedis.stop
+end
 
 ExUnit.start

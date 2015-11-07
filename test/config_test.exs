@@ -5,6 +5,7 @@ defmodule Exq.ConfigTest do
 
   setup_all do
     ExqTestUtil.reset_config
+    :ok
   end
 
   test "Mix.Config should change the host." do
