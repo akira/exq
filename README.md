@@ -5,10 +5,10 @@
 [![Hex.pm Version](https://img.shields.io/hexpm/v/exq.svg)](https://hex.pm/packages/exq)
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
-* Exq uses Redis as a store for background processing jobs.  
+* Exq uses Redis as a store for background processing jobs.
 * Exq handles concurrency, job persistence, and tracking so you don't have to.
 * Jobs are persistent so they would survive across node restarts.
-* You can use multiple Erlang nodes to process from the same pool of jobs. 
+* You can use multiple Erlang nodes to process from the same pool of jobs.
 * Exq uses a format that is Resque/Sidekiq compatible.
   * This means you can use it to integrate with existing Rails / Django projects that also use a background job that's Resque compatible - typically with little or no changes needed to your existing apps. However, you can also use Exq standalone.
   * If you don't need Resque/Sidekiq compatibility and don't need to distribute jobs across multiple VMs, another option to check out would be [toniq](https://github.com/joakimk/toniq), which uses erlang serialization instead of JSON.
@@ -235,8 +235,14 @@ You can also use [Plug](https://github.com/elixir-lang/plug) to connect the web 
 
 ## Contributions
 
-Contributions are welcome.  Make sure to run ```mix test --no-start``` to ensure your changes have not caused any regressions.
+Contributions are welcome. Tests are encouraged.
 
+To run tests / ensure your changes have not caused any regressions:
+
+```
+redis-server --port 6555
+mix test
+```
 
 ## Contributors:
 
