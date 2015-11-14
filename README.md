@@ -6,7 +6,7 @@
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 * Exq uses Redis as a store for background processing jobs.
-* Exq handles concurrency, job persistence, and tracking so you don't have to.
+* Exq handles concurrency, job persistence, job retries, and tracking so you don't have to.
 * Jobs are persistent so they would survive across node restarts.
 * You can use multiple Erlang nodes to process from the same pool of jobs.
 * Exq uses a format that is Resque/Sidekiq compatible.
@@ -14,6 +14,7 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
   * If you don't need Resque/Sidekiq compatibility, another option to check out would be [toniq](https://github.com/joakimk/toniq) which uses erlang serialization instead of JSON.
   * You can run both Exq and Toniq in the same app for different workers.
 * Exq supports uncapped amount of jobs running, or also allows a max limit per queue.
+* Exq supports job retries with exponential backoff.
 * Exq tracks several stats including failed busy, and processed jobs.
 * Exq provides an optional web UI that you can use to view several stats as well as rate of job processing.
 
@@ -236,8 +237,6 @@ Which can be enqueued by:
 {:ok, jid} = Exq.enqueue(exq, "default", "MyWorker/custom_method", [])
 ```
 
-
-
 ## Web UI:
 
 Exq comes with a Web UI to monitor your workers:
@@ -250,6 +249,7 @@ To start the web UI:
 ```
 
 You can also use [Plug](https://github.com/elixir-lang/plug) to connect the web UI to your Web application.
+
 
 ## Contributions
 
