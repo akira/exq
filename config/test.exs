@@ -12,4 +12,5 @@ config :exq,
   scheduler_poll_timeout: 200,
   redis_timeout: 5000,
   genserver_timeout: 5000,
-  test_with_local_redis: true
+  test_with_local_redis: true,
+  max_retries: 0

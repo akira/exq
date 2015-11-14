@@ -5,7 +5,7 @@ defmodule FlakyConnectionTest do
   require Logger
   import ExqTestUtil
 
-  @moduletag :flakey_connection
+  @moduletag :failure_scenarios
 
   setup do
     TestRedis.setup

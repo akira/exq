@@ -50,8 +50,9 @@ config :exq,
   concurrency: :infinite,
   queues: ["default"],
   poll_timeout: 50,
-  scheduler_enable: false,
   scheduler_poll_timeout: 200
+  scheduler_enable: true,
+  max_retries: 25
 ```
 
 ### Concurrency:
@@ -78,6 +79,23 @@ config :exq,
   namespace: "exq",
   queues: [{"q1", 10_000}, {"q2", 10}]
 ```
+
+
+### Job Retries:
+
+Exq will automatically retry failed job. It will use an exponential backoff timing similar to Sidekiq or delayed_job to retry failed jobs. It can be configured via these settings:
+
+```elixir
+config :exq,
+  host: "127.0.0.1",
+  port: 6379,
+  ...
+  scheduler_enable: true,
+  max_retries: 25
+```
+
+Note that ```schedule_enable`` has to be set to ```true``` and ```max_retries``` should be greater than ```0```.
+
 
 ### OTP Application:
 

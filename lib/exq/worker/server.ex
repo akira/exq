@@ -3,11 +3,11 @@ defmodule Exq.Worker.Server do
   use GenServer
 
   defmodule State do
-    defstruct job: nil, manager: nil, queue: nil, work_table: nil
+    defstruct job_json: nil, job: nil, manager: nil, queue: nil, work_table: nil, worker_module: nil, worker_function: nil
   end
 
-  def start(job, manager, queue, work_table) do
-    GenServer.start(__MODULE__, {job, manager, queue, work_table}, [])
+  def start(job_json, manager, queue, work_table) do
+    GenServer.start(__MODULE__, {job_json, manager, queue, work_table}, [])
   end
 
   def work(pid) do
@@ -18,12 +18,12 @@ defmodule Exq.Worker.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def init({job, manager, queue, work_table}) do
-    {:ok, %State{job: job, manager: manager, queue: queue, work_table: work_table}}
+  def init({job_json, manager, queue, work_table}) do
+    {:ok, %State{job_json: job_json, manager: manager, queue: queue, work_table: work_table}}
   end
 
   def handle_cast(:work, state) do
-    job = Exq.Support.Job.from_json(state.job)
+    job = Exq.Support.Job.from_json(state.job_json)
 
     target = String.replace(job.class, "::", ".")
     [mod | func_or_empty] = Regex.split(~r/\//, target)
@@ -32,8 +32,13 @@ defmodule Exq.Worker.Server do
       [f] -> :erlang.binary_to_atom(f, :utf8)
     end
     args = job.args
-    dispatch_work(mod, func, args)
-    {:stop, :normal, state}
+    GenServer.cast(self, :dispatch)
+    {:noreply, %{state | worker_module: String.to_atom("Elixir.#{mod}"), worker_function: func, job: job} }
+  end
+
+  def handle_cast(:dispatch, state) do
+    dispatch_work(state.worker_module, state.worker_function, state.job.args)
+    {:stop, :normal, state }
   end
 
   def code_change(_old_version, state, _extra) do
@@ -63,6 +68,7 @@ defmodule Exq.Worker.Server do
         error_msg = Inspect.Algebra.format(Inspect.Algebra.to_doc(error, %Inspect.Opts{}), %Inspect.Opts{}.width)
         GenServer.cast(state.manager, {:failure, to_string(error_msg), state.job})
         Exq.Manager.Server.update_worker_count(state.work_table, state.queue, -1)
+        Logger.error("Worker terminated, #{error_msg}")
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end
@@ -77,6 +83,6 @@ defmodule Exq.Worker.Server do
     dispatch_work(worker_module, :perform, args)
   end
   def dispatch_work(worker_module, method, args) do
-    :erlang.apply(String.to_atom("Elixir.#{worker_module}"), method, args)
+    apply(worker_module, method, args)
   end
 end

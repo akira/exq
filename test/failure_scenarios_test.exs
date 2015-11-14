@@ -5,6 +5,8 @@ defmodule FailureScenariosTest do
   use Timex
   import ExqTestUtil
 
+  @moduletag :failure_scenarios
+
   defmodule PerformWorker do
     def perform do
       send :exqtest, {:worked}
