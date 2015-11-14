@@ -94,7 +94,7 @@ config :exq,
   max_retries: 25
 ```
 
-Note that ```schedule_enable`` has to be set to ```true``` and ```max_retries``` should be greater than ```0```.
+Note that ```scheduler_enable``` has to be set to ```true``` and ```max_retries``` should be greater than ```0```.
 
 
 ### OTP Application:
