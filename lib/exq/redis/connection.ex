@@ -3,6 +3,8 @@ defmodule Exq.Redis.Connection do
 
   alias Exq.Support.Config
 
+  @default_timeout 5000
+
   def connection(opts \\ []) do
     {host, port, database, password, reconnect_on_sleep, timeout} = info(opts)
     :eredis.start_link(host, port, database, password, reconnect_on_sleep, timeout)
@@ -14,7 +16,7 @@ defmodule Exq.Redis.Connection do
     database = Keyword.get(opts, :database, Config.get(:database, 0))
     password = Keyword.get(opts, :password, Config.get(:password) || '')
     reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Config.get(:reconnect_on_sleep, 100))
-    timeout = Keyword.get(opts, :redis_timeout, Config.get(:redis_timeout, 5000))
+    timeout = Keyword.get(opts, :redis_timeout, Config.get(:redis_timeout, @default_timeout))
     if is_binary(host), do: host = String.to_char_list(host)
     if is_binary(password), do: password = String.to_char_list(password)
     {host, port, database, password, reconnect_on_sleep, timeout}
@@ -125,12 +127,22 @@ defmodule Exq.Redis.Connection do
     items
   end
 
+  def zrange!(redis, set, range_start \\ "0", range_end \\ "-1") do
+    {:ok, items} = q(redis, ["ZRANGE", set, range_start, range_end])
+    items
+  end
+
   def zrem!(redis, set, member) do
     {:ok, res} = q(redis, ["ZREM", set, member])
     res
   end
 
-  defp q(redis, command) do
-    :eredis.q(redis, command, Config.get(:redis_timeout, 5000))
+  def q(redis, command) do
+    :eredis.q(redis, command, Config.get(:redis_timeout, @default_timeout))
   end
+
+  def qp(redis, command) do
+    :eredis.qp(redis, command, Config.get(:redis_timeout, @default_timeout))
+  end
+
 end
