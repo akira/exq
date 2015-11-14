@@ -3,6 +3,7 @@ defmodule Exq.Manager.Server do
   use GenServer
   alias Exq.Stats.Server, as: Stats
   alias Exq.Enqueuer
+  alias Exq.Redis.JobQueue
   alias Exq.Support.Config
 
   @default_name :exq

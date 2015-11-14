@@ -8,11 +8,10 @@ config :exq,
   port: 6379,
   namespace: "exq",
   queues: ["default"],
-  scheduler_enable: false,
+  scheduler_enable: true,
   scheduler_poll_timeout: 200,
   redis_timeout: 5000,
   genserver_timeout: 5000,
-  test_with_local_redis: true
-
+  max_retries: 25
 
 import_config "#{Mix.env}.exs"

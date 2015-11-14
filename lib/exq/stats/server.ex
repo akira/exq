@@ -3,6 +3,7 @@ defmodule Exq.Stats.Server do
   use Timex
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
+  alias Exq.Redis.JobStat
   alias Exq.Support.Json
   alias Exq.Support.Binary
   alias Exq.Stats.Process
@@ -15,7 +16,8 @@ defmodule Exq.Stats.Server do
   end
 
   def add_process(pid, namespace, worker, host, job) do
-    GenServer.cast(pid, {:add_process, namespace, %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.local, "{ISO}")}})
+    GenServer.cast(pid, {:add_process, namespace,
+      %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.universal, "{ISO}")}})
   end
 
 ##===========================================================
@@ -40,12 +42,15 @@ defmodule Exq.Stats.Server do
   end
 
   def handle_cast({:record_processed, namespace, job}, state) do
-    record_processed(state.redis, namespace, job)
+    JobStat.record_processed(state.redis, namespace, job)
     {:noreply, state}
   end
 
   def handle_cast({:record_failure, namespace, error, job}, state) do
-    record_failure(state.redis, namespace, error, job)
+    if job do
+      JobQueue.retry_or_fail_job(state.redis, namespace, job, error)
+    end
+    JobStat.record_failure(state.redis, namespace, error, job)
     {:noreply, state}
   end
 
@@ -143,25 +148,15 @@ defmodule Exq.Stats.Server do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, error, json) do
+  def record_failure(redis, namespace, error, job) do
     count = Connection.incr!(redis, JobQueue.full_key(namespace, "stat:failed"))
 
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
     Connection.incr!(redis, JobQueue.full_key(namespace, "stat:failed_rt:#{time}"))
     Connection.expire!(redis, JobQueue.full_key(namespace, "stat:failed_rt:#{time}"), 120)
 
-
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
     Connection.incr!(redis, JobQueue.full_key(namespace, "stat:failed:#{date}"))
-
-    failed_at = DateFormat.format!(Date.local, "{ISO}")
-
-    job = Exq.Support.Job.from_json(json)
-    job = Enum.into([{:failed_at, failed_at}, {:error_class, "ExqGenericError"}, {:error_message, error}, {:queue, job.queue}, {:class, job.class}, {:args, job.args}, {:jid, job.jid}, {:enqueued_at, job.enqueued_at}], HashDict.new)
-
-    job_json = Json.encode!(job)
-
-    Connection.rpush!(redis, JobQueue.full_key(namespace, "failed"), job_json)
 
     {:ok, count}
   end

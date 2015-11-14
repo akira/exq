@@ -50,8 +50,9 @@ config :exq,
   concurrency: :infinite,
   queues: ["default"],
   poll_timeout: 50,
-  scheduler_enable: false,
   scheduler_poll_timeout: 200
+  scheduler_enable: true,
+  max_retries: 25
 ```
 
 ### Concurrency:
