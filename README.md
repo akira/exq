@@ -210,7 +210,6 @@ Here is an example of a worker:
 ```elixir
 defmodule MyWorker do
   def perform do
-    # will get called if no custom method passed in
   end
 end
 ```
@@ -220,22 +219,23 @@ We could enqueue a job to this worker:
 {:ok, jid} = Exq.enqueue(:exq, "default", MyWorker, [])
 ```
 
-By default, the `perform` method will be called.  However, you can pass a method such as `MyWorker/custom_method`
+The 'perform' method will be called with matching args. For example:
+```elixir
+{:ok, jid} = Exq.enqueue(exq, "default", "MyWorker", [arg1, arg2])
+```
 
-Example Worker:
+Would match:
 ```elixir
 defmodule MyWorker do
-  def custom_method(arg1) do
-    # will get called since job has  "/custom_method" postfix
-    # Not that arity must match args
+  def perform(arg1, arg2) do
   end
 end
 ```
 
-Which can be enqueued by:
-```elixir
-{:ok, jid} = Exq.enqueue(exq, "default", "MyWorker/custom_method", [])
-```
+## Security
+
+By default, you Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
+
 
 ## Web UI:
 

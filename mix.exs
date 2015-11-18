@@ -4,7 +4,7 @@ defmodule Exq.Mixfile do
   def project do
     [ app: :exq,
       version: "0.4.0",
-      elixir: "~> 1.0.0",
+      elixir: "~> 1.0.0 or ~> 1.1.1",
       elixirc_paths: ["lib", "web"],
       package: [
         maintainers: ["Alex Kira", "Justin McNally", "Nick Sanders", "Udo Kramer", "Daniel Perez", "David Le", "akki91", "Roman Smirnov", "Mike Lawlor", "Benjamin Tan Wei Hao", "Rob Gilson"],

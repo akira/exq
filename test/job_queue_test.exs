@@ -16,9 +16,9 @@ defmodule JobQueueTest do
   def assert_dequeue_job(queues, expect_result) do
     result = JobQueue.dequeue(:testredis, "test", queues)
     if expect_result do
-      refute {:ok, {:none, _}} = result
+      refute match?({:ok, {:none, _}}, result)
     else
-      assert {:ok, {:none, _}} = result
+      assert match?({:ok, {:none, _}}, result)
     end
   end
 
