@@ -58,7 +58,7 @@ defmodule WorkerTest do
 
   test "execute valid job with custom function" do
     {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest.CustomMethodWorker/custom_perform\", \"args\": [] }")
-    assert_terminate(worker, true)
+    assert_terminate(worker, false)
   end
 
   test "execute job with invalid JSON" do

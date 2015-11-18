@@ -25,8 +25,8 @@ defmodule ExqTest do
     end
   end
 
-  defmodule CustomMethodWorker do
-    def simple_perform do
+  defmodule EmptyMethodWorker do
+    def perform do
     end
   end
 
@@ -186,12 +186,12 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     state = :sys.get_state(:exq_t)
 
-    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.EmptyMethodWorker", [])
     wait
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "1"
 
-    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.CustomMethodWorker/simple_perform", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.EmptyMethodWorker", [])
     wait_long
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "2"
