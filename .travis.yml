@@ -1,6 +1,7 @@
 language: elixir
 elixir:
   - 1.0.5
+  - 1.1.1
 otp_release:
   - 17.5
   - 18.0
@@ -12,4 +13,4 @@ after_script:
   - MIX_ENV=test mix coveralls.travis --no-start
 services:
   - redis-server
-#sudo: false # container based infrastructure at Travis - disable until we figure out intermittent test issues
+sudo: false
