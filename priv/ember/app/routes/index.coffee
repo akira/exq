@@ -4,7 +4,7 @@ IndexRoute = Ember.Route.extend
     @_super(controller, model)
     self = this
     updater = window.setInterval(->
-      self.store.find('realtime').then((data) ->
+      self.store.findAll('realtime').then((data) ->
         controller.set('dashboard_data', data)
         controller.set('date', new Date())
       )
