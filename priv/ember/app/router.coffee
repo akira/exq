@@ -7,10 +7,10 @@ Router = Ember.Router.extend
 
 Router.map ->
   @route 'index', {path: '/'}
-  @resource 'queues', ->
+  @route 'queues', {resetNamespace: true }, ->
     @route 'show', {path: '/:id'}
-  @resource 'processes', ->
+  @route 'processes', {resetNamespace: true }, ->
     @route 'index', {path: '/'}
-  @resource 'failures', ->
+  @route 'failures', {resetNamespace: true }, ->
     @route 'index', {path: '/'}
 `export default Router`
