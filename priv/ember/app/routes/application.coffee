@@ -1,12 +1,10 @@
 ApplicationRoute = Ember.Route.extend
   model: (params) ->
-    @get('store').find('stat', 'all')  
+    @get('store').findRecord('stat', 'all')
   actions:
     reloadStats: ->
-      @get('store').find('stat', 'all').then((stats) ->
+      @get('store').findRecord('stat', 'all').then((stats) ->
         stats.reload()
       )
 
 `export default ApplicationRoute`
-
-

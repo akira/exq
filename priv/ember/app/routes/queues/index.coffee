@@ -1,5 +1,5 @@
 IndexRoute = Ember.Route.extend
   model: (params) ->
-    @store.find('queue')
+    @store.findAll('queue')
 
 `export default IndexRoute`

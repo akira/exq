@@ -11,7 +11,7 @@ IndexController = Ember.Controller.extend
   }
 
   dashboard_data: {}
-  graph_dashboard_data: (-> 
+  graph_dashboard_data: (->
     if @get('date') != null
       # Get the last 120 seconds
       d = moment.utc(@get('date'))
@@ -22,10 +22,10 @@ IndexController = Ember.Controller.extend
         mydates.push(moment.utc(d.valueOf() - (t*1000)))
 
 
-      rtdata = @store.all('realtime')
-      
+      rtdata = @store.findAll('realtime')
+
       success_set = []
-      failure_set = []  
+      failure_set = []
 
       for dt in mydates
         key = dt.format("YYYY-MM-DD HH:mm:ss ZZ")
