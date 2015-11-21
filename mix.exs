@@ -24,7 +24,7 @@ defmodule Exq.Mixfile do
   def application do
     [
       mod: { Exq, [] },
-      applications: [:logger, :tzdata, :eredis]
+      applications: [:logger, :tzdata, :eredis, :timex]
     ]
   end
 
