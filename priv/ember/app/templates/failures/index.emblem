@@ -15,7 +15,7 @@ table.table.table-bordered.table-hover
       th
         | Actions
   tbody
-    each failure in model
+    each model as |failure|
       tr
         td
           = failure.queue
