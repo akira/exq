@@ -11,7 +11,7 @@ table.table.table-bordered.table-hover
       th
         | Actions
   tbody
-    each queue in model
+    each model as |queue|
       tr
         td
           = queue.id

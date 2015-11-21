@@ -15,7 +15,7 @@ table.table.table-bordered.table-hover
       th
         | Started
   tbody
-    each process in model
+    each model as |process|
       tr
         td
           = process.host
