@@ -29,7 +29,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.4.1"}
+      {:exq, "~> 0.4.2"}
     ]
   end
 ```
@@ -115,29 +115,6 @@ When using Exq through OTP, it will register a process under the name ```:exq```
 
 ## Using iex:
 If you'd like to try Exq out on the iex console, you can do this by typing ```iex -S mix``` after ```mix deps.get```.
-
-## Starting Exq manually:
-
-Typically, Exq will start as part of the application along with the configuration you have set.  However, you can also start Exq manually and set your own configuration per instance.
-
-Here is an example of how to start Exq manually:
-
-```elixir
-{:ok, sup} = Exq.start_link
-```
-
-To connect with custom configuration options (if you need multiple instances of Exq for example), you can pass in options
-under start_link:
-
-```elixir
-{:ok, sup} = Exq.start_link([host: "127.0.0.1", port: 6379, namespace: "x"])
-```
-
-By default, Exq will register itself under the ```:exq``` atom.  You can change this by passing in a name parameter:
-
-```elixir
-{:ok, exq} = Exq.start_link(name: :exq_custom)
-```
 
 ### Standalone Exq:
 
@@ -250,6 +227,28 @@ To start the web UI:
 
 You can also use [Plug](https://github.com/elixir-lang/plug) to connect the web UI to your Web application.
 
+## Starting Exq manually:
+
+Typically, Exq will start as part of the application along with the configuration you have set.  However, you can also start Exq manually and set your own configuration per instance.
+
+Here is an example of how to start Exq manually:
+
+```elixir
+{:ok, sup} = Exq.start_link
+```
+
+To connect with custom configuration options (if you need multiple instances of Exq for example), you can pass in options
+under start_link:
+
+```elixir
+{:ok, sup} = Exq.start_link([host: "127.0.0.1", port: 6379, namespace: "x"])
+```
+
+By default, Exq will register itself under the ```:exq``` atom.  You can change this by passing in a name parameter:
+
+```elixir
+{:ok, exq} = Exq.start_link(name: :exq_custom)
+```
 
 ## Contributions
 
