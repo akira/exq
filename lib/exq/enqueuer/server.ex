@@ -225,6 +225,9 @@ defmodule Exq.Enqueuer.Server do
   def queue_size(redis, namespace, :scheduled) do
     Connection.zcard!(redis, full_key(namespace, "schedule"))
   end
+  def queue_size(redis, namespace, :retry) do
+    Connection.zcard!(redis, full_key(namespace, "retry"))
+  end
   def queue_size(redis, namespace, queue) do
     Connection.llen!(redis, full_key(namespace, "queue:#{queue}"))
   end

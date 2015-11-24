@@ -1,5 +1,5 @@
 ExqStat = Ember.Component.extend
   link: "index"
-  classNames: ['col-xs-3']
+  classNames: ['col-xs-2']
 
 `export default ExqStat`
