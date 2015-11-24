@@ -33,6 +33,10 @@ defmodule Exq.Api do
     GenServer.call(pid, {:failed})
   end
 
+  def retries(pid) do
+    GenServer.call(pid, {:retries})
+  end
+
   def queue_size(pid) do
     GenServer.call(pid, {:queue_size})
   end

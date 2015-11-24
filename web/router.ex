@@ -73,6 +73,17 @@ defmodule Exq.RouterPlug do
       conn |> send_resp(200, json) |> halt
     end
 
+    get "/api/retries" do
+      {:ok, retries} = Exq.Api.retries(conn.assigns[:exq_name])
+      retries = for r <- retries do
+        {:ok, retry} = Poison.decode(r, %{})
+        Map.put(retry, :id, retry["jid"])
+      end
+
+      {:ok, json} = Poison.encode(%{retries: retries})
+      conn |> send_resp(200, json) |> halt
+    end
+
     get "/api/failures" do
       {:ok, failed} = Exq.Api.failed(conn.assigns[:exq_name])
       failures = for f <- failed do
