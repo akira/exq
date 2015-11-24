@@ -79,21 +79,6 @@ defmodule Exq.Manager.Server do
     {:ok, state, 0}
   end
 
-  def handle_cast({:worker_terminated, pid}, state) do
-    GenServer.cast(state.stats, {:process_terminated, state.namespace, state.host, pid})
-    {:noreply, state, 0}
-  end
-
-  def handle_cast({:success, job}, state) do
-    GenServer.cast(state.stats, {:record_processed, state.namespace, job})
-    {:noreply, state, 0}
-  end
-
-  def handle_cast({:failure, error, job}, state) do
-    GenServer.cast(state.stats, {:record_failure, state.namespace, error, job})
-    {:noreply, state, 0}
-  end
-
   def handle_cast(_request, state) do
     Logger.error("UKNOWN CAST")
     {:noreply, state, 0}
@@ -187,8 +172,9 @@ defmodule Exq.Manager.Server do
   end
 
   def dispatch_job(state, job, queue) do
-    {:ok, worker} = Exq.Worker.Server.start(job, state.pid, queue, state.work_table)
-    Stats.add_process(state.stats, state.namespace, worker, state.host, job)
+    {:ok, worker} = Exq.Worker.Server.start(
+      job, state.pid, queue, state.work_table,
+      state.stats, state.namespace, state.host)
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
     state

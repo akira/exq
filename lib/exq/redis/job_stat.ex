@@ -7,7 +7,7 @@ defmodule Exq.Redis.JobStat do
   alias Exq.Redis.JobQueue
   alias Exq.Support.Json
   alias Exq.Support.Job
-  alias Exq.Stats.Process
+  alias Exq.Support.Process
 
   def record_processed(redis, namespace, _job) do
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
@@ -43,38 +43,16 @@ defmodule Exq.Redis.JobStat do
     Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
   end
 
-  def add_process(redis, namespace, process) do
-    pid = to_string(:io_lib.format("~p", [process.pid]))
-
-    process = Enum.into([{:pid, pid}, {:host, process.host}, {:job, process.job}, {:started_at, process.started_at}], HashDict.new)
-    json = Json.encode!(process)
-
+  def add_process(redis, namespace, process_info) do
+    json = Exq.Support.Process.to_json(process_info)
     Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), json)
     :ok
   end
 
-  def remove_process(redis, namespace, hostname, pid) do
-    pid = to_string(:io_lib.format("~p", [pid]))
-
-    processes = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
-
-    finder = fn(p) ->
-      case Json.decode(p) do
-        { :ok, proc } -> (Dict.get(proc, "pid") == pid) && (Dict.get(proc, "host") == hostname)
-        { :error, _ } -> false
-      end
-    end
-
-    proc = Enum.find(processes, finder)
-
-    case proc do
-      nil ->
-        {:not_found, nil}
-      p ->
-        Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), proc)
-        {:ok, p}
-    end
-
+  def remove_process(redis, namespace, process_info) do
+    json = Exq.Support.Process.to_json(process_info)
+    Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), json)
+    :ok
   end
 
   def find_failed(redis, namespace, jid) do

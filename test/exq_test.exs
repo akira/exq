@@ -181,17 +181,45 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "record processes" do
+    Process.register(self, :exqtest)
+    {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "default"])
+    state = :sys.get_state(:exq_t)
+
+    {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.SleepWorker, [100, "finished"])
+    wait
+
+    # Check that process has been recorded
+    processes = Exq.Redis.JobStat.processes(state.redis, "default")
+    assert Enum.count(processes) == 1
+
+    wait_long
+    assert_received {"finished"}
+
+    # Check that process has been cleared
+    processes = Exq.Redis.JobStat.processes(state.redis, "default")
+    assert Enum.count(processes) == 0
+
+    {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.InvalidWorker, [100, "finished"])
+    wait_long
+
+    # Check that process has been recorded
+    processes = Exq.Redis.JobStat.processes(state.redis, "default")
+    assert Enum.count(processes) == 0
+
+    stop_process(sup)
+  end
 
   test "record processed jobs" do
     {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     state = :sys.get_state(:exq_t)
 
-    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.EmptyMethodWorker", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.EmptyMethodWorker, [])
     wait
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "1"
 
-    {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.EmptyMethodWorker", [])
+    {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.EmptyMethodWorker, [])
     wait_long
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "2"
