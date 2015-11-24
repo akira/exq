@@ -19,5 +19,5 @@ table.table.table-bordered.table-hover
           link-to 'queues.show' queue.id
             = queue.size
         td
-          button class="btn btn-danger btn-xs" click="deleteQueue queue"
+          button class="btn btn-danger btn-xs" click="'deleteQueue' queue"
             | Delete
