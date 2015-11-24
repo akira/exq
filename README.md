@@ -267,6 +267,8 @@ Justin McNally (j-mcnally) (structtv)
 
 Nick Sanders (nicksanders)
 
+Nick Gal (nickgal)
+
 Mike Lawlor (disbelief)
 
 Udo Kramer (optikfluffel)
