@@ -3,5 +3,7 @@ Stat = DS.Model.extend
   failed: DS.attr 'number'
   busy: DS.attr 'number'
   enqueued: DS.attr 'number'
+  retrying: DS.attr 'number'
+  scheduled: DS.attr 'number'
   date: DS.attr 'date'
 `export default Stat`

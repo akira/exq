@@ -45,6 +45,7 @@ defmodule Exq.RouterPlug do
       {:ok, failed} = Exq.Api.stats(conn.assigns[:exq_name], "failed")
       {:ok, busy} = Exq.Api.busy(conn.assigns[:exq_name])
       {:ok, scheduled} = Exq.Api.queue_size(conn.assigns[:exq_name], :scheduled)
+      {:ok, retrying} = Exq.Api.queue_size(conn.assigns[:exq_name], :retry)
 
       {:ok, queues} = Exq.Api.queue_size(conn.assigns[:exq_name])
       queue_sizes = for {_q, size} <- queues do
@@ -53,7 +54,7 @@ defmodule Exq.RouterPlug do
       end
       qtotal = "#{Enum.sum(queue_sizes)}"
 
-      {:ok, json} = Poison.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, scheduled: scheduled, enqueued: qtotal}})
+      {:ok, json} = Poison.encode(%{stat: %{id: "all", processed: processed, failed: failed, busy: busy, scheduled: scheduled, retrying: retrying, enqueued: qtotal}})
       conn |> send_resp(200, json) |> halt
     end
 
