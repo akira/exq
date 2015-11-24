@@ -73,25 +73,21 @@ defmodule Exq.RouterPlug do
       conn |> send_resp(200, json) |> halt
     end
 
+    get "/api/scheduled" do
+      {:ok, jobs} = Exq.Api.scheduled(conn.assigns[:exq_name])
+      {:ok, json} = Poison.encode(%{scheduled: map_jid_to_id(jobs)})
+      conn |> send_resp(200, json) |> halt
+    end
+
     get "/api/retries" do
       {:ok, retries} = Exq.Api.retries(conn.assigns[:exq_name])
-      retries = for r <- retries do
-        {:ok, retry} = Poison.decode(r, %{})
-        Map.put(retry, :id, retry["jid"])
-      end
-
-      {:ok, json} = Poison.encode(%{retries: retries})
+      {:ok, json} = Poison.encode(%{retries: map_jid_to_id(retries)})
       conn |> send_resp(200, json) |> halt
     end
 
     get "/api/failures" do
-      {:ok, failed} = Exq.Api.failed(conn.assigns[:exq_name])
-      failures = for f <- failed do
-        {:ok, fail} = Poison.decode(f, %{})
-        Map.put(fail, :id, fail["jid"])
-      end
-
-      {:ok, json} = Poison.encode(%{failures: failures})
+      {:ok, failures} = Exq.Api.failed(conn.assigns[:exq_name])
+      {:ok, json} = Poison.encode(%{failures: map_jid_to_id(failures)})
       conn |> send_resp(200, json) |> halt
     end
 
@@ -106,6 +102,7 @@ defmodule Exq.RouterPlug do
     end
 
     post "/api/failures/:id/retry" do
+      # TODO
       conn |> send_resp(200, "") |> halt
     end
 
@@ -138,12 +135,9 @@ defmodule Exq.RouterPlug do
 
     get "/api/queues/:id" do
       {:ok, jobs} = Exq.Api.jobs(conn.assigns[:exq_name], id)
-      jobs_structs = for j <- jobs do
-        {:ok, job} = Poison.decode(j, %{})
-        Map.put(job, :id, job["jid"])
-      end
+      jobs_structs = map_jid_to_id(jobs)
       job_ids = for j <- jobs_structs, do: j[:id]
-      {:ok, json} = Poison.encode(%{queue: %{id: id, job_ids: job_ids, partial: false}, jobs: jobs_structs})
+      {:ok, json} = Poison.encode(%{queue: %{id: id, job_ids: job_ids, partial: false}, jobs: map_jid_to_id(jobs)})
       conn |> send_resp(200, json) |> halt
     end
 
@@ -178,6 +172,13 @@ defmodule Exq.RouterPlug do
         |> put_resp_header("content-type", "text/html")
         |> send_resp(200, render_index(base: base))
         |> halt
+    end
+
+    def map_jid_to_id(jobs) do
+      for j <- jobs do
+        {:ok, job} = Poison.decode(j, %{})
+        Map.put(job, :id, job["jid"])
+      end
     end
 
   end
