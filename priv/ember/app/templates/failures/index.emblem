@@ -13,9 +13,11 @@ table.table.table-bordered.table-hover
       th
         | Failed At
       th
+        | Error
+      th
         | Actions
   tbody
-    each failure in model
+    each model as |failure|
       tr
         td
           = failure.queue
@@ -26,13 +28,16 @@ table.table.table-bordered.table-hover
         td
           = failure.failed_at
         td
-          / button class="btn btn-info btn-xs"
+          .failure-error-message
+            = failure.error_message
+        td
+          / button class="btn btn-info btn-xs" click="'retryFailure' failure"
           /   | Retry
-          / |  
-          button class="btn btn-danger btn-xs" click="removeFailure failure"
+          / |
+          button class="btn btn-danger btn-xs" click="'removeFailure' failure"
             | Delete
   tfoot
     tr
-      td colspan="5"
+      td colspan="6"
         button class="btn btn-danger btn-xs" click="clearFailures"
           | Clear Failed Jobs List

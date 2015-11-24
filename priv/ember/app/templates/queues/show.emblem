@@ -1,5 +1,5 @@
 h2
-  | Queue:  
+  | Queue:
   = model.id
 table.table.table-bordered.table-hover
   thead
@@ -13,7 +13,7 @@ table.table.table-bordered.table-hover
       th
         | Actions
   tbody
-    each job in model.jobs
+    each model.jobs as |job|
       tr
         td
           = job.class
