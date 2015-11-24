@@ -20,7 +20,7 @@ nav.navbar.navbar-default role="navigation"
           link-to 'queues.index' | Queues
         li
           link-to 'retries.index' | Retries
-        / li
-        /   link-to 'index' | Scheduled
+        li
+          link-to 'scheduled.index' | Scheduled
         li
           link-to 'failures.index' | Failures
