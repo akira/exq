@@ -3,7 +3,7 @@ defmodule Exq.Mixfile do
 
   def project do
     [ app: :exq,
-      version: "0.4.1",
+      version: "0.4.3",
       elixir: "~> 1.0.0 or ~> 1.1.1",
       elixirc_paths: ["lib", "web"],
       package: [
@@ -24,7 +24,7 @@ defmodule Exq.Mixfile do
   def application do
     [
       mod: { Exq, [] },
-      applications: [:logger, :tzdata]
+      applications: [:logger, :tzdata, :eredis, :timex]
     ]
   end
 
