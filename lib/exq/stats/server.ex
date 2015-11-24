@@ -5,7 +5,7 @@ defmodule Exq.Stats.Server do
   alias Exq.Redis.JobQueue
   alias Exq.Redis.JobStat
   alias Exq.Support.Json
-  alias Exq.Stats.Process
+  alias Exq.Support.Process
   require Logger
 
   @default_name :exq_stats
@@ -14,9 +14,25 @@ defmodule Exq.Stats.Server do
     defstruct redis: nil
   end
 
-  def add_process(pid, namespace, worker, host, job) do
-    GenServer.cast(pid, {:add_process, namespace,
-      %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.universal, "{ISO}")}})
+  def add_process(stats, namespace, worker, host, job) do
+    process_info = %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.universal, "{ISO}")}
+    GenServer.cast(stats, {:add_process, namespace, process_info})
+    {:ok, process_info}
+  end
+
+  def process_terminated(stats, namespace, process_info) do
+    GenServer.cast(stats, {:process_terminated, namespace, process_info})
+    :ok
+  end
+
+  def record_processed(stats, namespace, job) do
+    GenServer.cast(stats, {:record_processed, namespace, job})
+    :ok
+  end
+
+  def record_failure(stats, namespace, error, job) do
+    GenServer.cast(stats, {:record_failure, namespace, error, job})
+    :ok
   end
 
 ##===========================================================
@@ -35,8 +51,8 @@ defmodule Exq.Stats.Server do
 
   def default_name, do: @default_name
 
-  def handle_cast({:add_process, namespace, process}, state) do
-    JobStat.add_process(state.redis, namespace, process)
+  def handle_cast({:add_process, namespace, process_info}, state) do
+    JobStat.add_process(state.redis, namespace, process_info)
     {:noreply, state}
   end
 
@@ -53,13 +69,13 @@ defmodule Exq.Stats.Server do
     {:noreply, state}
   end
 
-  def handle_cast({:process_terminated, namespace, hostname, pid}, state) do
-    {:ok, _} = JobStat.remove_process(state.redis, namespace, hostname, pid)
+  def handle_cast({:process_terminated, namespace, process}, state) do
+    :ok = JobStat.remove_process(state.redis, namespace, process)
     {:noreply, state}
   end
 
   def handle_cast(data, state) do
-    Logger.error("INVALID MESSAGE #{data}")
+    Logger.error("INVALID MESSAGE #{Kernel.inspect data}")
     {:noreply, state}
   end
 
