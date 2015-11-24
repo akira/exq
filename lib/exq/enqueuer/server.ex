@@ -109,6 +109,11 @@ defmodule Exq.Enqueuer.Server do
    {:reply, {:ok, jobs}, state, 0}
   end
 
+  def handle_call({:retries}, _from, state) do
+   jobs = list_retry(state.redis, state.namespace)
+   {:reply, {:ok, jobs}, state, 0}
+  end
+
   def handle_call({:jobs}, _from, state) do
     queues = list_queues(state.redis, state.namespace)
     jobs = for q <- queues, do: {q, list_jobs(state.redis, state.namespace, q)}

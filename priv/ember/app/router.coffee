@@ -11,6 +11,8 @@ Router.map ->
     @route 'show', {path: '/:id'}
   @route 'processes', {resetNamespace: true }, ->
     @route 'index', {path: '/'}
+  @route 'retries', {resetNamespace: true }, ->
+    @route 'index', {path: '/'}
   @route 'failures', {resetNamespace: true }, ->
     @route 'index', {path: '/'}
 `export default Router`
