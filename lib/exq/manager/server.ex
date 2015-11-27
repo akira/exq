@@ -80,7 +80,7 @@ defmodule Exq.Manager.Server do
   end
 
   def handle_cast(_request, state) do
-    Logger.error("UKNOWN CAST")
+    Logger.error("UNKNOWN CAST")
     {:noreply, state, 0}
   end
 
@@ -119,7 +119,7 @@ defmodule Exq.Manager.Server do
   end
 
   def handle_call(_request, _from, state) do
-    Logger.error("UKNOWN CALL")
+    Logger.error("UNKNOWN CALL")
     {:reply, :unknown, state, 0}
   end
 
@@ -129,7 +129,7 @@ defmodule Exq.Manager.Server do
   end
 
   def handle_info(info, state) do
-    Logger.error("UKNOWN CALL #{Kernel.inspect info}")
+    Logger.error("UNKNOWN CALL #{Kernel.inspect info}")
     {:noreply, state, state.timeout}
   end
 
