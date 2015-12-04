@@ -209,6 +209,34 @@ defmodule MyWorker do
 end
 ```
 
+## Using with Phoenix and Ecto
+
+If you would like to use Exq alongside Phoenix and Ecto, you will need to add Exq to your supervision hierarchy so that the Ecto Repo is available by the time jobs start processing. To do this, edit your application file and add a supervisor module. For example, if we have an application called ```HelloPhoenix```, you would edit ```lib/hello_phoenix.ex``` and add the Exq supervisor:
+```elixir
+    children = [
+      # Start the endpoint when the application starts
+      supervisor(HelloPhoenix.Endpoint, []),
+      # Start the Ecto repository
+      worker(HelloPhoenix.Repo, []),
+      
+      #Add the Exq supervisor
+      supervisor(Exq, [])
+      
+      # Here you could define other workers and supervisors as children
+      # worker(HelloPhoenix.Worker, [arg1, arg2, arg3]),
+    ]
+```
+
+Assuming you will be accessing the database from Exq workers, you will want to lower the concurrency level for those workers, as they are using a finite pool of connections and can potentially back up and time out. You can lower this through the ```concurrency``` setting, or perhaps use a different queue for database workers that have a lower concurrency just for that queue. Inside your worker, you would then be able to use the Repo to work with the database:
+
+```elixir
+defmodule Worker do
+  def perform do
+    HelloPhoenix.Repo.insert!(%HelloPhoenix.User{name: "Hello", email: "world@yours.com"})
+  end
+end
+```
+
 ## Security
 
 By default, you Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
