@@ -32,7 +32,7 @@ defmodule Exq.Mixfile do
   # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
   defp deps do
     [
-      { :uuid, "~> 1.0.0" },
+      { :uuid, "~> 1.0" },
       { :eredis, "~> 1.0.8"},
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, "~> 0.19.5" },
