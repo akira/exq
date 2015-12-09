@@ -32,7 +32,8 @@ defmodule Exq.Enqueuer.Server do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     redis = case Keyword.get(opts, :redis) do
       nil ->
-        {:ok, r} = Connection.connection(opts)
+        {:ok, redis_sup} = Exq.Redis.Supervisor.start_link(opts)
+        [{_, r, _, _}|_] = Supervisor.which_children(redis_sup)
         r
       r -> r
     end
@@ -183,7 +184,7 @@ defmodule Exq.Enqueuer.Server do
 
   def terminate(_reason, state) do
     if state.redis_owner do
-      :eredis.stop(state.redis)
+      Redix.stop(state.redis)
     end
     :ok
   end

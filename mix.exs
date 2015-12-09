@@ -24,7 +24,7 @@ defmodule Exq.Mixfile do
   def application do
     [
       mod: { Exq, [] },
-      applications: [:logger, :tzdata, :eredis, :timex]
+      applications: [:logger, :tzdata, :redix, :timex]
     ]
   end
 
@@ -33,7 +33,7 @@ defmodule Exq.Mixfile do
   defp deps do
     [
       { :uuid, "~> 1.0" },
-      { :eredis, "~> 1.0.8"},
+      {:redix, ">= 0.0.0"},
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, "~> 0.19.5" },
       { :plug, ">= 0.8.1 and < 2.0.0"},
