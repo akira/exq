@@ -29,7 +29,8 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 
   def init([opts]) do
-    {:ok, redis} = Exq.Redis.Connection.connection(opts)
+    {:ok, redis_sup} = Exq.Redis.Supervisor.start_link(opts)
+    [{_, redis, _, _}] = Supervisor.which_children(redis_sup)
     name = Keyword.get(opts, :name, @default_name)
 
     {queues, work_table} = setup_queues(opts)
@@ -138,7 +139,7 @@ defmodule Exq.Manager.Server do
   end
 
   def terminate(_reason, state) do
-    :eredis.stop(state.redis)
+    Redix.stop(state.redis)
     :ok
   end
 

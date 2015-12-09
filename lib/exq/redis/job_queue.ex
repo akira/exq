@@ -56,9 +56,9 @@ defmodule Exq.Redis.JobQueue do
   end
   def enqueue(redis, namespace, queue, job_json) do
     try do
-      response = :eredis.qp(redis, [
+      response = Redix.pipeline(redis, [
         ["SADD", full_key(namespace, "queues"), queue],
-        ["RPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
+        ["RPUSH", queue_key(namespace, queue), job_json]], [timeout: Config.get(:redis_timeout, 5000)])
 
       case response do
         [{:ok, _}, {:ok, _}] -> :ok
