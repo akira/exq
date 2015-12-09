@@ -159,6 +159,9 @@ defmodule Exq.Manager.Server do
           {state, state.poll_timeout * 10}
       end
     catch
+      :exit, {:noproc, _} ->
+        [{_, new_redis, _, _}|_] = Supervisor.which_children(Exq.Redis.Supervisor)
+        dequeue_and_dispatch(%{state | redis: new_redis}, queues)
       :exit, e ->
         Logger.info("Manager timeout occurred #{Kernel.inspect e}")
         {state, state.poll_timeout}
