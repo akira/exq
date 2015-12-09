@@ -6,8 +6,8 @@ defmodule Exq.Redis.Connection do
   @default_timeout 5000
 
   def connection(opts \\ []) do
-    {host, port, database, password, reconnect_on_sleep, timeout} = info(opts)
-    :eredis.start_link(host, port, database, password, reconnect_on_sleep, timeout)
+    {host, port, database, password, backoff, timeout} = info(opts)
+    Redix.start_link([host: host, port: port], [backoff: backoff, timeout: timeout])
   end
 
   def info(opts \\ []) do
@@ -138,11 +138,11 @@ defmodule Exq.Redis.Connection do
   end
 
   def q(redis, command) do
-    :eredis.q(redis, command, Config.get(:redis_timeout, @default_timeout))
+    Redix.command(redis, command, [timeout: Config.get(:redis_timeout, @default_timeout)])
   end
 
   def qp(redis, command) do
-    :eredis.qp(redis, command, Config.get(:redis_timeout, @default_timeout))
+    Redix.pipeline(redis, command, [timeout: Config.get(:redis_timeout, @default_timeout)])
   end
 
 end
