@@ -227,6 +227,14 @@ If you would like to use Exq alongside Phoenix and Ecto, you will need to add Ex
     ]
 ```
 
+Also, add :tzdata to your mix.exs application list:
+```elixir
+  def application do
+    [mod: {Chat, []},
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :tzdata]]
+  end
+```
+
 Assuming you will be accessing the database from Exq workers, you will want to lower the concurrency level for those workers, as they are using a finite pool of connections and can potentially back up and time out. You can lower this through the ```concurrency``` setting, or perhaps use a different queue for database workers that have a lower concurrency just for that queue. Inside your worker, you would then be able to use the Repo to work with the database:
 
 ```elixir
@@ -236,6 +244,10 @@ defmodule Worker do
   end
 end
 ```
+
+## Using alongside Sidekiq / Resque
+
+To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using. By default, exq will use the ```exq``` namespace, so you will have to change that. 
 
 ## Security
 
