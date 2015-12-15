@@ -32,8 +32,8 @@ defmodule Exq.Enqueuer.Server do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     redis = case Keyword.get(opts, :redis) do
       nil ->
-        {:ok, redis_sup} = Exq.Redis.Supervisor.start_link(opts)
-        [{_, r, _, _}|_] = Supervisor.which_children(redis_sup)
+        Exq.Redis.Supervisor.start_link(opts)
+        {:ok, r} = Supervisor.start_child(Exq.Redis.Supervisor, [])
         r
       r -> r
     end

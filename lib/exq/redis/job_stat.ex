@@ -13,7 +13,7 @@ defmodule Exq.Redis.JobStat do
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
 
-    [{:ok, count}, {:ok, _,}, {:ok, _}, {:ok, _}] = Connection.qp(redis,[
+    {:ok, [count, _, _, _]} = Connection.qp(redis,[
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
       ["INCR", JobQueue.full_key(namespace, "stat:processed_rt:#{time}")],
       ["EXPIRE", JobQueue.full_key(namespace, "stat:processed_rt:#{time}"), 120],
@@ -26,7 +26,7 @@ defmodule Exq.Redis.JobStat do
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
 
-    [{:ok, count}, {:ok, _,}, {:ok, _}, {:ok, _}] = Connection.qp(redis, [
+    {:ok, [count, _, _, _]} = Connection.qp(redis, [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
       ["INCR", JobQueue.full_key(namespace, "stat:failed_rt:#{time}")],
       ["EXPIRE", JobQueue.full_key(namespace, "stat:failed_rt:#{time}"), 120],
