@@ -6,15 +6,17 @@ defmodule Exq.Redis.Supervisor do
   @default_timeout 5000
 
   def start_link(opts) do
-
     Supervisor.start_link(__MODULE__, [opts], name: __MODULE__)
   end
 
   def init([opts]) do
-  {host, port, database, password, backoff, timeout} = info(opts)
-    children = [worker(Redix.Utils, [Redix.Connection, [host: host, port: port],
-                                             [backoff: backoff, timeout: timeout]])]
-    supervise(children, strategy: :one_for_one, max_restarts: 20)
+    {host, port, database, password, backoff, timeout} = info(opts)
+    {:ok, {{:simple_one_for_one, 10, 10},
+            [{nil,
+             {Redix.Utils, :start_link, [Redix.Connection, [host: host, port: port], [backoff: backoff, timeout: timeout]]},
+             :temporary, 5000, :worker, [Redix.Utils]}]
+          }
+    }
   end
 
   def info(opts \\ []) do
