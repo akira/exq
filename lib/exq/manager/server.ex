@@ -29,8 +29,8 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 
   def init([opts]) do
-    {:ok, redis_sup} = Exq.Redis.Supervisor.start_link(opts)
-    [{_, redis, _, _}] = Supervisor.which_children(redis_sup)
+    Exq.Redis.Supervisor.start_link(opts)
+    {:ok, redis} = Supervisor.start_child(Exq.Redis.Supervisor, [])
     name = Keyword.get(opts, :name, @default_name)
 
     {queues, work_table} = setup_queues(opts)

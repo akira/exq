@@ -78,8 +78,8 @@ defmodule JobQueueTest do
     JobQueue.enqueue_at(:testredis, "test", "default", time4, MyWorker, [])
     time5 = Time.add(now, Time.from(300, :secs))
 
-    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", "default") == "0"
-    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", :scheduled) == "5"
+    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", "default") == 0
+    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", :scheduled) == 5
 
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default"], JobQueue.time_to_score(time2a)) == 2
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default"], JobQueue.time_to_score(time2b)) == 0
@@ -88,8 +88,8 @@ defmodule JobQueueTest do
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default"], JobQueue.time_to_score(time4)) == 1
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default"], JobQueue.time_to_score(time5)) == 1
 
-    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", "default") == "5"
-    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", :scheduled) == "0"
+    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", "default") == 5
+    assert Exq.Enqueuer.Server.queue_size(:testredis, "test", :scheduled) == 0
 
 
     assert_dequeue_job("default", true)
