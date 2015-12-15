@@ -110,8 +110,8 @@ defmodule JobQueueTest do
     {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
     assert jid != nil
 
-    {:ok, {job_str, x}} = JobQueue.dequeue(:testredis, "test", "default")
-    job = Poison.decode!(job_str, as: Exq.Support.Job) |> IO.inspect
+    {:ok, {job_str, _}} = JobQueue.dequeue(:testredis, "test", "default")
+    job = Poison.decode!(job_str, as: Exq.Support.Job)
     assert job.jid == jid
   end
 
