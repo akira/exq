@@ -35,7 +35,7 @@ defmodule Exq.Manager.Server do
     {queues, work_table} = setup_queues(opts)
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     poll_timeout = Keyword.get(opts, :poll_timeout, Config.get(:poll_timeout, 50))
-    scheduler_enable = Keyword.get(opts, :scheduler_enable, Config.get(:scheduler_enable, false))
+    scheduler_enable = Keyword.get(opts, :scheduler_enable, Config.get(:scheduler_enable, true))
     scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
 
     {:ok, localhost} = :inet.gethostname()
