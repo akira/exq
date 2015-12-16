@@ -7,18 +7,17 @@ defmodule Exq.Redis.Connection do
 
   def connection(opts \\ []) do
     {host, port, database, password, backoff, timeout} = info(opts)
-    Redix.start_link([host: host, port: port], [backoff: backoff, timeout: timeout])
+    Redix.start_link([host: host, port: port, database: database, password: password], [backoff: backoff, timeout: timeout])
   end
 
   def info(opts \\ []) do
     host = Keyword.get(opts, :host, Config.get(:host, '127.0.0.1'))
     port = Keyword.get(opts, :port, Config.get(:port, 6379))
     database = Keyword.get(opts, :database, Config.get(:database, 0))
-    password = Keyword.get(opts, :password, Config.get(:password) || '')
+    password = Keyword.get(opts, :password, Config.get(:password))
     reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Config.get(:reconnect_on_sleep, 100))
     timeout = Keyword.get(opts, :redis_timeout, Config.get(:redis_timeout, @default_timeout))
     if is_binary(host), do: host = String.to_char_list(host)
-    if is_binary(password), do: password = String.to_char_list(password)
     {host, port, database, password, reconnect_on_sleep, timeout}
   end
 
