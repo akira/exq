@@ -11,3 +11,4 @@ _build/
 stdout
 *.iml
 .idea
+*.rdb
