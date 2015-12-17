@@ -29,7 +29,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.4.2"}
+      {:exq, "~> 0.4.4"}
     ]
   end
 ```
@@ -218,10 +218,10 @@ If you would like to use Exq alongside Phoenix and Ecto, you will need to add Ex
       supervisor(HelloPhoenix.Endpoint, []),
       # Start the Ecto repository
       worker(HelloPhoenix.Repo, []),
-      
+
       #Add the Exq supervisor
       supervisor(Exq, [])
-      
+
       # Here you could define other workers and supervisors as children
       # worker(HelloPhoenix.Worker, [arg1, arg2, arg3]),
     ]
@@ -247,7 +247,7 @@ end
 
 ## Using alongside Sidekiq / Resque
 
-To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using. By default, exq will use the ```exq``` namespace, so you will have to change that. 
+To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using. By default, exq will use the ```exq``` namespace, so you will have to change that.
 
 ## Security
 
