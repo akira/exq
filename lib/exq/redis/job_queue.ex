@@ -58,7 +58,7 @@ defmodule Exq.Redis.JobQueue do
     try do
       response = :eredis.qp(redis, [
         ["SADD", full_key(namespace, "queues"), queue],
-        ["RPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
+        ["LPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
 
       case response do
         [{:ok, _}, {:ok, _}] -> :ok
@@ -100,7 +100,7 @@ defmodule Exq.Redis.JobQueue do
   end
   def dequeue(redis, namespace, queue) do
     # normalize empty return values
-    case Connection.lpop(redis, queue_key(namespace, queue)) do
+    case Connection.rpoplpush(redis, queue_key(namespace, queue), backup_queue_key(namespace, queue)) do
       {status, :undefined} -> {status, {:none, queue}}
       {status, nil}        -> {status, {:none, queue}}
       {status, value}      -> {status, {value, queue}}
@@ -140,6 +140,10 @@ defmodule Exq.Redis.JobQueue do
 
   def queue_key(namespace, queue) do
     full_key(namespace, "queue:#{queue}")
+  end
+
+  def backup_queue_key(namespace, queue) do
+    full_key(namespace, "queue:backup::#{queue}")
   end
 
   def schedule_queues(namespace) do
@@ -186,7 +190,7 @@ defmodule Exq.Redis.JobQueue do
     failed_at = DateFormat.format!(Date.universal, "{ISO}")
     job = %{job | failed_at: failed_at, error_class: "ExqGenericError", error_message: error}
     job_json = Job.to_json(job)
-    Connection.rpush!(redis, full_key(namespace, "failed"), job_json)
+    Connection.lpush!(redis, full_key(namespace, "failed"), job_json)
   end
 
   defp dequeue_random(_redis, _namespace, []) do
