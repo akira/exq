@@ -13,28 +13,28 @@ defmodule JobQueueTest do
     end
   end
 
-  def assert_dequeue_job(queues, expect_result) do
-    result = JobQueue.dequeue(:testredis, "test", queues)
-    if expect_result do
-      refute match?({:ok, {:none, _}}, result)
+  def assert_dequeue_job(queues, expected_result) do
+    jobs = JobQueue.dequeue(:testredis, "test", queues)
+    result = jobs |> Enum.reject(fn({:ok, {status, _}}) -> status == :none end)
+    if is_boolean(expected_result) do
+      assert expected_result == !Enum.empty?(result)
     else
-      assert match?({:ok, {:none, _}}, result)
+      assert expected_result == Enum.count(result)
     end
   end
 
   test "enqueue/dequeue single queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
-    {:ok, {deq, _}} = JobQueue.dequeue(:testredis, "test", "default")
+    [{:ok, {deq, _}}] = JobQueue.dequeue(:testredis, "test", "default")
     assert deq != :none
-    {:ok, {deq, _}} = JobQueue.dequeue(:testredis, "test", "default")
+    [{:ok, {deq, _}}] = JobQueue.dequeue(:testredis, "test", "default")
     assert deq == :none
   end
 
   test "enqueue/dequeue multi queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
     JobQueue.enqueue(:testredis, "test", "myqueue", MyWorker, [])
-    assert_dequeue_job(["default", "myqueue"], true)
-    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], 2)
     assert_dequeue_job(["default", "myqueue"], false)
   end
 
@@ -51,8 +51,7 @@ defmodule JobQueueTest do
     JobQueue.enqueue_in(:testredis, "test", "default", -1, MyWorker, [])
     JobQueue.enqueue_in(:testredis, "test", "myqueue", -1, MyWorker, [])
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default", "myqueue"]) == 2
-    assert_dequeue_job(["default", "myqueue"], true)
-    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], 2)
     assert_dequeue_job(["default", "myqueue"], false)
   end
 
@@ -110,7 +109,7 @@ defmodule JobQueueTest do
     {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
     assert jid != nil
 
-    {:ok, {job_str, _}} = JobQueue.dequeue(:testredis, "test", "default")
+    [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", "default")
     job = Poison.decode!(job_str, as: Exq.Support.Job)
     assert job.jid == jid
   end

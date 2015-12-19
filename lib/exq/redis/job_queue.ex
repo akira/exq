@@ -99,15 +99,28 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def dequeue(redis, namespace, queues) when is_list(queues) do
-    dequeue_random(redis, namespace, queues)
+    dequeue_multiple(redis, namespace, queues)
   end
   def dequeue(redis, namespace, queue) do
-    # normalize empty return values
-    case Connection.rpoplpush(redis, queue_key(namespace, queue), backup_queue_key(namespace, queue)) do
-      {status, :undefined} -> {status, {:none, queue}}
-      {status, nil}        -> {status, {:none, queue}}
-      {status, value}      -> {status, {value, queue}}
-    end
+    dequeue_multiple(redis, namespace, [queue])
+  end
+
+  defp dequeue_multiple(_redis, _namespace, []) do
+    {:ok, {:none, nil}}
+  end
+  defp dequeue_multiple(redis, namespace, queues) do
+    deq_commands = Enum.map(queues, fn(queue) ->
+      ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, queue)]
+    end)
+    resp = :eredis.qp(redis, deq_commands, Config.get(:redis_timeout, 5000))
+
+    resp |> Enum.zip(queues) |> Enum.map(fn({resp, queue}) ->
+      case resp do
+        {status, :undefined} -> {status, {:none, queue}}
+        {status, nil}        -> {status, {:none, queue}}
+        {status, value}      -> {status, {value, queue}}
+      end
+    end)
   end
 
   def scheduler_dequeue(redis, namespace, queues) when is_list(queues) do
