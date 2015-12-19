@@ -77,8 +77,7 @@ defmodule Exq.Redis.JobQueue do
     enqueue_at(redis, namespace, queue, time, worker, args)
   end
   def enqueue_at(redis, namespace, queue, time, worker, args) do
-    enqueued_at = DateFormat.format!(Date.from(time, :timestamp) |> Date.universal, "{ISO}")
-    {jid, job_json} = to_job_json(queue, worker, args, enqueued_at)
+    {jid, job_json} = to_job_json(queue, worker, args)
     enqueue_job_at(redis, namespace, job_json, jid, time, scheduled_queue_key(namespace))
   end
 
@@ -199,6 +198,7 @@ defmodule Exq.Redis.JobQueue do
 
     if (retry_count <= max_retries) do
       job = %{job |
+        failed_at: DateFormat.format!(Date.universal, "{ISO}"),
         retry_count: retry_count,
         error_message: error
       }
@@ -219,9 +219,10 @@ defmodule Exq.Redis.JobQueue do
 
   def fail_job(redis, namespace, job, error) do
     failed_at = DateFormat.format!(Date.universal, "{ISO}")
-    job = %{job | failed_at: failed_at, error_class: "ExqGenericError", error_message: error}
+    job = %{job | failed_at: failed_at, retry_count: job.retry_count || 0,
+      error_class: "ExqGenericError", error_message: error}
     job_json = Job.to_json(job)
-    Connection.lpush!(redis, full_key(namespace, "failed"), job_json)
+    Connection.zadd!(redis, full_key(namespace, "dead"), time_to_score(Time.now), job_json)
   end
 
   defp dequeue_random(_redis, _namespace, []) do
@@ -237,7 +238,7 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def to_job_json(queue, worker, args) do
-    to_job_json(queue, worker, args, DateFormat.format!(Date.universal, "{ISO}"))
+    to_job_json(queue, worker, args, Timex.Time.now(:msecs))
   end
   def to_job_json(queue, worker, args, enqueued_at) when is_atom(worker) do
     to_job_json(queue, to_string(worker), args, enqueued_at)
