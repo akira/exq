@@ -19,10 +19,10 @@ defmodule Exq.Manager.Server do
     GenServer.start_link(__MODULE__, [opts], [{:name, name}])
   end
 
-  def update_worker_count(work_table, queue, delta) do
-    :ets.update_counter(work_table, queue, {3, delta})
+  def job_terminated(exq, namespace, queue, job_json) do
+    GenServer.cast(exq, {:job_terminated, namespace, queue, job_json})
+    :ok
   end
-
 
 ##===========================================================
 ## gen server callbacks
@@ -79,11 +79,6 @@ defmodule Exq.Manager.Server do
     {:ok, state, 0}
   end
 
-  def handle_cast(_request, state) do
-    Logger.error("UNKNOWN CAST")
-    {:noreply, state, 0}
-  end
-
   def handle_call({:enqueue, queue, worker, args}, from, state) do
     Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
     {:noreply, state, 10}
@@ -114,6 +109,17 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state,0}
   end
 
+  def handle_cast({:re_enqueue_backup, queue}, state) do
+    JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
+    {:noreply, state, 0}
+  end
+
+  def handle_cast({:job_terminated, namespace, queue, job_json}, state) do
+    update_worker_count(state.work_table, queue, -1)
+    JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
+    {:noreply, state, 0}
+  end
+
   def handle_call({:stop}, _from, state) do
     { :stop, :normal, :ok, state }
   end
@@ -123,6 +129,11 @@ defmodule Exq.Manager.Server do
     {:reply, :unknown, state, 0}
   end
 
+  def handle_cast(_request, state) do
+    Logger.error("UNKNOWN CAST")
+    {:noreply, state, 0}
+  end
+
   def handle_info(:timeout, state) do
     {updated_state, timeout} = dequeue_and_dispatch(state)
     {:noreply, updated_state, timeout}
@@ -130,7 +141,7 @@ defmodule Exq.Manager.Server do
 
   def handle_info(info, state) do
     Logger.error("UNKNOWN CALL #{Kernel.inspect info}")
-    {:noreply, state, state.timeout}
+    {:noreply, state, state.poll_timeout}
   end
 
   def code_change(_old_version, state, _extra) do
@@ -150,12 +161,18 @@ defmodule Exq.Manager.Server do
   def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
   def dequeue_and_dispatch(state, queues) do
     try do
-      case Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, queues) do
-        {:ok, {:none, _}}   -> {state, state.poll_timeout}
-        {:ok, {job, queue}} -> {dispatch_job(state, job, queue), 0}
-        {status, reason}    ->
-          Logger.error("Redis Error #{Kernel.inspect(status)} #{Kernel.inspect(reason)}.  Backing off...")
+      jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.host, queues)
+
+      job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job!(state, potential_job) end)
+
+      cond do
+        Enum.any?(job_results, fn(status) -> elem(status, 1) == :dispatch end) ->
+          {state, 0}
+        Enum.any?(job_results, fn(status) -> elem(status, 0) == :error end) ->
+          Logger.error("Redis Error #{Kernel.inspect(job_results)}}.  Backing off...")
           {state, state.poll_timeout * 10}
+        true ->
+          {state, state.poll_timeout}
       end
     catch
       :exit, e ->
@@ -171,15 +188,26 @@ defmodule Exq.Manager.Server do
     end)
   end
 
-  def dispatch_job(state, job, queue) do
+  def dispatch_job!(state, potential_job) do
+    case potential_job do
+      {:ok, {:none, queue}} ->
+        {:ok, :none}
+      {:ok, {job, queue}} ->
+        dispatch_job!(state, job, queue)
+        {:ok, :dispatch}
+      {status, reason} ->
+        {:error, {status, reason}}
+    end
+  end
+  def dispatch_job!(state, job, queue) do
     {:ok, worker} = Exq.Worker.Server.start(
       job, state.pid, queue, state.work_table,
       state.stats, state.namespace, state.host)
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
-    state
   end
 
+  # TODO: Refactor the way queues are setup
   defp setup_queues(opts) do
     queue_configs = Keyword.get(opts, :queues, Config.get(:queues, ["default"]))
     queues = Enum.map(queue_configs, fn queue_config ->
@@ -196,6 +224,7 @@ defmodule Exq.Manager.Server do
         queue -> {queue, per_queue_concurrency, 0}
       end
       :ets.insert(work_table, queue_concurrency)
+      GenServer.cast(self, {:re_enqueue_backup, elem(queue_concurrency, 0)})
     end)
     {queues, work_table}
   end
@@ -203,6 +232,7 @@ defmodule Exq.Manager.Server do
   defp add_queue(state, queue, concurrency \\ Config.get(:concurrency, 10_000)) do
     queue_concurrency = {queue, concurrency, 0}
     :ets.insert(state.work_table, queue_concurrency)
+    GenServer.cast(self, {:re_enqueue_backup, queue})
     updated_queues = [queue | state.queues]
     %{state | queues: updated_queues}
   end
@@ -211,6 +241,10 @@ defmodule Exq.Manager.Server do
     :ets.delete(state.work_table, queue)
     updated_queues = List.delete(state.queues, queue)
     %{state | queues: updated_queues}
+  end
+
+  def update_worker_count(work_table, queue, delta) do
+    :ets.update_counter(work_table, queue, {3, delta})
   end
 
   def default_name, do: @default_name
