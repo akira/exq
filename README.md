@@ -11,6 +11,7 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
 * You can use multiple Erlang nodes to process from the same pool of jobs.
 * Exq uses a format that is Resque/Sidekiq compatible.
   * This means you can use it to integrate with existing Rails / Django projects that also use a background job that's Resque compatible - typically with little or no changes needed to your existing apps. However, you can also use Exq standalone.
+  * You can also use the Sidekiq UI to view job statuses, as Exq is compatible with the Sidekiq stats format. 
   * If you don't need Resque/Sidekiq compatibility, another option to check out would be [toniq](https://github.com/joakimk/toniq) which uses erlang serialization instead of JSON.
   * You can run both Exq and Toniq in the same app for different workers.
 * Exq supports uncapped amount of jobs running, or also allows a max limit per queue.
@@ -252,6 +253,16 @@ end
 
 To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using. By default, exq will use the ```exq``` namespace, so you will have to change that.
 
+Another option is to modify Sidekiq to use the Exq namespace in the sidekiq initializer in your ruby project:
+```ruby
+Sidekiq.configure_server do |config|
+  config.redis = { url: 'redis://127.0.0.1:6379', namespace: 'exq' }
+end
+
+Sidekiq.configure_client do |config|
+  config.redis = { url: 'redis://127.0.0.1:6379', namespace: 'exq' }
+end
+```
 ## Security
 
 By default, you Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
