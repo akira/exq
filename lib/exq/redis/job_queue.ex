@@ -8,8 +8,7 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Support.Config
   alias Exq.Support.Randomize
 
-  #TODO: set to 25
-  @default_max_retries 5
+  @default_max_retries 25
   @default_queue "default"
 
   def find_job(redis, namespace, jid, :scheduled) do
@@ -22,7 +21,6 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def find_job(jobs, jid) do
-
     finder = fn({j, _idx}) ->
       job = Exq.Support.Job.from_json(j)
       job.jid == jid
@@ -95,19 +93,19 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-  def dequeue(redis, namespace, queues) when is_list(queues) do
-    dequeue_multiple(redis, namespace, queues)
+  def dequeue(redis, namespace, host, queues) when is_list(queues) do
+    dequeue_multiple(redis, namespace, host, queues)
   end
-  def dequeue(redis, namespace, queue) do
-    dequeue_multiple(redis, namespace, [queue])
+  def dequeue(redis, namespace, host, queue) do
+    dequeue_multiple(redis, namespace, host, [queue])
   end
 
-  defp dequeue_multiple(_redis, _namespace, []) do
+  defp dequeue_multiple(_redis, _namespace, _host, []) do
     {:ok, {:none, nil}}
   end
-  defp dequeue_multiple(redis, namespace, queues) do
+  defp dequeue_multiple(redis, namespace, host, queues) do
     deq_commands = Enum.map(queues, fn(queue) ->
-      ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, queue)]
+      ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, host, queue)]
     end)
     resp = :eredis.qp(redis, deq_commands, Config.get(:redis_timeout, 5000))
 
@@ -118,6 +116,24 @@ defmodule Exq.Redis.JobQueue do
         {status, value}      -> {status, {value, queue}}
       end
     end)
+  end
+
+  def re_enqueue_backup(redis, namespace, host, queue) do
+    resp = redis |> Connection.rpoplpush(
+      backup_queue_key(namespace, host, queue),
+      queue_key(namespace, queue))
+    case resp do
+      {:ok, job} ->
+        if String.valid?(job) do
+          Logger.info("Re-enqueueing job from backup for host [#{host}] and queue [#{queue}]")
+          re_enqueue_backup(redis, namespace, host, queue)
+        end
+      _ ->
+    end
+  end
+
+  def remove_job_from_backup(redis, namespace, host, queue, job_json) do
+    Connection.lrem!(redis, backup_queue_key(namespace, host, queue), job_json)
   end
 
   def scheduler_dequeue(redis, namespace, queues) when is_list(queues) do
@@ -144,7 +160,6 @@ defmodule Exq.Redis.JobQueue do
     scheduler_dequeue_requeue(t, redis, namespace, queues, schedule_queue, count)
   end
 
-
   def full_key("", key), do: key
   def full_key(nil, key), do: key
   def full_key(namespace, key) do
@@ -155,8 +170,8 @@ defmodule Exq.Redis.JobQueue do
     full_key(namespace, "queue:#{queue}")
   end
 
-  def backup_queue_key(namespace, queue) do
-    full_key(namespace, "queue:backup::#{queue}")
+  def backup_queue_key(namespace, host, queue) do
+    full_key(namespace, "queue:backup::#{host}::#{queue}")
   end
 
   def schedule_queues(namespace) do
