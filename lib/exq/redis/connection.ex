@@ -103,8 +103,17 @@ defmodule Exq.Redis.Connection do
     res
   end
 
+  def lpush!(redis, key, value) do
+    {:ok, res} = q(redis, ["LPUSH", key, value])
+    res
+  end
+
   def lpop(redis, key) do
     q(redis, ["LPOP", key])
+  end
+
+  def rpoplpush(redis, key, backup) do
+    q(redis, ["RPOPLPUSH", key, backup])
   end
 
   def zadd(redis, set, score, member) do
@@ -123,6 +132,12 @@ defmodule Exq.Redis.Connection do
 
   def zrangebyscore!(redis, set, min \\ "0", max \\ "+inf") do
     {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max])
+    items
+  end
+
+  # TODO cleanup / tests
+  def zrangebyscorewithscore!(redis, set, min \\ "0", max \\ "+inf") do
+    {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
     items
   end
 

@@ -1,6 +1,0 @@
-exq-stat title="Processed" stat=stats.processed
-exq-stat title="Failed" stat=stats.failed link="failures.index"
-exq-stat title="Busy" stat=stats.busy link="processes.index"
-exq-stat title="Enqueued" stat=stats.enqueued link="queues.index"
-/ exq-stat title="Retries" stat="0"
-/ exq-stat title="Scheduled" stat="0"
