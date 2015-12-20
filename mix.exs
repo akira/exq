@@ -5,11 +5,11 @@ defmodule Exq.Mixfile do
     [ app: :exq,
       version: "0.4.4",
       elixir: "~> 1.0.0 or ~> 1.1.1",
-      elixirc_paths: ["lib", "web"],
+      elixirc_paths: ["lib"],
       package: [
         maintainers: ["Alex Kira", "Justin McNally", "Nick Sanders", "Udo Kramer", "Daniel Perez", "David Le", "akki91", "Roman Smirnov", "Mike Lawlor", "Benjamin Tan Wei Hao", "Rob Gilson"],
         links: %{"GitHub" => "https://github.com/akira/exq"},
-        files: ~w(lib priv test web) ++
+        files: ~w(lib test) ++
                ~w(LICENSE mix.exs README.md)
       ],
       description: """
@@ -36,8 +36,6 @@ defmodule Exq.Mixfile do
       {:redix, ">= 0.0.0"},
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, "~> 0.19.5" },
-      { :plug, ">= 0.8.1 and < 2.0.0"},
-      { :cowboy, "~> 1.0" },
       { :excoveralls, "~> 0.3", only: :test },
       { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test}
     ]
