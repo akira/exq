@@ -215,7 +215,7 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def list_failed(redis, namespace) do
-    Connection.lrange!(redis, full_key(namespace, "failed"))
+    Connection.zrange!(redis, full_key(namespace, "dead"))
   end
 
   def list_retry(redis, namespace) do

@@ -7,7 +7,7 @@ defmodule Exq.Redis.JobStat do
   alias Exq.Redis.JobQueue
   alias Exq.Support.Json
   alias Exq.Support.Job
-  alias Exq.Stats.Process
+  alias Exq.Support.Process
 
   def record_processed(redis, namespace, _job) do
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
@@ -43,42 +43,20 @@ defmodule Exq.Redis.JobStat do
     Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
   end
 
-  def add_process(redis, namespace, process) do
-    pid = to_string(:io_lib.format("~p", [process.pid]))
-
-    process = Enum.into([{:pid, pid}, {:host, process.host}, {:job, process.job}, {:started_at, process.started_at}], HashDict.new)
-    json = Json.encode!(process)
-
+  def add_process(redis, namespace, process_info) do
+    json = Exq.Support.Process.to_json(process_info)
     Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), json)
     :ok
   end
 
-  def remove_process(redis, namespace, hostname, pid) do
-    pid = to_string(:io_lib.format("~p", [pid]))
-
-    processes = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
-
-    finder = fn(p) ->
-      case Json.decode(p) do
-        { :ok, proc } -> (Dict.get(proc, "pid") == pid) && (Dict.get(proc, "host") == hostname)
-        { :error, _ } -> false
-      end
-    end
-
-    proc = Enum.find(processes, finder)
-
-    case proc do
-      nil ->
-        {:not_found, nil}
-      p ->
-        Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), proc)
-        {:ok, p}
-    end
-
+  def remove_process(redis, namespace, process_info) do
+    json = Exq.Support.Process.to_json(process_info)
+    Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), json)
+    :ok
   end
 
   def find_failed(redis, namespace, jid) do
-    Connection.lrange!(redis, JobQueue.full_key(namespace, "failed"), 0, -1)
+    Connection.zrange!(redis, JobQueue.full_key(namespace, "dead"), 0, -1)
       |> JobQueue.find_job(jid)
   end
 
@@ -90,12 +68,12 @@ defmodule Exq.Redis.JobStat do
   def remove_failed(redis, namespace, jid) do
     Connection.decr!(redis, JobQueue.full_key(namespace, "stat:failed"))
     {:ok, failure, _idx} = find_failed(redis, namespace, jid)
-    Connection.lrem!(redis, JobQueue.full_key(namespace, "failed"), failure)
+    Connection.zrem!(redis, JobQueue.full_key(namespace, "dead"), failure)
   end
 
   def clear_failed(redis, namespace) do
     Connection.set!(redis, JobQueue.full_key(namespace, "stat:failed"), 0)
-    Connection.del!(redis, JobQueue.full_key(namespace, "failed"))
+    Connection.del!(redis, JobQueue.full_key(namespace, "dead"))
   end
 
   def clear_processes(redis, namespace) do

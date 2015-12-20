@@ -6,16 +6,20 @@
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 * Exq uses Redis as a store for background processing jobs.
-* Exq handles concurrency, job persistence, job retries, and tracking so you don't have to.
+* Exq handles concurrency, job persistence, job retries, reliable queueing and tracking so you don't have to.
 * Jobs are persistent so they would survive across node restarts.
 * You can use multiple Erlang nodes to process from the same pool of jobs.
 * Exq uses a format that is Resque/Sidekiq compatible.
   * This means you can use it to integrate with existing Rails / Django projects that also use a background job that's Resque compatible - typically with little or no changes needed to your existing apps. However, you can also use Exq standalone.
+  * You can also use the Sidekiq UI to view job statuses, as Exq is compatible with the Sidekiq stats format. 
   * If you don't need Resque/Sidekiq compatibility, another option to check out would be [toniq](https://github.com/joakimk/toniq) which uses erlang serialization instead of JSON.
   * You can run both Exq and Toniq in the same app for different workers.
 * Exq supports uncapped amount of jobs running, or also allows a max limit per queue.
 * Exq supports job retries with exponential backoff.
 * Exq tracks several stats including failed busy, and processed jobs.
+* Exq stores in progress jobs in a backup queue (using the Redis RPOPLPUSH command).
+  This means that if the system or worker is restarted while a job is in progress,
+  the job will be re_enqueued when the node is restarted and not lost.
 * Exq provides an optional web UI that you can use to view several stats as well as rate of job processing.
 
 ## Getting Started:
@@ -29,7 +33,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.4.2"}
+      {:exq, "~> 0.4.4"}
     ]
   end
 ```
@@ -209,6 +213,56 @@ defmodule MyWorker do
 end
 ```
 
+## Using with Phoenix and Ecto
+
+If you would like to use Exq alongside Phoenix and Ecto, you will need to add Exq to your supervision hierarchy so that the Ecto Repo is available by the time jobs start processing. To do this, edit your application file and add a supervisor module. For example, if we have an application called ```HelloPhoenix```, you would edit ```lib/hello_phoenix.ex``` and add the Exq supervisor:
+```elixir
+    children = [
+      # Start the endpoint when the application starts
+      supervisor(HelloPhoenix.Endpoint, []),
+      # Start the Ecto repository
+      worker(HelloPhoenix.Repo, []),
+
+      #Add the Exq supervisor
+      supervisor(Exq, [])
+
+      # Here you could define other workers and supervisors as children
+      # worker(HelloPhoenix.Worker, [arg1, arg2, arg3]),
+    ]
+```
+
+Also, add :tzdata to your mix.exs application list:
+```elixir
+  def application do
+    [mod: {Chat, []},
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :tzdata]]
+  end
+```
+
+Assuming you will be accessing the database from Exq workers, you will want to lower the concurrency level for those workers, as they are using a finite pool of connections and can potentially back up and time out. You can lower this through the ```concurrency``` setting, or perhaps use a different queue for database workers that have a lower concurrency just for that queue. Inside your worker, you would then be able to use the Repo to work with the database:
+
+```elixir
+defmodule Worker do
+  def perform do
+    HelloPhoenix.Repo.insert!(%HelloPhoenix.User{name: "Hello", email: "world@yours.com"})
+  end
+end
+```
+
+## Using alongside Sidekiq / Resque
+
+To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using. By default, exq will use the ```exq``` namespace, so you will have to change that.
+
+Another option is to modify Sidekiq to use the Exq namespace in the sidekiq initializer in your ruby project:
+```ruby
+Sidekiq.configure_server do |config|
+  config.redis = { url: 'redis://127.0.0.1:6379', namespace: 'exq' }
+end
+
+Sidekiq.configure_client do |config|
+  config.redis = { url: 'redis://127.0.0.1:6379', namespace: 'exq' }
+end
+```
 ## Security
 
 By default, you Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).

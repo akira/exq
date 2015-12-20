@@ -104,8 +104,17 @@ defmodule Exq.Redis.Connection do
     res
   end
 
+  def lpush!(redis, key, value) do
+    {:ok, res} = q(redis, ["LPUSH", key, value])
+    res
+  end
+
   def lpop(redis, key) do
     q(redis, ["LPOP", key])
+  end
+
+  def rpoplpush(redis, key, backup) do
+    q(redis, ["RPOPLPUSH", key, backup])
   end
 
   def zadd(redis, set, score, member) do
