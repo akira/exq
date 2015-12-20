@@ -1,6 +1,7 @@
 IndexController = Ember.Controller.extend
 
   actions:
+    # clearAll doesn't seem to be used anywhere
     clearAll: ->
       alert('clearAll')
     deleteQueue: (queue) ->

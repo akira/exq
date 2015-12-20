@@ -2,6 +2,8 @@ import Ember from 'ember';
 import Resolver from 'ember-resolver';
 import loadInitializers from 'ember/load-initializers';
 import config from './config/environment';
+// sets up Ember.Inflector
+import './models/custom-inflector-rules';
 
 Ember.MODEL_FACTORY_INJECTIONS = true;
 

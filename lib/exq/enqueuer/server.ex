@@ -109,6 +109,11 @@ defmodule Exq.Enqueuer.Server do
    {:reply, {:ok, jobs}, state, 0}
   end
 
+  def handle_call({:retries}, _from, state) do
+   jobs = list_retry(state.redis, state.namespace)
+   {:reply, {:ok, jobs}, state, 0}
+  end
+
   def handle_call({:jobs}, _from, state) do
     queues = list_queues(state.redis, state.namespace)
     jobs = for q <- queues, do: {q, list_jobs(state.redis, state.namespace, q)}
@@ -203,7 +208,7 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def list_jobs(redis, namespace, :scheduled) do
-    Connection.zrangebyscore!(redis, full_key(namespace, "schedule"))
+    Connection.zrangebyscorewithscore!(redis, full_key(namespace, "schedule"))
   end
   def list_jobs(redis, namespace, queue) do
     Connection.lrange!(redis, full_key(namespace, "queue:#{queue}"))
@@ -219,6 +224,9 @@ defmodule Exq.Enqueuer.Server do
 
   def queue_size(redis, namespace, :scheduled) do
     Connection.zcard!(redis, full_key(namespace, "schedule"))
+  end
+  def queue_size(redis, namespace, :retry) do
+    Connection.zcard!(redis, full_key(namespace, "retry"))
   end
   def queue_size(redis, namespace, queue) do
     Connection.llen!(redis, full_key(namespace, "queue:#{queue}"))

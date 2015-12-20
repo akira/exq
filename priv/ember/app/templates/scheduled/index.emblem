@@ -1,0 +1,30 @@
+h2
+  | Scheduled
+
+table.table.table-bordered.table-hover
+  thead
+    tr
+      th
+        | Queue
+      th
+        | Class
+      th
+        | Args
+      th
+        | Scheduled At
+      / th
+      /   | Actions
+  tbody
+    each model as |scheduled|
+      tr
+        td
+          = scheduled.queue
+        td
+          = scheduled.class
+        td
+          = scheduled.args
+        td
+          = scheduled.scheduled_at
+        / td
+        /   button class="btn btn-danger btn-xs" click="'removeScheduled' scheduled"
+        /     | Delete
