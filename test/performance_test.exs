@@ -53,7 +53,7 @@ defmodule PerformanceTest do
     Logger.debug "Perf test took #{elapsed_ms / 1_000} secs"
     count = Exq.Redis.Connection.llen!(:testredis, "test:queue:default")
 
-    assert count == "0"
+    assert count == 0
     assert elapsed_ms < max_timeout_ms
     stop_process(sup)
   end

@@ -5,15 +5,12 @@ defmodule Exq.Redis.JobStat do
   alias Exq.Support.Binary
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
-  alias Exq.Support.Json
-  alias Exq.Support.Job
-  alias Exq.Support.Process
 
   def record_processed(redis, namespace, _job) do
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
 
-    [{:ok, count}, {:ok, _,}, {:ok, _}, {:ok, _}] = Connection.qp(redis,[
+    {:ok, [count, _, _, _]} = Connection.qp(redis,[
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
       ["INCR", JobQueue.full_key(namespace, "stat:processed_rt:#{time}")],
       ["EXPIRE", JobQueue.full_key(namespace, "stat:processed_rt:#{time}"), 120],
@@ -22,11 +19,11 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, error, _job) do
+  def record_failure(redis, namespace, _error, _job) do
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
 
-    [{:ok, count}, {:ok, _,}, {:ok, _}, {:ok, _}] = Connection.qp(redis, [
+    {:ok, [count, _, _, _]} = Connection.qp(redis, [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
       ["INCR", JobQueue.full_key(namespace, "stat:failed_rt:#{time}")],
       ["EXPIRE", JobQueue.full_key(namespace, "stat:failed_rt:#{time}"), 120],
