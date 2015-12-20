@@ -209,7 +209,7 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def list_jobs(redis, namespace, :scheduled) do
-    Connection.zrangebyscore!(redis, full_key(namespace, "schedule"))
+    Connection.zrangebyscorewithscore!(redis, full_key(namespace, "schedule"))
   end
   def list_jobs(redis, namespace, queue) do
     Connection.lrange!(redis, full_key(namespace, "queue:#{queue}"))

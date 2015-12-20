@@ -1,5 +1,6 @@
 `import Job from './job';`
 
-# Scheduled = Job.extend
+Scheduled = Job.extend
+  scheduled_at: DS.attr 'date'
 
-`export default Job`
+`export default Scheduled`
