@@ -8,8 +8,6 @@ defmodule Exq.Enqueuer.Server do
   import Exq.Redis.JobQueue, only: [full_key: 2]
   use GenServer
 
-  @default_name :exq_enqueuer
-
   defmodule State do
     defstruct redis: nil, namespace: nil, redis_owner: false
   end
@@ -19,10 +17,10 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def start_link(opts \\ []) do
-    name = Keyword.get(opts, :name, @default_name)
-    GenServer.start_link(__MODULE__, [opts], [{:name, name}])
+    redis_name = opts[:redis] || Exq.Redis.Supervisor.client_name(opts[:name])
+    opts = Keyword.merge(opts, [redis: redis_name])
+    GenServer.start_link(__MODULE__, [opts], name: opts[:name] || __MODULE__)
   end
-  def default_name, do: @default_name
 
 ##===========================================================
 ## gen server callbacks
@@ -30,14 +28,13 @@ defmodule Exq.Enqueuer.Server do
 
   def init([opts]) do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
-    redis = case Keyword.get(opts, :redis) do
-      nil ->
-        Exq.Redis.Supervisor.start_link(opts)
-        {:ok, r} = Supervisor.start_child(Exq.Redis.Supervisor, [])
-        r
-      r -> r
+    case Process.whereis(opts[:redis]) do
+      nil -> Exq.Redis.Supervisor.start_link(opts)
+      _ -> :ok
     end
-    state = %State{redis: redis, redis_owner: true, namespace: namespace}
+    state = %State{redis: opts[:redis],
+                   redis_owner: true,
+                   namespace: namespace}
     {:ok, state}
   end
 

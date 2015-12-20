@@ -1,14 +1,10 @@
 defmodule Exq.Stats.Server do
   use GenServer
   use Timex
-  alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
   alias Exq.Redis.JobStat
-  alias Exq.Support.Json
   alias Exq.Support.Process
   require Logger
-
-  @default_name :exq_stats
 
   defmodule State do
     defstruct redis: nil
@@ -39,17 +35,14 @@ defmodule Exq.Stats.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def start_link(opts \\ []) do
-    name = Keyword.get(opts, :name, @default_name)
-    GenServer.start_link(__MODULE__, [opts], [{:name, name}])
+  def start_link(opts \\[]) do
+    GenServer.start_link(__MODULE__, [opts], name: opts[:name] || __MODULE__)
   end
 
   # These are the callbacks that GenServer.Behaviour will use
   def init([opts]) do
-    {:ok, %State{redis: Keyword.get(opts, :redis)}}
+    {:ok, %State{redis: opts[:redis]}}
   end
-
-  def default_name, do: @default_name
 
   def handle_cast({:add_process, namespace, process_info}, state) do
     JobStat.add_process(state.redis, namespace, process_info)
