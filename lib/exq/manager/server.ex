@@ -29,7 +29,8 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 
   def init([opts]) do
-    {:ok, redis} = Exq.Redis.Connection.connection(opts)
+    Exq.Redis.Supervisor.start_link(opts)
+    {:ok, redis} = Supervisor.start_child(Exq.Redis.Supervisor, [])
     name = Keyword.get(opts, :name, @default_name)
 
     {queues, work_table} = setup_queues(opts)
@@ -149,7 +150,7 @@ defmodule Exq.Manager.Server do
   end
 
   def terminate(_reason, state) do
-    :eredis.stop(state.redis)
+    Redix.stop(state.redis)
     :ok
   end
 
@@ -175,6 +176,9 @@ defmodule Exq.Manager.Server do
           {state, state.poll_timeout}
       end
     catch
+      :exit, {:noproc, _} ->
+        [{_, new_redis, _, _}|_] = Supervisor.which_children(Exq.Redis.Supervisor)
+        dequeue_and_dispatch(%{state | redis: new_redis}, queues)
       :exit, e ->
         Logger.info("Manager timeout occurred #{Kernel.inspect e}")
         {state, state.poll_timeout}

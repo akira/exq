@@ -54,13 +54,16 @@ defmodule Exq.Redis.JobQueue do
   end
   def enqueue(redis, namespace, queue, job_json) do
     try do
-      response = :eredis.qp(redis, [
+      response = Redix.pipeline(redis, [
         ["SADD", full_key(namespace, "queues"), queue],
-        ["LPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
+        ["LPUSH", queue_key(namespace, queue), job_json]], [timeout: Config.get(:redis_timeout, 5000)])
 
       case response do
-        [{:ok, _}, {:ok, _}] -> :ok
-        other                -> other
+        {:ok, [%Redix.Error{}, %Redix.Error{}]} = error -> error
+        {:ok, [%Redix.Error{}, _]} = error -> error
+        {:ok, [_, %Redix.Error{}]} = error -> error
+        {:ok, [_, _]} = error -> :ok
+        other    -> other
       end
     catch
       :exit, e ->
@@ -148,7 +151,7 @@ defmodule Exq.Redis.JobQueue do
 
   def scheduler_dequeue_requeue([], _redis, _namespace, _queues, schedule_queue, count), do: count
   def scheduler_dequeue_requeue([job_json|t], redis, namespace, queues, schedule_queue, count) do
-    if Connection.zrem!(redis, schedule_queue, job_json) == "1" do
+    if Connection.zrem!(redis, schedule_queue, job_json) == 1 do
       if Enum.count(queues) == 1 do
         enqueue(redis, namespace, hd(queues), job_json)
       else
