@@ -1,4 +1,4 @@
-defmodule Exq.Support.Process do
+defmodule Exq.Stats.Process do
   defstruct pid: nil, host: nil, job: nil, started_at: nil
 
   alias Exq.Support.Json

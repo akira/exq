@@ -83,7 +83,7 @@ defmodule TestRedis do
   end
 
   def setup do
-    {:ok, redis} = :eredis.start_link(redis_host, redis_port)
+    {:ok, redis} = Redix.start_link([host: redis_host, port: redis_port])
     Process.register(redis, :testredis)
     flush_all
     :ok
@@ -96,7 +96,7 @@ defmodule TestRedis do
   def teardown do
     if !Process.whereis(:testredis) do
       # For some reason at the end of test the link is down, before we acutally stop and unregister?
-      {:ok, redis} = :eredis.start_link(redis_host, redis_port)
+      {:ok, redis} = Redix.start_link([host: redis_host, port: redis_port])
       Process.register(redis, :testredis)
     end
     Process.unregister(:testredis)
