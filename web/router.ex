@@ -76,7 +76,7 @@ defmodule Exq.RouterPlug do
 
     get "/api/scheduled" do
       {:ok, jobs} = Exq.Api.scheduled(conn.assigns[:exq_name])
-      {:ok, json} = Poison.encode(%{scheduled: map_jid_to_id(jobs)})
+      {:ok, json} = Poison.encode(%{scheduled: map_score_to_jobs(jobs) })
       conn |> send_resp(200, json) |> halt
     end
 
@@ -179,6 +179,25 @@ defmodule Exq.RouterPlug do
       for j <- jobs do
         {:ok, job} = Poison.decode(j, %{})
         Map.put(job, :id, job["jid"])
+      end
+    end
+
+    def score_to_time(score) do
+      {:ok, date} = score
+      |> String.to_float
+      |> Timex.Date.from(:secs)
+      |> Timex.DateFormat.format("{ISO}")
+
+      date
+    end
+
+    def map_score_to_jobs(jobs_with_score) do
+      jobs = jobs_with_score |> Enum.chunk(2)
+      for [j,score] <- jobs do
+        {:ok, job} = Poison.decode(j, %{})
+        job
+        |> Map.put(:scheduled_at, score_to_time(score))
+        |> Map.put(:id, job["jid"])
       end
     end
 

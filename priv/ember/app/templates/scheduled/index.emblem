@@ -10,6 +10,8 @@ table.table.table-bordered.table-hover
         | Class
       th
         | Args
+      th
+        | Scheduled At
       / th
       /   | Actions
   tbody
@@ -21,6 +23,8 @@ table.table.table-bordered.table-hover
           = scheduled.class
         td
           = scheduled.args
+        td
+          = scheduled.scheduled_at
         / td
         /   button class="btn btn-danger btn-xs" click="'removeScheduled' scheduled"
         /     | Delete
