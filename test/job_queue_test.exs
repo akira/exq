@@ -6,36 +6,67 @@ defmodule JobQueueTest do
   alias Exq.Redis.JobQueue
   alias Exq.Support.Job
 
-  setup_all do
+  @host 'host-name'
+
+  setup do
     TestRedis.setup
     on_exit fn ->
       TestRedis.teardown
     end
   end
 
-  def assert_dequeue_job(queues, expect_result) do
-    result = JobQueue.dequeue(:testredis, "test", queues)
-    if expect_result do
-      refute match?({:ok, {:none, _}}, result)
+  def assert_dequeue_job(queues, expected_result) do
+    jobs = JobQueue.dequeue(:testredis, "test", @host, queues)
+    result = jobs |> Enum.reject(fn({:ok, {status, _}}) -> status == :none end)
+    if is_boolean(expected_result) do
+      assert expected_result == !Enum.empty?(result)
     else
-      assert match?({:ok, {:none, _}}, result)
+      assert expected_result == Enum.count(result)
     end
   end
 
   test "enqueue/dequeue single queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
-    {:ok, {deq, _}} = JobQueue.dequeue(:testredis, "test", "default")
+    [{:ok, {deq, _}}] = JobQueue.dequeue(:testredis, "test", @host, "default")
     assert deq != :none
-    {:ok, {deq, _}} = JobQueue.dequeue(:testredis, "test", "default")
+    [{:ok, {deq, _}}] = JobQueue.dequeue(:testredis, "test", @host, "default")
     assert deq == :none
   end
 
   test "enqueue/dequeue multi queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
     JobQueue.enqueue(:testredis, "test", "myqueue", MyWorker, [])
-    assert_dequeue_job(["default", "myqueue"], true)
-    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], 2)
     assert_dequeue_job(["default", "myqueue"], false)
+  end
+
+  test "backup queue" do
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    assert_dequeue_job(["default"], true)
+    assert_dequeue_job(["default"], true)
+    assert_dequeue_job(["default"], false)
+    JobQueue.re_enqueue_backup(:testredis, "test", @host, "default")
+    assert_dequeue_job(["default"], true)
+    assert_dequeue_job(["default"], true)
+    assert_dequeue_job(["default"], false)
+  end
+
+  test "remove from backup queue" do
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+
+    [{:ok, {job, _}}] = JobQueue.dequeue(:testredis, "test", @host, "default")
+    assert_dequeue_job(["default"], true)
+
+    # remove job from queue
+    JobQueue.remove_job_from_backup(:testredis, "test", @host, "default", job)
+
+    # should only have 1 job now
+    JobQueue.re_enqueue_backup(:testredis, "test", @host, "default")
+
+    assert_dequeue_job(["default"], true)
+    assert_dequeue_job(["default"], false)
   end
 
   test "scheduler_dequeue single queue" do
@@ -51,8 +82,7 @@ defmodule JobQueueTest do
     JobQueue.enqueue_in(:testredis, "test", "default", -1, MyWorker, [])
     JobQueue.enqueue_in(:testredis, "test", "myqueue", -1, MyWorker, [])
     assert JobQueue.scheduler_dequeue(:testredis, "test", ["default", "myqueue"]) == 2
-    assert_dequeue_job(["default", "myqueue"], true)
-    assert_dequeue_job(["default", "myqueue"], true)
+    assert_dequeue_job(["default", "myqueue"], 2)
     assert_dequeue_job(["default", "myqueue"], false)
   end
 
@@ -110,7 +140,7 @@ defmodule JobQueueTest do
     {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
     assert jid != nil
 
-    {:ok, {job_str, _}} = JobQueue.dequeue(:testredis, "test", "default")
+    [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, "default")
     job = Poison.decode!(job_str, as: Exq.Support.Job)
     assert job.jid == jid
   end
@@ -125,8 +155,5 @@ defmodule JobQueueTest do
     {_jid, json} = JobQueue.to_job_json("default", "MyWorker/perform", [])
     job = Job.from_json(json)
     assert job.class == "MyWorker/perform"
-  end
-
-  test "to_job_json with method name" do
   end
 end

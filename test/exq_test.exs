@@ -4,6 +4,7 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ExqTest do
   use ExUnit.Case
   use Timex
+  alias Exq.Redis.JobQueue
   import ExqTestUtil
 
   defmodule PerformWorker do
@@ -72,6 +73,28 @@ defmodule ExqTest do
     {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.PerformWorker, [])
     wait
     assert_received {:worked}
+    stop_process(sup)
+  end
+
+  test "run jobs from backup queue on boot" do
+    host = elem(:inet.gethostname(), 1)
+    Process.register(self, :exqtest)
+
+    # enqueue and dequeue - this should now be in backup queue
+    JobQueue.enqueue(:testredis, "test", "queue", ExqTest.PerformWorker, [])
+    JobQueue.dequeue(:testredis, "test", host, "queue")
+
+    # make sure jobs were requeued from backup queue
+    {:ok, sup} = Exq.start_link(
+      [name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: ["default", "queue"]])
+    wait
+    assert_received {:worked}
+
+    # make sure backup queue was cleared properly if job finished
+    JobQueue.re_enqueue_backup(:testredis, "test", host, "queue")
+    wait_long
+    refute_received {:worked}
+
     stop_process(sup)
   end
 
