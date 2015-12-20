@@ -226,18 +226,6 @@ defmodule Exq.Redis.JobQueue do
     Connection.zadd!(redis, full_key(namespace, "dead"), time_to_score(Time.now), job_json)
   end
 
-  defp dequeue_random(_redis, _namespace, []) do
-    {:ok, {:none, nil}}
-  end
-  defp dequeue_random(redis, namespace, queues) do
-    [h | rq]  = Exq.Support.Shuffle.shuffle(queues)
-    case dequeue(redis, namespace, h) do
-      {:ok, {:none, _}}      -> dequeue_random(redis, namespace, rq)
-      {:ok, {job, q}}        -> {:ok, {job, q}}
-      {:error, reason}       -> {:error, reason}
-    end
-  end
-
   def to_job_json(queue, worker, args) do
     to_job_json(queue, worker, args, Timex.Time.now(:msecs))
   end

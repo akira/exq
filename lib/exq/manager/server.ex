@@ -100,17 +100,6 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state,0}
   end
 
-  def handle_cast({:re_enqueue_backup, queue}, state) do
-    JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
-    {:noreply, state, 0}
-  end
-
-  def handle_cast({:job_terminated, namespace, queue, job_json}, state) do
-    update_worker_count(state.work_table, queue, -1)
-    JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
-    {:noreply, state, 0}
-  end
-
   def handle_call({:stop}, _from, state) do
     { :stop, :normal, :ok, state }
   end
@@ -120,6 +109,17 @@ defmodule Exq.Manager.Server do
     {:reply, :unknown, state, 0}
   end
 
+  def handle_cast({:re_enqueue_backup, queue}, state) do
+    JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
+    {:noreply, state, 0}
+  end
+
+  def handle_cast({:job_terminated, _namespace, queue, job_json}, state) do
+    update_worker_count(state.work_table, queue, -1)
+    JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
+    {:noreply, state, 0}
+  end
+ 
   def handle_cast(_request, state) do
     Logger.error("UNKNOWN CAST")
     {:noreply, state, 0}
@@ -181,7 +181,7 @@ defmodule Exq.Manager.Server do
 
   def dispatch_job!(state, potential_job) do
     case potential_job do
-      {:ok, {:none, queue}} ->
+      {:ok, {:none, _queue}} ->
         {:ok, :none}
       {:ok, {job, queue}} ->
         dispatch_job!(state, job, queue)
