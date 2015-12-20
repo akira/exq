@@ -237,7 +237,7 @@ defmodule ExqTest do
     state = :sys.get_state(:exq_t)
 
     {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.EmptyMethodWorker, [])
-    wait
+    wait_long
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "1"
 
