@@ -109,13 +109,14 @@ defmodule Exq.Redis.JobQueue do
     deq_commands = Enum.map(queues, fn(queue) ->
       ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, host, queue)]
     end)
-    resp = :eredis.qp(redis, deq_commands, Config.get(:redis_timeout, 5000))
+    {:ok, resp} = Redix.pipeline(redis, deq_commands, [timeout: Config.get(:redis_timeout, 5000)])
 
     resp |> Enum.zip(queues) |> Enum.map(fn({resp, queue}) ->
       case resp do
-        {status, :undefined} -> {status, {:none, queue}}
-        {status, nil}        -> {status, {:none, queue}}
-        {status, value}      -> {status, {value, queue}}
+        :undefined -> {:ok, {:none, queue}}
+        nil        -> {:ok, {:none, queue}}
+        %Redix.Error{} = error  -> {:error, {error, queue}}
+        value      -> {:ok, {value, queue}}
       end
     end)
   end
