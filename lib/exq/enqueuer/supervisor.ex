@@ -20,6 +20,6 @@ defmodule Exq.Enqueuer.Supervisor do
   def server_name(name, :start_by_manager), do: "#{name}.Manager.Enqueuer" |> String.to_atom
 
   def supervisor_name(nil), do: Exq.Enqueuer.Sup
-  def supervisor_name(name), do: "#{name}.Enqueuer.Sup" |> String.to_atom
+  def supervisor_name(name), do: "#{name}.Sup" |> String.to_atom
 
 end
