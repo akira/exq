@@ -108,13 +108,17 @@ defmodule Exq.Redis.JobQueue do
     end)
     resp = :eredis.qp(redis, deq_commands, Config.get(:redis_timeout, 5000))
 
-    resp |> Enum.zip(queues) |> Enum.map(fn({resp, queue}) ->
-      case resp do
-        {status, :undefined} -> {status, {:none, queue}}
-        {status, nil}        -> {status, {:none, queue}}
-        {status, value}      -> {status, {value, queue}}
-      end
-    end)
+    case resp do
+      {:error, reason} -> [{:error, reason}]
+      success ->
+        success |> Enum.zip(queues) |> Enum.map(fn({resp, queue}) ->
+          case resp do
+            {status, :undefined} -> {status, {:none, queue}}
+            {status, nil}        -> {status, {:none, queue}}
+            {status, value}      -> {status, {value, queue}}
+          end
+        end)
+    end
   end
 
   def re_enqueue_backup(redis, namespace, host, queue) do
