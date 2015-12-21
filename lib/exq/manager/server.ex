@@ -241,9 +241,6 @@ defmodule Exq.Manager.Server do
     :ets.update_counter(work_table, queue, {3, delta})
   end
 
-
-  def stop(_pid), do: :ok
-
   def rescue_timeout(f) do
     rescue_timeout(nil, f)
   end

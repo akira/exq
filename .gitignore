@@ -9,6 +9,3 @@ _build/
 .*.swp
 *.swo
 stdout
-*.iml
-.idea
-*.rdb
