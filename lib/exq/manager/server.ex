@@ -110,13 +110,17 @@ defmodule Exq.Manager.Server do
   end
 
   def handle_cast({:re_enqueue_backup, queue}, state) do
-    JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
+    rescue_timeout(fn ->
+      JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
+    end)
     {:noreply, state, 0}
   end
 
   def handle_cast({:job_terminated, namespace, queue, job_json}, state) do
-    update_worker_count(state.work_table, queue, -1)
-    JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
+    rescue_timeout(fn ->
+      update_worker_count(state.work_table, queue, -1)
+      JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
+    end)
     {:noreply, state, 0}
   end
 
@@ -160,7 +164,7 @@ defmodule Exq.Manager.Server do
   def dequeue_and_dispatch(state), do: dequeue_and_dispatch(state, available_queues(state))
   def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
   def dequeue_and_dispatch(state, queues) do
-    try do
+    rescue_timeout({state, state.poll_timeout}, fn ->
       jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.host, queues)
 
       job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job!(state, potential_job) end)
@@ -174,11 +178,7 @@ defmodule Exq.Manager.Server do
         true ->
           {state, state.poll_timeout}
       end
-    catch
-      :exit, e ->
-        Logger.info("Manager timeout occurred #{Kernel.inspect e}")
-        {state, state.poll_timeout}
-    end
+    end)
   end
 
   def available_queues(state) do
@@ -245,6 +245,19 @@ defmodule Exq.Manager.Server do
 
   def update_worker_count(work_table, queue, delta) do
     :ets.update_counter(work_table, queue, {3, delta})
+  end
+
+  def rescue_timeout(f) do
+    rescue_timeout(nil, f)
+  end
+  def rescue_timeout(fail_return, f) do
+    try do
+      f.()
+    catch
+      :exit, {:timeout, info} ->
+        Logger.info("Manager timeout occurred #{Kernel.inspect info}")
+        fail_return
+    end
   end
 
   def default_name, do: @default_name
