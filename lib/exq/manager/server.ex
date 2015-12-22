@@ -109,6 +109,15 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state,0}
   end
 
+  def handle_call({:stop}, _from, state) do
+    { :stop, :normal, :ok, state }
+  end
+
+  def handle_call(_request, _from, state) do
+    Logger.error("UNKNOWN CALL")
+    {:reply, :unknown, state, 0}
+  end
+
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
@@ -122,15 +131,6 @@ defmodule Exq.Manager.Server do
       JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
     end)
     {:noreply, state, 0}
-  end
-
-  def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
-  end
-
-  def handle_call(_request, _from, state) do
-    Logger.error("UNKNOWN CALL")
-    {:reply, :unknown, state, 0}
   end
 
   def handle_cast(_request, state) do
