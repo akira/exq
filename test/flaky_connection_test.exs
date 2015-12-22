@@ -29,12 +29,12 @@ defmodule FlakyConnectionTest do
     Mix.Config.persist([exq: [redis_timeout: 2010]])
 
     Process.register(self(), :tester)
-    {:ok, sup} = Exq.start([name: :perf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
+    {:ok, sup} = Exq.start([name: ExqPerf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
 
     FlakyConnection.set_latency(conn, 1000)
 
 
-    {:ok, _} = Exq.enqueue(:perf_enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
+    {:ok, _} = Exq.enqueue(ExqPerf.Enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
 
     stop_process(sup)
   end
@@ -48,12 +48,12 @@ defmodule FlakyConnectionTest do
 
     Process.register(self(), :tester)
 
-    {:ok, sup} = Exq.start([name: :perf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
+    {:ok, sup} = Exq.start([name: ExqPerf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
 
     FlakyConnection.set_latency(conn, 5500)
 
     result = try do
-      {:ok, _} = Exq.enqueue(:perf_enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
+      {:ok, _} = Exq.enqueue(ExqPerf.Enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
     catch
       :exit, {:timeout, _} -> :failed
     end
@@ -73,11 +73,11 @@ defmodule FlakyConnectionTest do
 
     Process.register(self(), :tester)
 
-    {:ok, sup} = Exq.start([name: :perf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
+    {:ok, sup} = Exq.start([name: ExqPerf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
 
     FlakyConnection.set_latency(conn, 5500)
 
-    {:ok, _} = Exq.enqueue(:perf_enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
+    {:ok, _} = Exq.enqueue(ExqPerf.Enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
 
     stop_process(sup)
   end
