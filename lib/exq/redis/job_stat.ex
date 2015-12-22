@@ -22,7 +22,7 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, error, _job) do
+  def record_failure(redis, namespace, _error, _job) do
     time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
     date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
 

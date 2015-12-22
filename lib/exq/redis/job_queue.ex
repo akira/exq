@@ -78,7 +78,7 @@ defmodule Exq.Redis.JobQueue do
     enqueue_job_at(redis, namespace, job_json, jid, time, scheduled_queue_key(namespace))
   end
 
-  def enqueue_job_at(redis, namespace, job_json, jid, time, scheduled_queue) do
+  def enqueue_job_at(redis, _namespace, job_json, jid, time, scheduled_queue) do
     score = time_to_score(time)
     try do
       case Connection.zadd(redis, scheduled_queue, score, job_json) do
@@ -150,7 +150,7 @@ defmodule Exq.Redis.JobQueue do
     end)
   end
 
-  def scheduler_dequeue_requeue([], _redis, _namespace, _queues, schedule_queue, count), do: count
+  def scheduler_dequeue_requeue([], _redis, _namespace, _queues, _schedule_queue, count), do: count
   def scheduler_dequeue_requeue([job_json|t], redis, namespace, queues, schedule_queue, count) do
     if Connection.zrem!(redis, schedule_queue, job_json) == "1" do
       if Enum.count(queues) == 1 do

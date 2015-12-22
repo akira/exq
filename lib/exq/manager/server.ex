@@ -94,17 +94,17 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 10}
   end
 
-  def handle_call({:subscribe, queue}, from, state) do
+  def handle_call({:subscribe, queue}, _from, state) do
     updated_state = add_queue(state, queue)
     {:reply, :ok, updated_state,0}
   end
 
-  def handle_call({:subscribe, queue, concurrency}, from, state) do
+  def handle_call({:subscribe, queue, concurrency}, _from, state) do
     updated_state = add_queue(state, queue, concurrency)
     {:reply, :ok, updated_state,0}
   end
 
-  def handle_call({:unsubscribe, queue}, from, state) do
+  def handle_call({:unsubscribe, queue}, _from, state) do
     updated_state = remove_queue(state, queue)
     {:reply, :ok, updated_state,0}
   end
@@ -125,7 +125,7 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 0}
   end
 
-  def handle_cast({:job_terminated, namespace, queue, job_json}, state) do
+  def handle_cast({:job_terminated, _namespace, queue, job_json}, state) do
     rescue_timeout(fn ->
       update_worker_count(state.work_table, queue, -1)
       JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
@@ -190,7 +190,7 @@ defmodule Exq.Manager.Server do
 
   def dispatch_job!(state, potential_job) do
     case potential_job do
-      {:ok, {:none, queue}} ->
+      {:ok, {:none, _queue}} ->
         {:ok, :none}
       {:ok, {job, queue}} ->
         dispatch_job!(state, job, queue)
