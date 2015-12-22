@@ -66,8 +66,8 @@ defmodule Exq.Manager.Server do
                    poll_timeout: poll_timeout,
                    scheduler_poll_timeout: scheduler_poll_timeout
                    }
-
-    {:ok, state, 0}
+    {updated_state, timeout} = check_redis_connection(state, poll_timeout)
+    {:ok, updated_state, timeout}
   end
 
   def handle_call({:enqueue, queue, worker, args}, from, state) do
@@ -252,6 +252,11 @@ defmodule Exq.Manager.Server do
         Logger.info("Manager timeout occurred #{Kernel.inspect info}")
         fail_return
     end
+  end
+
+  defp check_redis_connection(state, poll_time) do
+    :timer.sleep(poll_time)
+    dequeue_and_dispatch(state)
   end
 
 end
