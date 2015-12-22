@@ -28,6 +28,7 @@ defmodule FailureScenariosTest do
 
     {:ok, _} = Exq.start_link([name: :exq_f, port: conn.port ])
 
+    wait_long
     # Stop Redis and wait for a bit
     FlakyConnection.stop(conn)
     # Not ideal - but seems to be min time for manager to die past supervision
@@ -49,16 +50,17 @@ defmodule FailureScenariosTest do
     # Start Exq but don't listen to any queues
     {:ok, _} = Exq.start_link([name: :exq_f, port: conn.port])
 
+    wait_long
     # Stop Redis
     FlakyConnection.stop(conn)
     wait_long
 
     # enqueue with redis stopped
     enq_result = Exq.enqueue(:exq_f, "default", "FakeWorker", [])
-    assert enq_result ==  {:error, :no_connection}
+    assert enq_result ==  {:error, :closed}
 
     enq_result = Exq.enqueue_at(:exq_f, "default", Time.now, ExqTest.PerformWorker, [])
-    assert enq_result ==  {:error, :no_connection}
+    assert enq_result ==  {:error, :closed}
 
     # Starting Redis again and things should be back to normal
     wait_long
