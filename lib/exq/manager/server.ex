@@ -1,7 +1,6 @@
 defmodule Exq.Manager.Server do
   require Logger
   use GenServer
-  alias Exq.Stats.Server, as: Stats
   alias Exq.Enqueuer
   alias Exq.Redis.JobQueue
   alias Exq.Support.Config
