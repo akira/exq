@@ -5,11 +5,6 @@ defmodule Exq.Redis.Connection do
 
   @default_timeout 5000
 
-  def connection(opts \\ []) do
-    {redis_opts, connection_opts} = Exq.Redis.Supervosor.info(opts)
-    Redix.start_link(redis_opts, connection_opts)
-  end
-
   def flushdb!(redis) do
     {:ok, res} = q(redis, [:flushdb])
     res
