@@ -86,7 +86,7 @@ defmodule ExqTest do
     # make sure jobs were requeued from backup queue
     {:ok, sup} = Exq.start_link(
       [name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: ["default", "queue"]])
-    wait
+    wait_long
     assert_received {:worked}
 
     # make sure backup queue was cleared properly if job finished
