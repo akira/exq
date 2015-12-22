@@ -11,7 +11,8 @@ defmodule Mix.Tasks.Exq.Run do
       app.start(nil)
     end
     opts = Keyword.put(opts, :host, to_char_list(Keyword.get(opts, :host, "127.0.0.1")))
-
+    opts = Keyword.put(opts, :port, Keyword.get(opts, :port, 6379))
+    opts = Keyword.put(opts, :namespace, to_char_list(Keyword.get(opts, :namespace, "exq")))
     {:ok, _pid} = Exq.start(opts)
     IO.puts "Started Exq with redis options: Host: #{opts[:host]}, Port: #{opts[:port]}, Namespace: #{opts[:namespace]}"
     :timer.sleep(:infinity)
