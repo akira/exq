@@ -66,6 +66,7 @@ defmodule Exq.Manager.Server do
                    poll_timeout: poll_timeout,
                    scheduler_poll_timeout: scheduler_poll_timeout
                    }
+
     check_redis_connection(redis, opts)
     {:ok, state, 0}
   end
@@ -260,8 +261,8 @@ defmodule Exq.Manager.Server do
     catch
       err, reason ->
         opts = Exq.Redis.Supervisor.info(opts)
-        raise "Stop by #{inspect err}: #{inspect reason} Could not connect to Redis...#{inspect opts}"
-     end
+        raise "Could not connect to Redis...#{inspect opts} Stop by #{inspect err}: #{inspect reason}"
+    end
   end
 
 end
