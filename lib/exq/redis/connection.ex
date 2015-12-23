@@ -5,23 +5,6 @@ defmodule Exq.Redis.Connection do
 
   @default_timeout 5000
 
-  def connection(opts \\ []) do
-    {host, port, database, password, reconnect_on_sleep, timeout} = info(opts)
-    :eredis.start_link(host, port, database, password, reconnect_on_sleep, timeout)
-  end
-
-  def info(opts \\ []) do
-    host = Keyword.get(opts, :host, Config.get(:host, '127.0.0.1'))
-    port = Keyword.get(opts, :port, Config.get(:port, 6379))
-    database = Keyword.get(opts, :database, Config.get(:database, 0))
-    password = Keyword.get(opts, :password, Config.get(:password) || '')
-    reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Config.get(:reconnect_on_sleep, 100))
-    timeout = Keyword.get(opts, :redis_timeout, Config.get(:redis_timeout, @default_timeout))
-    if is_binary(host), do: host = String.to_char_list(host)
-    if is_binary(password), do: password = String.to_char_list(password)
-    {host, port, database, password, reconnect_on_sleep, timeout}
-  end
-
   def flushdb!(redis) do
     {:ok, res} = q(redis, [:flushdb])
     res
@@ -153,11 +136,11 @@ defmodule Exq.Redis.Connection do
   end
 
   def q(redis, command) do
-    :eredis.q(redis, command, Config.get(:redis_timeout, @default_timeout))
+    Redix.command(redis, command, [timeout: Config.get(:redis_timeout, @default_timeout)])
   end
 
   def qp(redis, command) do
-    :eredis.qp(redis, command, Config.get(:redis_timeout, @default_timeout))
+    Redix.pipeline(redis, command, [timeout: Config.get(:redis_timeout, @default_timeout)])
   end
 
 end

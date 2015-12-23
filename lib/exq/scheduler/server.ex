@@ -3,8 +3,6 @@ defmodule Exq.Scheduler.Server do
   use GenServer
   alias Exq.Support.Config
 
-  @default_name :exq_scheduler
-
   defmodule State do
     defstruct redis: nil, namespace: nil, queues: nil, scheduler_poll_timeout: nil
   end
@@ -14,8 +12,7 @@ defmodule Exq.Scheduler.Server do
   end
 
   def start_link(opts \\ []) do
-    name = Keyword.get(opts, :name, @default_name)
-    GenServer.start_link(__MODULE__, [opts], [{:name, name}])
+    GenServer.start_link(__MODULE__, [opts], [{:name, opts[:name]|| __MODULE__}])
   end
 
   def start_timeout(pid) do
@@ -30,13 +27,14 @@ defmodule Exq.Scheduler.Server do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     queues = Keyword.get(opts, :queues)
     scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
-    redis = case Keyword.get(opts, :redis) do
-      nil ->
-        {:ok, r} = Exq.Redis.Connection.connection(opts)
-        r
-      r -> r
+    redis = opts[:redis]
+    case Process.whereis(redis) do
+      nil -> Exq.Redis.Supervisor.start_link(opts)
+      _ -> :ok
     end
-    state = %State{redis: redis, namespace: namespace, queues: queues, scheduler_poll_timeout: scheduler_poll_timeout}
+    state = %State{redis: redis, namespace: namespace,
+      queues: queues, scheduler_poll_timeout: scheduler_poll_timeout}
+
     {:ok, state}
   end
 
@@ -71,8 +69,6 @@ defmodule Exq.Scheduler.Server do
     Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace, state.queues)
     {state, state.scheduler_poll_timeout}
   end
-
-  def default_name, do: @default_name
 
   def stop(_pid) do
   end

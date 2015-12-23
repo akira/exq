@@ -59,7 +59,6 @@ defmodule ExqTest do
   test "start multiple exq instances using registered name" do
     {:ok, sup1} = Exq.start_link([host: redis_host, port: redis_port, name: :custom_manager1, namespace: "test"])
     assert_exq_up(:custom_manager1)
-
     {:ok, sup2} = Exq.start_link([host: redis_host, port: redis_port, name: :custom_manager2, namespace: "test"])
     assert_exq_up(:custom_manager2)
 
@@ -87,7 +86,7 @@ defmodule ExqTest do
     # make sure jobs were requeued from backup queue
     {:ok, sup} = Exq.start_link(
       [name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: ["default", "queue"]])
-    wait
+    wait_long
     assert_received {:worked}
 
     # make sure backup queue was cleared properly if job finished
@@ -238,7 +237,7 @@ defmodule ExqTest do
     state = :sys.get_state(:exq_t)
 
     {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.EmptyMethodWorker, [])
-    wait
+    wait_long
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "1"
 
@@ -253,7 +252,6 @@ defmodule ExqTest do
   test "record failed jobs" do
     {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     state = :sys.get_state(:exq_t)
-
     {:ok, _} = Exq.enqueue(:exq_t, "default", "ExqTest.MissingMethodWorker/fail", [])
     wait_long
     {:ok, count} = TestStats.failed_count(state.redis, "test")

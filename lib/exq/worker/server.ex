@@ -38,7 +38,6 @@ defmodule Exq.Worker.Server do
     target = String.replace(job.class, "::", ".")
     [mod | _func_or_empty] = Regex.split(~r/\//, target)
     func = :perform
-    _args = job.args
     GenServer.cast(self, :dispatch)
     {:noreply, %{state | worker_module: String.to_atom("Elixir.#{mod}"),
                  worker_function: func, job: job, process_info: process_info } }

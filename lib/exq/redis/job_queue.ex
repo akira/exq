@@ -54,13 +54,16 @@ defmodule Exq.Redis.JobQueue do
   end
   def enqueue(redis, namespace, queue, job_json) do
     try do
-      response = :eredis.qp(redis, [
+      response = Redix.pipeline(redis, [
         ["SADD", full_key(namespace, "queues"), queue],
-        ["LPUSH", queue_key(namespace, queue), job_json]], Config.get(:redis_timeout, 5000))
+        ["LPUSH", queue_key(namespace, queue), job_json]], [timeout: Config.get(:redis_timeout, 5000)])
 
       case response do
-        [{:ok, _}, {:ok, _}] -> :ok
-        other                -> other
+        {:ok, [%Redix.Error{}, %Redix.Error{}]} = error -> error
+        {:ok, [%Redix.Error{}, _]} = error -> error
+        {:ok, [_, %Redix.Error{}]} = error -> error
+        {:ok, [_, _]} -> :ok
+        other    -> other
       end
     catch
       :exit, e ->
@@ -106,16 +109,17 @@ defmodule Exq.Redis.JobQueue do
     deq_commands = Enum.map(queues, fn(queue) ->
       ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, host, queue)]
     end)
-    resp = :eredis.qp(redis, deq_commands, Config.get(:redis_timeout, 5000))
+    resp = Redix.pipeline(redis, deq_commands, [timeout: Config.get(:redis_timeout, 5000)])
 
     case resp do
       {:error, reason} -> [{:error, reason}]
-      success ->
+      {:ok, success} ->
         success |> Enum.zip(queues) |> Enum.map(fn({resp, queue}) ->
           case resp do
-            {status, :undefined} -> {status, {:none, queue}}
-            {status, nil}        -> {status, {:none, queue}}
-            {status, value}      -> {status, {value, queue}}
+            :undefined -> {:ok, {:none, queue}}
+            nil        -> {:ok, {:none, queue}}
+            %Redix.Error{} = error  -> {:error, {error, queue}}
+            value      -> {:ok, {value, queue}}
           end
         end)
     end
@@ -152,7 +156,7 @@ defmodule Exq.Redis.JobQueue do
 
   def scheduler_dequeue_requeue([], _redis, _namespace, _queues, _schedule_queue, count), do: count
   def scheduler_dequeue_requeue([job_json|t], redis, namespace, queues, schedule_queue, count) do
-    if Connection.zrem!(redis, schedule_queue, job_json) == "1" do
+    if Connection.zrem!(redis, schedule_queue, job_json) == 1 do
       if Enum.count(queues) == 1 do
         enqueue(redis, namespace, hd(queues), job_json)
       else
@@ -224,18 +228,6 @@ defmodule Exq.Redis.JobQueue do
       error_class: "ExqGenericError", error_message: error}
     job_json = Job.to_json(job)
     Connection.zadd!(redis, full_key(namespace, "dead"), time_to_score(Time.now), job_json)
-  end
-
-  defp dequeue_random(_redis, _namespace, []) do
-    {:ok, {:none, nil}}
-  end
-  defp dequeue_random(redis, namespace, queues) do
-    [h | rq]  = Exq.Support.Shuffle.shuffle(queues)
-    case dequeue(redis, namespace, h) do
-      {:ok, {:none, _}}      -> dequeue_random(redis, namespace, rq)
-      {:ok, {job, q}}        -> {:ok, {job, q}}
-      {:error, reason}       -> {:error, reason}
-    end
   end
 
   def to_job_json(queue, worker, args) do

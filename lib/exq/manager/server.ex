@@ -2,20 +2,16 @@ defmodule Exq.Manager.Server do
   require Logger
   use GenServer
   alias Exq.Enqueuer
-  alias Exq.Redis.JobQueue
   alias Exq.Support.Config
-
-  @default_name :exq
+  alias Exq.Redis.JobQueue
 
   defmodule State do
-    defstruct pid: nil, host: nil, redis: nil, namespace: nil, work_table: nil,
-              queues: nil, poll_timeout: nil, stats: nil, enqueuer: nil, scheduler: nil,
-              scheduler_poll_timeout: nil
+    defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, host: nil, namespace: nil, work_table: nil,
+              queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil
   end
 
-  def start_link(opts \\ []) do
-    name = Keyword.get(opts, :name, @default_name)
-    GenServer.start_link(__MODULE__, [opts], [{:name, name}])
+  def start_link(opts\\[]) do
+    GenServer.start_link(__MODULE__, [opts], [{:name, Exq.Manager.Supervisor.server_name(opts[:name])}])
   end
 
   def job_terminated(exq, namespace, queue, job_json) do
@@ -28,8 +24,7 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 
   def init([opts]) do
-    {:ok, redis} = Exq.Redis.Connection.connection(opts)
-    name = Keyword.get(opts, :name, @default_name)
+    {:ok, localhost} = :inet.gethostname()
 
     {queues, work_table} = setup_queues(opts)
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
@@ -37,44 +32,42 @@ defmodule Exq.Manager.Server do
     scheduler_enable = Keyword.get(opts, :scheduler_enable, Config.get(:scheduler_enable, true))
     scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
 
-    {:ok, localhost} = :inet.gethostname()
+    {:ok, _} = Exq.Redis.Supervisor.start_link(opts)
+    redis = Exq.Redis.Supervisor.client_name(opts[:name])
 
-    stats = String.to_atom("#{name}_stats")
-    {:ok, _} =  Exq.Stats.Supervisor.start_link(
-      redis: redis,
-      name: stats)
+    {:ok, _} =  Exq.Stats.Supervisor.start_link([{:redis, redis}|opts])
 
-    enqueuer = String.to_atom("#{name}_enqueuer")
-    {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(
-      redis: redis,
-      name: enqueuer,
-      namespace: namespace)
-
-    scheduler = String.to_atom("#{name}_scheduler")
+    enqueuer_name = Exq.Enqueuer.Supervisor.server_name(opts[:name], :start_by_manager)
+    {:ok, _} =  Exq.Enqueuer.Supervisor.start_link(namespace: namespace,
+      name: enqueuer_name,
+      redis: redis)
 
     if scheduler_enable do
-      {:ok, _} =  Exq.Scheduler.Supervisor.start_link(
+      {:ok, _scheduler_sup_pid} =  Exq.Scheduler.Supervisor.start_link(
         redis: redis,
-        name: scheduler,
+        name: opts[:name],
         namespace: namespace,
         queues: queues,
         scheduler_poll_timeout: scheduler_poll_timeout)
 
-      Exq.Scheduler.Server.start_timeout(scheduler)
+      opts[:name]
+        |> Exq.Scheduler.Supervisor.server_name
+        |> Exq.Scheduler.Server.start_timeout
     end
 
-    state = %State{redis: redis,
-                      work_table: work_table,
-                      enqueuer: enqueuer,
-                      scheduler: scheduler,
-                      host:  to_string(localhost),
-                      namespace: namespace,
-                      queues: queues,
-                      pid: self(),
-                      poll_timeout: poll_timeout,
-                      scheduler_poll_timeout: scheduler_poll_timeout,
-                      stats: stats}
+    state = %State{work_table: work_table,
+                   redis: redis,
+                   stats: Exq.Stats.Supervisor.server_name(opts[:name]),
+                   enqueuer: enqueuer_name,
+                   host:  to_string(localhost),
+                   namespace: namespace,
+                   queues: queues,
+                   pid: self(),
+                   poll_timeout: poll_timeout,
+                   scheduler_poll_timeout: scheduler_poll_timeout
+                   }
 
+    check_redis_connection(redis, opts)
     {:ok, state, 0}
   end
 
@@ -152,7 +145,10 @@ defmodule Exq.Manager.Server do
   end
 
   def terminate(_reason, state) do
-    :eredis.stop(state.redis)
+    case Process.whereis(state.redis) do
+      nil -> :ignore
+      pid -> Redix.stop(pid)
+    end
     :ok
   end
 
@@ -259,8 +255,14 @@ defmodule Exq.Manager.Server do
     end
   end
 
-  def default_name, do: @default_name
-
-  def stop(_pid) do
+  defp check_redis_connection(redis, opts) do
+    try do
+      {:ok, _} = Exq.Redis.Connection.q(redis, ~w(PING))
+    catch
+      err, reason ->
+        opts = Exq.Redis.Supervisor.info(opts)
+        raise "Could not connect to Redis...#{inspect opts} Stop by #{inspect err}: #{inspect reason}"
+    end
   end
+
 end

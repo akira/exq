@@ -115,7 +115,7 @@ You can add Exq into your OTP application list, and it will start an instance of
   end
 ```
 
-When using Exq through OTP, it will register a process under the name ```:exq``` - you can use this atom where expecting a process name in the Exq module.
+When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
 
 ## Using iex:
 If you'd like to try Exq out on the iex console, you can do this by typing ```iex -S mix``` after ```mix deps.get```.
@@ -136,11 +136,11 @@ You can run Exq standalone from the command line, to run it:
 To enqueue jobs:
 
 ```elixir
-{:ok, ack} = Exq.enqueue(:exq, "default", MyWorker, ["arg1", "arg2"])
+{:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"])
 
-{:ok, ack} = Exq.enqueue(:exq, "default", "MyWorker", ["arg1", "arg2"])
+{:ok, ack} = Exq.enqueue(Exq, "default", "MyWorker", ["arg1", "arg2"])
 
-{:ok, ack} = Exq.enqueue(:exq, "default", "MyWorker/custom_method", [])
+{:ok, ack} = Exq.enqueue(Exq, "default", "MyWorker/custom_method", [])
 ```
 
 You can also enqueue jobs without starting workers:
@@ -148,7 +148,7 @@ You can also enqueue jobs without starting workers:
 ```elixir
 {:ok, sup} = Exq.Enqueuer.start_link([port: 6379])
 
-{:ok, ack} = Exq.Enqueuer.enqueue(:exq_enqueuer, "default", MyWorker, [])
+{:ok, ack} = Exq.Enqueuer.enqueue(Exq.Enqueuer, "default", MyWorker, [])
 
 ```
 You can also schedule jobs to start at a future time:
@@ -156,12 +156,12 @@ You need to make sure scheduler_enable is set to true
 
 Schedule a job to start in 5 mins
 ```elixir
-{:ok, ack} = Exq.enqueue_in(:exq, "default", 300, MyWorker, ["arg1", "arg2"])
+{:ok, ack} = Exq.enqueue_in(Exq, "default", 300, MyWorker, ["arg1", "arg2"])
 ```
 Schedule a job to start at 8am 2015-12-25 UTC
 ```elixir
 time = Timex.Date.from({{2015, 12, 25}, {8, 0, 0}}) |> Timex.Date.to_timestamp
-{:ok, ack} = Exq.enqueue_at(:exq, "default", time, MyWorker, ["arg1", "arg2"])
+{:ok, ack} = Exq.enqueue_at(Exq, "default", time, MyWorker, ["arg1", "arg2"])
 ```
 
 ### Dynamic queue subscriptions:
@@ -171,12 +171,12 @@ The list of queues that are being monitored by Exq is determined by the config.e
 To subscribe to a new queue:
 ```elixir
 # last arg is optional and is the max concurrency for the queue
-:ok = Exq.subscribe(:exq, "new_queue_name", 10)
+:ok = Exq.subscribe(Exq, "new_queue_name", 10)
 ```
 
 To unsubscribe from a queue:
 ```elixir
-:ok = Exq.unsubscribe(:exq, "queue_to_unsubscribe")
+:ok = Exq.unsubscribe(Exq, "queue_to_unsubscribe")
 ```
 
 ### Creating Workers:
@@ -197,12 +197,12 @@ end
 
 We could enqueue a job to this worker:
 ```elixir
-{:ok, jid} = Exq.enqueue(:exq, "default", MyWorker, [])
+{:ok, jid} = Exq.enqueue(Exq, "default", MyWorker, [])
 ```
 
 The 'perform' method will be called with matching args. For example:
 ```elixir
-{:ok, jid} = Exq.enqueue(exq, "default", "MyWorker", [arg1, arg2])
+{:ok, jid} = Exq.enqueue(Exq, "default", "MyWorker", [arg1, arg2])
 ```
 
 Would match:
@@ -293,10 +293,10 @@ under start_link:
 {:ok, sup} = Exq.start_link([host: "127.0.0.1", port: 6379, namespace: "x"])
 ```
 
-By default, Exq will register itself under the ```:exq``` atom.  You can change this by passing in a name parameter:
+By default, Exq will register itself under the ```Elixir.Exq``` atom.  You can change this by passing in a name parameter:
 
 ```elixir
-{:ok, exq} = Exq.start_link(name: :exq_custom)
+{:ok, exq} = Exq.start_link(name: Exq.Custom)
 ```
 
 ## Contributions
