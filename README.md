@@ -322,6 +322,10 @@ Nick Sanders (nicksanders)
 
 Nick Gal (nickgal)
 
+zhongwencool (zhongwencool)
+
+Ben Wilson (benwilson512)
+
 Mike Lawlor (disbelief)
 
 Udo Kramer (optikfluffel)
@@ -329,6 +333,8 @@ Udo Kramer (optikfluffel)
 Andreas Franzén (triptec)
 
 Daniel Perez (tuvistavie)
+
+Victor Rodrigues (rodrigues)
 
 David Le (dl103)
 
