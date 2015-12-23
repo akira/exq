@@ -33,7 +33,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.4.4"}
+      {:exq, "~> 0.5.0"}
     ]
   end
 ```
@@ -306,8 +306,12 @@ Contributions are welcome. Tests are encouraged.
 To run tests / ensure your changes have not caused any regressions:
 
 ```
-redis-server --port 6555
-mix test
+mix test --no-start
+```
+
+To run the full suite, including failure conditions (can have some false negatives):
+```
+mix test --trace --include failure_scenarios:true --no-star
 ```
 
 ## Contributors:
