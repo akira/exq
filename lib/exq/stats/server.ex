@@ -1,4 +1,13 @@
 defmodule Exq.Stats.Server do
+  @moduledoc """
+  Stats process is responsible for recording all stats into Redis.
+
+  The stats format is compatible with the Sidekiq stats format, so that
+  The Sidekiq UI can be also used to view Exq status as well, and Exq
+  can run side by side with Sidekiq without breaking any of it's UI.
+
+  This includes job success/failure as well as in-progress jobs
+  """
   use GenServer
   use Timex
   alias Exq.Redis.JobQueue
@@ -10,22 +19,34 @@ defmodule Exq.Stats.Server do
     defstruct redis: nil
   end
 
+  @doc """
+  Add in progress worker process
+  """
   def add_process(stats, namespace, worker, host, job) do
     process_info = %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.universal, "{ISO}")}
     GenServer.cast(stats, {:add_process, namespace, process_info})
     {:ok, process_info}
   end
 
+  @doc """
+  Remove in progress worker process
+  """
   def process_terminated(stats, namespace, process_info) do
     GenServer.cast(stats, {:process_terminated, namespace, process_info})
     :ok
   end
 
+  @doc """
+  Record job as successfully processes
+  """
   def record_processed(stats, namespace, job) do
     GenServer.cast(stats, {:record_processed, namespace, job})
     :ok
   end
 
+  @doc """
+  Record job as failed
+  """
   def record_failure(stats, namespace, error, job) do
     GenServer.cast(stats, {:record_failure, namespace, error, job})
     :ok

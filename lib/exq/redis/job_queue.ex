@@ -1,4 +1,16 @@
 defmodule Exq.Redis.JobQueue do
+  @moduledoc """
+  The JobQueue module is the main abstraction of a job queue on top of Redis.
+
+  It provides functionality for:
+    * Storing jobs in Redis
+    * Fetching the next job(s) to be excuted (and storing a backup of these).
+    * Scheduling future jobs in Redis
+    * Fetching scheduling jobs and moving them to current job list
+    * Retrying or failing a job
+    * Re-hydrating jobs from a backup queue
+  """
+
   use Timex
   require Logger
 
@@ -11,6 +23,9 @@ defmodule Exq.Redis.JobQueue do
   @default_max_retries 25
   @default_queue "default"
 
+  @doc """
+  Find a current job by job id (but do not pop it)
+  """
   def find_job(redis, namespace, jid, :scheduled) do
     Connection.zrangebyscore!(redis, scheduled_queue_key(namespace))
       |> find_job(jid)
@@ -19,7 +34,6 @@ defmodule Exq.Redis.JobQueue do
     Connection.lrange!(redis, queue_key(namespace, queue))
       |> find_job(jid)
   end
-
   def find_job(jobs, jid) do
     finder = fn({j, _idx}) ->
       job = Exq.Support.Job.from_json(j)

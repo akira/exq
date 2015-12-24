@@ -1,4 +1,9 @@
 defmodule Exq.Redis.JobStat do
+  @moduledoc """
+  The JobStat module encapsulates storing system-wide stats on top of Redis
+  It aims to be compatible with the Sidekiq stats format.
+  """
+
   require Logger
   use Timex
 
