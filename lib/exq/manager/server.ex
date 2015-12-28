@@ -229,10 +229,7 @@ defmodule Exq.Manager.Server do
   end
 
   def handle_cast({:job_terminated, _namespace, queue, job_json}, state) do
-    rescue_timeout(fn ->
-      update_worker_count(state.work_table, queue, -1)
-      JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, queue, job_json)
-    end)
+    update_worker_count(state.work_table, queue, -1)
     {:noreply, state, 0}
   end
 
@@ -317,7 +314,7 @@ defmodule Exq.Manager.Server do
   def dispatch_job!(state, job, queue) do
     {:ok, worker} = Exq.Worker.Server.start(
       job, state.pid, queue, state.work_table,
-      state.stats, state.namespace, state.host)
+      state.stats, state.namespace, state.host, state.redis)
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
   end

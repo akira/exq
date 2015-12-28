@@ -76,9 +76,6 @@ defmodule Exq.Stats.Server do
   end
 
   def handle_cast({:record_failure, namespace, error, job}, state) do
-    if job do
-      JobQueue.retry_or_fail_job(state.redis, namespace, job, error)
-    end
     JobStat.record_failure(state.redis, namespace, error, job)
     {:noreply, state}
   end

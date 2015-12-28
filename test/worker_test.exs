@@ -34,7 +34,7 @@ defmodule WorkerTest do
 
   def start_worker(job) do
     work_table = :ets.new(:work_table, [:set, :public])
-    Exq.Worker.Server.start(job, nil, "default", work_table, spawn(fn -> end), "exq", "localhost")
+    Exq.Worker.Server.start(job, nil, "default", work_table, spawn(fn -> end), "exq", "localhost", :test_redis)
   end
 
   test "execute valid job with perform" do
