@@ -209,7 +209,7 @@ defmodule ExqTest do
     state = :sys.get_state(:exq_t)
 
     {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.SleepWorker, [100, "finished"])
-    wait
+    wait_long
 
     # Check that process has been recorded
     processes = Exq.Redis.JobStat.processes(state.redis, "default")

@@ -261,7 +261,17 @@ defmodule Exq.Manager.Server do
     catch
       err, reason ->
         opts = Exq.Redis.Supervisor.info(opts)
-        raise "Could not connect to Redis...#{inspect opts} Stop by #{inspect err}: #{inspect reason}"
+        raise """
+        \n\n\n#{String.duplicate("=", 100)}
+        ERROR! Could not connect to Redis!
+
+        Configuration passed in: #{inspect opts}
+        Error: #{inspect err}
+        Reason: #{inspect reason}
+
+        Make sure Redis is running, and your configuration matches Redis settings.
+        #{String.duplicate("=", 100)}
+        """
     end
   end
 
