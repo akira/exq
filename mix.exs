@@ -33,7 +33,7 @@ defmodule Exq.Mixfile do
   defp deps do
     [
       { :uuid, ">= 1.0.0" },
-      { :redix, ">= 0.0.0"},
+      {:redix, "~> 0.3.4"},
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, "~> 0.19.5" },
       { :excoveralls, "~> 0.3", only: :test },
