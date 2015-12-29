@@ -1,4 +1,20 @@
 defmodule Exq.Scheduler.Server do
+  @moduledoc """
+  The Scheduler is responsible for monitoring the `schedule` and `retry` queues.
+  These queues use a Redis sorted set (term?) to schedule and pick off due jobs.
+  Once a job is at or past it's execution date, the Scheduler moves the job into the
+  live execution queue.
+
+  Runs on a timed loop according to `scheduler_poll_timeout`.
+
+  ## Initialization:
+    * `:name` - Name of target registered process
+    * `:namespace` - Redis namespace to store all data under. Defaults to "exq".
+    * `:queues` - Array of currently active queues (TODO: Remove, I suspect it's not needed).
+    * `:redis` - pid of Redis process.
+    * `:scheduler_poll_timeout` - How often to poll Redis for scheduled / retry jobs.
+  """
+
   require Logger
   use GenServer
   alias Exq.Support.Config
@@ -15,6 +31,7 @@ defmodule Exq.Scheduler.Server do
     GenServer.start_link(__MODULE__, [opts], [{:name, opts[:name]|| __MODULE__}])
   end
 
+  # TODO: This should get kicked off from the init method
   def start_timeout(pid) do
     GenServer.cast(pid, {:start_timeout})
   end
@@ -65,6 +82,9 @@ defmodule Exq.Scheduler.Server do
 ## Internal Functions
 ##===========================================================
 
+  @doc """
+  Dequeue any active jobs in the scheduled and retry queues, and enqueue them to live queue.
+  """
   def dequeue(state) do
     Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace, state.queues)
     {state, state.scheduler_poll_timeout}

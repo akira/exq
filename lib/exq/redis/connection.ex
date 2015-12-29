@@ -1,4 +1,8 @@
 defmodule Exq.Redis.Connection do
+  @moduledoc """
+  The Connection module encapsulates interaction with a live Redis connection or pool.
+
+  """
   require Logger
 
   alias Exq.Support.Config

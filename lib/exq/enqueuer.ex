@@ -1,4 +1,7 @@
 defmodule Exq.Enqueuer do
+  @moduledoc """
+  Enqueuer public API. Also provides some API for UI (to be split out)
+  """
 
   def start(opts \\ []) do
     Exq.Enqueuer.Supervisor.start_link(opts)

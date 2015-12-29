@@ -1,4 +1,21 @@
 defmodule Exq.Worker.Server do
+  @moduledoc """
+  Worker process is responsible for the parsing and execution of a Job. It then
+  broadcasts results to Stats / Manager.
+
+  Currently uses the `terminate` callback to track job success/failure .
+
+  ## Initialization:
+    * `job_json` - Full JSON payload of the Job.
+    * `manager` - Manager process pid.
+    * `queue` - The queue the job came from.
+    * `:work_table` - In process work ets table (TODO: Remove).
+    * `stats` - Stats process pid.
+    * `namespace` - Redis namespace
+    * `host` - Host name
+
+  Expects :work message after initialization to kickoff work.
+  """
   require Logger
   use GenServer
 
@@ -14,6 +31,9 @@ defmodule Exq.Worker.Server do
     GenServer.start(__MODULE__, {job_json, manager, queue, work_table, stats, namespace, host}, [])
   end
 
+  @doc """
+  Kickoff work associated with worker.
+  """
   def work(pid) do
     GenServer.cast(pid, :work)
   end
@@ -32,6 +52,15 @@ defmodule Exq.Worker.Server do
     }
   end
 
+  @doc """
+  Kickoff work associated with worker.
+
+  This step handles:
+    * Parsing of JSON object
+    * Preparation of target module
+
+  Calls :dispatch to then call target module.
+  """
   def handle_cast(:work, state) do
     {:ok, process_info} = Stats.add_process(state.stats, state.namespace, self(), state.host, state.job_json)
     job = Exq.Support.Job.from_json(state.job_json)
@@ -43,6 +72,9 @@ defmodule Exq.Worker.Server do
                  worker_function: func, job: job, process_info: process_info } }
   end
 
+  @doc """
+  Dispatch work to the target module (call :perform method of target)
+  """
   def handle_cast(:dispatch, state) do
     dispatch_work(state.worker_module, state.worker_function, state.job.args)
     {:stop, :normal, state }
@@ -52,6 +84,10 @@ defmodule Exq.Worker.Server do
     {:ok, state}
   end
 
+  @doc """
+  Uses terminate callback to detect job result
+  #TODO: process monitoring
+  """
   def terminate(:normal, %State{manager: nil}), do: :ok
 
   def terminate(:normal, state) do
