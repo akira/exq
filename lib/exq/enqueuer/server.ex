@@ -186,7 +186,10 @@ defmodule Exq.Enqueuer.Server do
 
   def terminate(_reason, state) do
     if state.redis_owner do
-      Redix.stop(state.redis)
+      case Process.whereis(state.redis) do
+        nil -> :ignore
+        pid -> Redix.stop(pid)
+      end
     end
     :ok
   end
