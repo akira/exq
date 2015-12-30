@@ -21,20 +21,24 @@ defmodule WorkerTest do
   defmodule MissingMethodWorker do
   end
 
+  defmodule SuicideWorker do
+    def perform do
+      Process.exit(self, :kill)
+    end
+  end
+
   def assert_terminate(worker, normal_terminate) do
-    :erlang.monitor(:process, worker)
     Exq.Worker.Server.work(worker)
-    receive do
-      {:'DOWN', _, _, _pid, :normal} -> assert normal_terminate
-      {:'DOWN', _, _, _pid, _} -> assert !normal_terminate
-    _ ->
-      assert !normal_terminate
+    if normal_terminate do
+      assert_receive {:"$gen_cast", {:record_processed, _, _}}
+    else
+      assert_receive {:"$gen_cast", {:record_failure, _, _, _}}
     end
   end
 
   def start_worker(job) do
     work_table = :ets.new(:work_table, [:set, :public])
-    Exq.Worker.Server.start(job, nil, "default", work_table, spawn(fn -> end), "exq", "localhost", :test_redis)
+    Exq.Worker.Server.start(job, nil, "default", work_table, self, "exq", "localhost", :test_redis)
   end
 
   test "execute valid job with perform" do
@@ -57,13 +61,13 @@ defmodule WorkerTest do
     assert_terminate(worker, false)
   end
 
-  test "execute job with invalid JSON" do
-    {:ok, worker} = start_worker("{ invalid: json: this: is}")
+  test "execute invalid module perform" do
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"NonExistant\", \"args\": [] }")
     assert_terminate(worker, false)
   end
 
-  test "execute invalid module perform" do
-    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"NonExistant\", \"args\": [] }")
+  test "worker killed still sends stats" do
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"SuicideWorker\", \"args\": [] }")
     assert_terminate(worker, false)
   end
 

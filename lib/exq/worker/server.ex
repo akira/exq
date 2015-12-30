@@ -78,7 +78,7 @@ defmodule Exq.Worker.Server do
   Dispatch work to the target module (call :perform method of target)
   """
   def handle_cast(:dispatch, state) do
-    dispatch_work(state.worker_module, state.job.args)
+    dispatch_work(state, state.worker_module, state.job.args)
     {:stop, :normal, state }
   end
 
@@ -86,23 +86,37 @@ defmodule Exq.Worker.Server do
     {:ok, state}
   end
 
-  @doc """
-  Uses terminate callback to detect job result
-  #TODO: process monitoring
-  """
-  def terminate(:normal, %State{manager: nil}), do: :ok
+##===========================================================
+## Internal Functions
+##===========================================================
 
-  def terminate(:normal, state) do
+  def dispatch_work(state, worker_module, args) do
+    worker = self
+    spawn_monitor fn ->
+      result = apply(worker_module, :perform, args)
+      send worker, {:ok, result}
+    end
+    process_results(state)
+  end
+
+  defp process_results(state) do
+    receive do
+      {:DOWN, _, :process, _, :normal} ->
+        worker_finished(state)
+      {:DOWN, _, :process, _, error} ->
+        worker_failed(state, error)
+      {:ok, _} ->
+        worker_finished(state)
+    end
+  end
+
+  def worker_finished(state) do
     notify_manager(state)
     notify_stats(state)
     remove_job_from_backup(state)
-
-    :ok
   end
 
-  def terminate(_error, %State{manager: nil}), do: :ok
-
-  def terminate(error, state) do
+  def worker_failed(state, error) do
     error_msg = error |>
       Inspect.Algebra.to_doc(%Inspect.Opts{}) |>
       Inspect.Algebra.format(%Inspect.Opts{}.width) |>
@@ -112,16 +126,6 @@ defmodule Exq.Worker.Server do
     notify_stats(state, error_msg)
     retry_or_fail_job(state, error_msg)
     remove_job_from_backup(state)
-
-    :ok
-  end
-
-##===========================================================
-## Internal Functions
-##===========================================================
-
-  def dispatch_work(worker_module, args) do
-    apply(worker_module, :perform, args)
   end
 
   defp retry_or_fail_job(state, error_msg) do
@@ -131,7 +135,7 @@ defmodule Exq.Worker.Server do
   end
 
   defp notify_stats(state) do
-    case Process.whereis(state.stats) do
+    case is_alive?(state.stats) do
       nil ->
         Logger.error("Worker terminated, but stats was not alive.")
       pid ->
@@ -140,7 +144,7 @@ defmodule Exq.Worker.Server do
     end
   end
   defp notify_stats(state, error_msg) do
-    case Process.whereis(state.stats) do
+    case is_alive?(state.stats) do
       nil ->
         Logger.error("Worker terminated, but stats was not alive.")
       pid ->
@@ -154,11 +158,19 @@ defmodule Exq.Worker.Server do
   end
 
   defp notify_manager(state) do
-    case Process.alive?(state.manager) do
+    case is_alive?(state.manager) do
       true ->
         Exq.Manager.Server.job_terminated(state.manager, state.namespace, state.queue, state.job_json)
       _ ->
         Logger.error("Worker terminated, but manager was not alive.")
     end
   end
+
+  def is_alive?(pid) when is_pid(pid) do
+    Process.alive?(pid)
+  end
+  def is_alive?(sup) when is_atom(sup) do
+    Process.whereis(sup)
+  end
+  def is_alive(_), do: false
 end
