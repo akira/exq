@@ -116,6 +116,8 @@ defmodule Exq.Manager.Server do
   alias Exq.Support.Config
   alias Exq.Redis.JobQueue
 
+  @backoff_mult 10
+
   defmodule State do
     defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, host: nil, namespace: nil, work_table: nil,
               queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil
@@ -161,9 +163,7 @@ defmodule Exq.Manager.Server do
         queues: queues,
         scheduler_poll_timeout: scheduler_poll_timeout)
 
-      opts[:name]
-        |> Exq.Scheduler.Supervisor.server_name
-        |> Exq.Scheduler.Server.start_timeout
+      Exq.Scheduler.Supervisor.server_name(opts[:name])
     end
 
     state = %State{work_table: work_table,
@@ -282,7 +282,7 @@ defmodule Exq.Manager.Server do
           {state, 0}
         Enum.any?(job_results, fn(status) -> elem(status, 0) == :error end) ->
           Logger.error("Redis Error #{Kernel.inspect(job_results)}}.  Backing off...")
-          {state, state.poll_timeout * 10}
+          {state, state.poll_timeout * @backoff_mult}
         true ->
           {state, state.poll_timeout}
       end
@@ -354,10 +354,6 @@ defmodule Exq.Manager.Server do
     {queues, work_table}
   end
 
-  @doc """
-  Add a queue subscription
-  Also Re-enqueues any in progress jobs that were not finished for this queue
-  """
   defp add_queue(state, queue, concurrency \\ Config.get(:concurrency, 10_000)) do
     queue_concurrency = {queue, concurrency, 0}
     :ets.insert(state.work_table, queue_concurrency)
@@ -366,9 +362,6 @@ defmodule Exq.Manager.Server do
     %{state | queues: updated_queues}
   end
 
-  @doc """
-  Remove a queue subscription
-  """
   defp remove_queue(state, queue) do
     :ets.delete(state.work_table, queue)
     updated_queues = List.delete(state.queues, queue)

@@ -31,7 +31,6 @@ defmodule Exq.Scheduler.Server do
     GenServer.start_link(__MODULE__, [opts], [{:name, opts[:name]|| __MODULE__}])
   end
 
-  # TODO: This should get kicked off from the init method
   def start_timeout(pid) do
     GenServer.cast(pid, {:start_timeout})
   end
@@ -51,6 +50,8 @@ defmodule Exq.Scheduler.Server do
     end
     state = %State{redis: redis, namespace: namespace,
       queues: queues, scheduler_poll_timeout: scheduler_poll_timeout}
+
+    start_timeout(self)
 
     {:ok, state}
   end
@@ -86,7 +87,7 @@ defmodule Exq.Scheduler.Server do
   Dequeue any active jobs in the scheduled and retry queues, and enqueue them to live queue.
   """
   def dequeue(state) do
-    Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace, state.queues)
+    Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace)
     {state, state.scheduler_poll_timeout}
   end
 
