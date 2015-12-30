@@ -109,11 +109,11 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
+  @doc """
+  Dequeue jobs for available queues
+  """
   def dequeue(redis, namespace, host, queues) when is_list(queues) do
     dequeue_multiple(redis, namespace, host, queues)
-  end
-  def dequeue(redis, namespace, host, queue) do
-    dequeue_multiple(redis, namespace, host, [queue])
   end
 
   defp dequeue_multiple(_redis, _namespace, _host, []) do
@@ -157,28 +157,36 @@ defmodule Exq.Redis.JobQueue do
     Connection.lrem!(redis, backup_queue_key(namespace, host, queue), job_json)
   end
 
-  def scheduler_dequeue(redis, namespace, queues) when is_list(queues) do
-    scheduler_dequeue(redis, namespace, queues, time_to_score(Time.now))
+  def scheduler_dequeue(redis, namespace) do
+    scheduler_dequeue(redis, namespace, time_to_score(Time.now))
   end
-  def scheduler_dequeue(redis, namespace, queues, max_score) when is_list(queues) do
+  def scheduler_dequeue(redis, namespace, max_score) do
     Enum.reduce(schedule_queues(namespace), 0, fn(schedule_queue, acc) ->
-      deq_count = Connection.zrangebyscore!(redis, schedule_queue, 0, max_score)
-        |> scheduler_dequeue_requeue(redis, namespace, queues, schedule_queue, 0)
-      deq_count + acc
+      resp = Connection.zrangebyscore(redis, schedule_queue, 0, max_score)
+      case resp do
+        {:ok, jobs}      ->
+          deq_count = scheduler_dequeue_requeue(jobs, redis, namespace, schedule_queue, 0)
+          deq_count + acc
+        {:error, reason} ->
+         Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
+         acc
+      end
     end)
   end
 
-  def scheduler_dequeue_requeue([], _redis, _namespace, _queues, _schedule_queue, count), do: count
-  def scheduler_dequeue_requeue([job_json|t], redis, namespace, queues, schedule_queue, count) do
-    if Connection.zrem!(redis, schedule_queue, job_json) == 1 do
-      if Enum.count(queues) == 1 do
-        enqueue(redis, namespace, hd(queues), job_json)
-      else
+  def scheduler_dequeue_requeue([], _redis, _namespace, _schedule_queue, count), do: count
+  def scheduler_dequeue_requeue([job_json|t], redis, namespace, schedule_queue, count) do
+    resp = Connection.zrem(redis, schedule_queue, job_json)
+    count = case resp do
+      {:ok, 1} ->
         enqueue(redis, namespace, job_json)
-      end
-      count = count + 1
+        count + 1
+      {:ok, _} -> count
+      {:error, reason} ->
+        Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
+        count
     end
-    scheduler_dequeue_requeue(t, redis, namespace, queues, schedule_queue, count)
+    scheduler_dequeue_requeue(t, redis, namespace, schedule_queue, count)
   end
 
   def full_key("", key), do: key

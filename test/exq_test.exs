@@ -81,7 +81,7 @@ defmodule ExqTest do
 
     # enqueue and dequeue - this should now be in backup queue
     JobQueue.enqueue(:testredis, "test", "queue", ExqTest.PerformWorker, [])
-    JobQueue.dequeue(:testredis, "test", host, "queue")
+    JobQueue.dequeue(:testredis, "test", host, ["queue"])
 
     # make sure jobs were requeued from backup queue
     {:ok, sup} = Exq.start_link(

@@ -123,6 +123,10 @@ defmodule Exq.Redis.Connection do
     items
   end
 
+  def zrangebyscore(redis, set, min \\ "0", max \\ "+inf") do
+    q(redis, ["ZRANGEBYSCORE", set, min, max])
+  end
+
   # TODO cleanup / tests
   def zrangebyscorewithscore!(redis, set, min \\ "0", max \\ "+inf") do
     {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
@@ -137,6 +141,10 @@ defmodule Exq.Redis.Connection do
   def zrem!(redis, set, member) do
     {:ok, res} = q(redis, ["ZREM", set, member])
     res
+  end
+
+  def zrem(redis, set, member) do
+    q(redis, ["ZREM", set, member])
   end
 
   def q(redis, command) do
