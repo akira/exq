@@ -263,6 +263,15 @@ Sidekiq.configure_client do |config|
   config.redis = { url: 'redis://127.0.0.1:6379', namespace: 'exq' }
 end
 ```
+
+For an implementation example, see sineed's demo app illustrating  [Sidekiq to Exq communication](https://github.com/sineed/exq_sidekiq_demo_app).
+
+If you would like to exclusively send some jobs from Sidekiq to Exq as your migration strategy, you should create queue(s) that are exclusively listened to only in Exq (and configure those in the queue section in the Exq config). Make sure they are not configured to be listened to in Sidekiq, otherwise Sidekiq will also take jobs off that queue. You can still Enqueue jobs to that queue in Sidekiq even though they are not being monitored:
+
+```ruby
+Side::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' => ['foo', 'bar'])
+```
+
 ## Security
 
 By default, you Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
@@ -335,6 +344,8 @@ Andreas Franzén (triptec)
 Daniel Perez (tuvistavie)
 
 Victor Rodrigues (rodrigues)
+
+Denis Tataurov (sineed)
 
 David Le (dl103)
 
