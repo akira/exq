@@ -251,7 +251,7 @@ end
 
 ## Using alongside Sidekiq / Resque
 
-To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using. By default, exq will use the ```exq``` namespace, so you will have to change that.
+To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using in Sidekiq. By default, exq will use the ```exq``` namespace, so you will have to change that.
 
 Another option is to modify Sidekiq to use the Exq namespace in the sidekiq initializer in your ruby project:
 ```ruby
