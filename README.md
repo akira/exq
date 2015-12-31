@@ -326,7 +326,7 @@ mix test --no-start
 
 To run the full suite, including failure conditions (can have some false negatives):
 ```
-mix test --trace --include failure_scenarios:true --no-star
+mix test --trace --include failure_scenarios:true --no-start
 ```
 
 ## Contributors:
