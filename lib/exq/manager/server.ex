@@ -120,7 +120,7 @@ defmodule Exq.Manager.Server do
 
   defmodule State do
     defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, host: nil, namespace: nil, work_table: nil,
-              queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil
+              queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil, workers_sup: nil
   end
 
   def start_link(opts\\[]) do
@@ -169,6 +169,7 @@ defmodule Exq.Manager.Server do
     state = %State{work_table: work_table,
                    redis: redis,
                    stats: Exq.Stats.Supervisor.server_name(opts[:name]),
+                   workers_sup: Exq.Worker.Supervisor.supervisor_name(opts[:name]),
                    enqueuer: enqueuer_name,
                    host:  to_string(localhost),
                    namespace: namespace,
@@ -312,9 +313,10 @@ defmodule Exq.Manager.Server do
     end
   end
   def dispatch_job!(state, job, queue) do
-    {:ok, worker} = Exq.Worker.Server.start(
-      job, state.pid, queue, state.work_table,
-      state.stats, state.namespace, state.host, state.redis)
+    {:ok, worker} = Exq.Worker.Supervisor.start_child(
+      state.workers_sup,
+      [job, state.pid, queue, state.work_table,
+       state.stats, state.namespace, state.host, state.redis])
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
   end

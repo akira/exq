@@ -11,8 +11,9 @@ defmodule Exq.Manager.Supervisor do
 
   def init([opts]) do
     children = [
-      worker(Exq.Manager.Server, [opts])
-      ]
+      worker(Exq.Manager.Server, [opts]),
+      supervisor(Exq.Worker.Supervisor, [opts])
+    ]
     supervise(children, strategy: :one_for_one, max_restarts: 500, max_seconds: 5)
   end
 
