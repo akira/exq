@@ -308,6 +308,12 @@ By default, Exq will register itself under the ```Elixir.Exq``` atom.  You can c
 {:ok, exq} = Exq.start_link(name: Exq.Custom)
 ```
 
+## Questions?  Issues?
+
+For issues, please submit a Github issue with steps on how to reproduce the problem. 
+
+For questions, stop in at the [#elixir-lang Slack group](https://elixir-slackin.herokuapp.com/)
+
 ## Contributions
 
 Contributions are welcome. Tests are encouraged.
