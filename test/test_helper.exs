@@ -46,7 +46,7 @@ defmodule ExqTestUtil do
       Process.flag(:trap_exit, true)
       Process.exit(pid, :shutdown)
       receive do
-        {:EXIT, _pid, error} -> :ok
+        {:EXIT, _pid, _error} -> :ok
       end
     rescue
       e in RuntimeError -> e

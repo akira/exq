@@ -68,7 +68,6 @@ defmodule Exq.Worker.Server do
     job = Exq.Support.Job.from_json(state.job_json)
     target = String.replace(job.class, "::", ".")
     [mod | _func_or_empty] = Regex.split(~r/\//, target)
-    func = :perform
     GenServer.cast(self, :dispatch)
     {:noreply, %{state | worker_module: String.to_atom("Elixir.#{mod}"),
                  job: job, process_info: process_info } }
@@ -79,7 +78,7 @@ defmodule Exq.Worker.Server do
   Dispatch work to the target module (call :perform method of target)
   """
   def handle_cast(:dispatch, state) do
-    dispatch_work(state, state.worker_module, state.job.args)
+    dispatch_work(state.worker_module, state.job.args)
     {:noreply, state }
   end
 
@@ -91,7 +90,7 @@ defmodule Exq.Worker.Server do
     {:stop, :normal, state }
   end
 
-  def handle_info({:DOWN, mref, _, worker, :normal}, state) do
+  def handle_info({:DOWN, _, _, _, :normal}, state) do
     {:noreply, state}
   end
 
@@ -100,7 +99,7 @@ defmodule Exq.Worker.Server do
     {:stop, :normal, state}
   end
 
-  def handle_info(info, state) do
+  def handle_info(_info, state) do
     {:noreply, state}
   end
 
@@ -112,12 +111,12 @@ defmodule Exq.Worker.Server do
 ## Internal Functions
 ##===========================================================
 
-  def dispatch_work(state, worker_module, args) do
+  def dispatch_work(worker_module, args) do
     # trap exit so that link can still track dispatch without crashing
     Process.flag(:trap_exit, true)
     worker = self
     pid = spawn_link fn ->
-      result = apply(worker_module, :perform, args)
+      apply(worker_module, :perform, args)
       GenServer.cast(worker, :done)
     end
     Process.monitor(pid)
@@ -151,7 +150,7 @@ defmodule Exq.Worker.Server do
     case is_alive?(state.stats) do
       nil ->
         Logger.error("Worker terminated, but stats was not alive.")
-      pid ->
+      _pid ->
         Stats.process_terminated(state.stats, state.namespace, state.process_info)
         Stats.record_processed(state.stats, state.namespace, state.job)
     end
@@ -160,7 +159,7 @@ defmodule Exq.Worker.Server do
     case is_alive?(state.stats) do
       nil ->
         Logger.error("Worker terminated, but stats was not alive.")
-      pid ->
+      _pid ->
         Stats.process_terminated(state.stats, state.namespace, state.process_info)
         Stats.record_failure(state.stats, state.namespace, to_string(error_msg), state.job)
     end
@@ -185,5 +184,5 @@ defmodule Exq.Worker.Server do
   defp is_alive?(sup) when is_atom(sup) do
     Process.whereis(sup)
   end
-  defp is_alive(_), do: false
+  defp is_alive?(_), do: false
 end

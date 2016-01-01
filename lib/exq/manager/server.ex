@@ -228,7 +228,7 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 0}
   end
 
-  def handle_cast({:job_terminated, _namespace, queue, job_json}, state) do
+  def handle_cast({:job_terminated, _namespace, queue, _job_json}, state) do
     update_worker_count(state.work_table, queue, -1)
     {:noreply, state, 0}
   end
