@@ -5,7 +5,7 @@ defmodule Exq.Worker.Supervisor do
     Supervisor.start_link(__MODULE__, opts, [name: supervisor_name(opts[:name])])
   end
 
-  def init(arg) do
+  def init(_arg) do
     children = [
       worker(Exq.Worker.Server, [], restart: :temporary)
     ]

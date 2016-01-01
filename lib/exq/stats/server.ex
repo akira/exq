@@ -10,7 +10,6 @@ defmodule Exq.Stats.Server do
   """
   use GenServer
   use Timex
-  alias Exq.Redis.JobQueue
   alias Exq.Redis.JobStat
   alias Exq.Support.Process
   require Logger
