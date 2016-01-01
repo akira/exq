@@ -94,11 +94,10 @@ defmodule Exq.Manager.Server do
 
     7. If the job is successful, Manager and Stats simply mark the success of the job.
 
-       If the job fails, the Stats module uses the JobQueue module to retry the job if necessary.
+       If the job fails, the Worker module uses the JobQueue module to retry the job if necessary.
        The retry is done by adding the job to a "retry" queue which is a Sorted Set in Redis.
        The job is marked with the retry count and scheduled date (using exponential backup).
        The job is then removed from the backup queue.
-       TODO - marking as failed will be moved from Stats
 
     8. If any jobs were fetched from Redis, the Manager will poll again immediately, otherwise
        if will use the poll_timeout for the next polling.
