@@ -94,11 +94,10 @@ defmodule Exq.Manager.Server do
 
     7. If the job is successful, Manager and Stats simply mark the success of the job.
 
-       If the job fails, the Stats module uses the JobQueue module to retry the job if necessary.
+       If the job fails, the Worker module uses the JobQueue module to retry the job if necessary.
        The retry is done by adding the job to a "retry" queue which is a Sorted Set in Redis.
        The job is marked with the retry count and scheduled date (using exponential backup).
        The job is then removed from the backup queue.
-       TODO - marking as failed will be moved from Stats
 
     8. If any jobs were fetched from Redis, the Manager will poll again immediately, otherwise
        if will use the poll_timeout for the next polling.
@@ -120,7 +119,7 @@ defmodule Exq.Manager.Server do
 
   defmodule State do
     defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, host: nil, namespace: nil, work_table: nil,
-              queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil
+              queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil, workers_sup: nil
   end
 
   def start_link(opts\\[]) do
@@ -169,6 +168,7 @@ defmodule Exq.Manager.Server do
     state = %State{work_table: work_table,
                    redis: redis,
                    stats: Exq.Stats.Supervisor.server_name(opts[:name]),
+                   workers_sup: Exq.Worker.Supervisor.supervisor_name(opts[:name]),
                    enqueuer: enqueuer_name,
                    host:  to_string(localhost),
                    namespace: namespace,
@@ -312,9 +312,10 @@ defmodule Exq.Manager.Server do
     end
   end
   def dispatch_job!(state, job, queue) do
-    {:ok, worker} = Exq.Worker.Server.start(
-      job, state.pid, queue, state.work_table,
-      state.stats, state.namespace, state.host, state.redis)
+    {:ok, worker} = Exq.Worker.Supervisor.start_child(
+      state.workers_sup,
+      [job, state.pid, queue, state.work_table,
+       state.stats, state.namespace, state.host, state.redis])
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
   end

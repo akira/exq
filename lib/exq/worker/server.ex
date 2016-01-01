@@ -28,7 +28,7 @@ defmodule Exq.Worker.Server do
       process_info: nil, redis: nil
   end
 
-  def start(job_json, manager, queue, work_table, stats, namespace, host, redis) do
+  def start_link(job_json, manager, queue, work_table, stats, namespace, host, redis) do
     GenServer.start(__MODULE__, {job_json, manager, queue, work_table, stats, namespace, host, redis}, [])
   end
 
@@ -74,12 +74,34 @@ defmodule Exq.Worker.Server do
                  job: job, process_info: process_info } }
   end
 
+
   @doc """
   Dispatch work to the target module (call :perform method of target)
   """
   def handle_cast(:dispatch, state) do
     dispatch_work(state, state.worker_module, state.job.args)
+    {:noreply, state }
+  end
+
+  @doc """
+  Worker done with normal termination message
+  """
+  def handle_cast(:done, state) do
+    worker_finished(state)
     {:stop, :normal, state }
+  end
+
+  def handle_info({:DOWN, mref, _, worker, :normal}, state) do
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, _, :process, _, error}, state) do
+    worker_failed(state, error)
+    {:stop, :normal, state}
+  end
+
+  def handle_info(info, state) do
+    {:noreply, state}
   end
 
   def code_change(_old_version, state, _extra) do
@@ -91,23 +113,14 @@ defmodule Exq.Worker.Server do
 ##===========================================================
 
   def dispatch_work(state, worker_module, args) do
+    # trap exit so that link can still track dispatch without crashing
+    Process.flag(:trap_exit, true)
     worker = self
-    spawn_monitor fn ->
+    pid = spawn_link fn ->
       result = apply(worker_module, :perform, args)
-      send worker, {:ok, result}
+      GenServer.cast(worker, :done)
     end
-    process_results(state)
-  end
-
-  defp process_results(state) do
-    receive do
-      {:DOWN, _, :process, _, :normal} ->
-        worker_finished(state)
-      {:DOWN, _, :process, _, error} ->
-        worker_failed(state, error)
-      {:ok, _} ->
-        worker_finished(state)
-    end
+    Process.monitor(pid)
   end
 
   def worker_finished(state) do
@@ -166,11 +179,11 @@ defmodule Exq.Worker.Server do
     end
   end
 
-  def is_alive?(pid) when is_pid(pid) do
+  defp is_alive?(pid) when is_pid(pid) do
     Process.alive?(pid)
   end
-  def is_alive?(sup) when is_atom(sup) do
+  defp is_alive?(sup) when is_atom(sup) do
     Process.whereis(sup)
   end
-  def is_alive(_), do: false
+  defp is_alive(_), do: false
 end

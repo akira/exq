@@ -21,8 +21,12 @@ defmodule Exq do
   def stop(pid) when is_pid(pid) do
     Process.exit(pid, :shutdown)
   end
-  def stop(sup) when is_atom(sup) do
-    stop(Process.whereis(sup))
+  def stop(name) when is_atom(name) do
+    case Process.whereis(Exq.Manager.Supervisor.supervisor_name(name)) do
+      nil -> :ok
+      pid ->
+        stop(pid)
+    end
   end
 
   @doc """

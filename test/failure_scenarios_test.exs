@@ -13,6 +13,14 @@ defmodule FailureScenariosTest do
     end
   end
 
+  defmodule SleepWorker do
+    def perform do
+      send :exqtest, {:worked}
+      Process.register(self, :sleep_worker )
+      :timer.sleep(:infinity)
+    end
+  end
+
   setup do
     TestRedis.setup
     Application.start(:ranch)
@@ -73,5 +81,31 @@ defmodule FailureScenariosTest do
 
     assert_exq_up(:exq_f)
     Exq.stop(:exq_f)
+  end
+
+  test "handle supervisor tree shutdown properly" do
+    {:ok, sup} = Exq.start_link([name: ExqF])
+
+    assert Process.alive?(sup) == true
+
+    # Create worker that sleeps infinitely with registered process
+    {:ok, _jid} = Exq.enqueue(ExqF, "default", FailureScenariosTest.SleepWorker, [])
+
+    Process.register(self, :exqtest)
+
+    # wait until worker started
+    assert_receive {:worked}, 500
+
+    stop_process(sup)
+
+    # Takes 5500 for worker to stop
+    :timer.sleep(5500)
+
+    # Make sure everything is shut down properly
+    assert Process.alive?(sup) == false
+    assert Process.whereis(ExqF.Manager.Server) == nil
+    assert Process.whereis(ExqF.Stats.Server) == nil
+    assert Process.whereis(ExqF.Scheduler.Server) == nil
+    assert Process.whereis(:sleep_worker) == nil
   end
 end

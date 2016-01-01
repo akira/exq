@@ -70,8 +70,7 @@ defmodule ExqTest do
     Process.register(self, :exqtest)
     {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     {:ok, _} = Exq.enqueue(:exq_t, "default", ExqTest.PerformWorker, [])
-    wait
-    assert_received {:worked}
+    assert_receive {:worked}
     stop_process(sup)
   end
 
@@ -102,8 +101,7 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test",
                                  scheduler_enable: true, scheduler_poll_timeout: 5])
     {:ok, _} = Exq.enqueue_in(:exq_t, "default", 0, ExqTest.PerformWorker, [])
-    wait_long
-    assert_received {:worked}
+    assert_receive {:worked}
     stop_process(sup)
   end
 
@@ -112,8 +110,7 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test",
                                  scheduler_enable: true, scheduler_poll_timeout: 5])
     {:ok, _} = Exq.enqueue_at(:exq_t, "default", Time.now, ExqTest.PerformWorker, [])
-    wait_long
-    assert_received {:worked}
+    assert_receive {:worked}
     stop_process(sup)
   end
 
@@ -122,8 +119,7 @@ defmodule ExqTest do
     {:ok, exq_sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test"])
     {:ok, enq_sup} = Exq.Enqueuer.start_link([name: :exq_e, host: redis_host, port: redis_port, namespace: "test"])
     {:ok, _} = Exq.Enqueuer.enqueue(:exq_e, "default", ExqTest.PerformWorker, [])
-    wait_long
-    assert_received {:worked}
+    assert_receive {:worked}
     stop_process(exq_sup)
     stop_process(enq_sup)
   end
@@ -133,9 +129,8 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link([name: :exq_t, host: redis_host, port: redis_port, namespace: "test", queues: ["q1", "q2"]])
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "q2", ExqTest.PerformArgWorker, [2])
-    wait_long
-    assert_received {:worked, 1}
-    assert_received {:worked, 2}
+    assert_receive {:worked, 1}
+    assert_receive {:worked, 2}
     stop_process(sup)
   end
 
@@ -146,9 +141,8 @@ defmodule ExqTest do
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "q2", ExqTest.PerformArgWorker, [2])
 
-    wait_long
-    assert_received {:worked, 1}
-    assert_received {:worked, 2}
+    assert_receive {:worked, 1}
+    assert_receive {:worked, 2}
     stop_process(sup)
   end
 
@@ -158,9 +152,8 @@ defmodule ExqTest do
     :ok = Exq.unsubscribe(:exq_t, "to_remove")
     {:ok, _} = Exq.enqueue(:exq_t, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(:exq_t, "to_remove", ExqTest.PerformArgWorker, [2])
-    wait_long
-    assert_received {:worked, 1}
-    refute_received {:worked, 2}
+    assert_receive {:worked, 1}
+    refute_receive {:worked, 2}
     stop_process(sup)
   end
 
@@ -173,6 +166,7 @@ defmodule ExqTest do
     # q2 should be clear
     {:ok, _} = Exq.enqueue(:exq_t, "q2",ExqTest.SleepWorker, [100, :q2_finished])
 
+    #Timing specific - we want to ensure only x amount of jobs got done
     :timer.sleep(160)
 
     assert_received {"worked"}
