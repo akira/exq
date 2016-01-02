@@ -56,11 +56,11 @@ defmodule Exq.Stats.Server do
 ##===========================================================
 
   def start_link(opts \\[]) do
-    GenServer.start_link(__MODULE__, [opts], name: opts[:name] || __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: opts[:name] || __MODULE__)
   end
 
   # These are the callbacks that GenServer.Behaviour will use
-  def init([opts]) do
+  def init(opts) do
     {:ok, %State{redis: opts[:redis]}}
   end
 

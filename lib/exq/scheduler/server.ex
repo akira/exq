@@ -24,11 +24,11 @@ defmodule Exq.Scheduler.Server do
   end
 
   def start(opts \\ []) do
-    GenServer.start(__MODULE__, [opts])
+    GenServer.start(__MODULE__, opts)
   end
 
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, [opts], [{:name, opts[:name]|| __MODULE__}])
+    GenServer.start_link(__MODULE__, opts, [{:name, opts[:name]|| __MODULE__}])
   end
 
   def start_timeout(pid) do
@@ -39,7 +39,7 @@ defmodule Exq.Scheduler.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def init([opts]) do
+  def init(opts) do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     queues = Keyword.get(opts, :queues)
     scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))

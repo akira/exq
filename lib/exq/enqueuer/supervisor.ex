@@ -2,10 +2,10 @@ defmodule Exq.Enqueuer.Supervisor do
   use Supervisor
 
   def start_link(opts \\ []) do
-    Supervisor.start_link(__MODULE__, [opts], name: supervisor_name(opts[:name]))
+    Supervisor.start_link(__MODULE__, opts, name: supervisor_name(opts[:name]))
   end
 
-  def init([opts]) do
+  def init(opts) do
     children = [
       worker(Exq.Enqueuer.Server, [Keyword.merge(opts, [name: server_name(opts[:name])])])
       ]

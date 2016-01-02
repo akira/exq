@@ -2,14 +2,14 @@ defmodule Exq.Manager.Supervisor do
   use Supervisor
 
   def start(opts \\ []) do
-    Supervisor.start_link(__MODULE__, [opts], name: supervisor_name(opts[:name]))
+    Supervisor.start_link(__MODULE__, opts, name: supervisor_name(opts[:name]))
   end
 
   def start_link(opts \\ []) do
-    Supervisor.start_link(__MODULE__, [opts], name: supervisor_name(opts[:name]))
+    Supervisor.start_link(__MODULE__, opts, name: supervisor_name(opts[:name]))
   end
 
-  def init([opts]) do
+  def init(opts) do
     children = [
       worker(Exq.Manager.Server, [opts]),
       supervisor(Exq.Worker.Supervisor, [opts])

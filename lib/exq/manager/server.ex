@@ -123,7 +123,7 @@ defmodule Exq.Manager.Server do
   end
 
   def start_link(opts\\[]) do
-    GenServer.start_link(__MODULE__, [opts], [{:name, Exq.Manager.Supervisor.server_name(opts[:name])}])
+    GenServer.start_link(__MODULE__, opts, [{:name, Exq.Manager.Supervisor.server_name(opts[:name])}])
   end
 
   def job_terminated(exq, namespace, queue, job_json) do
@@ -135,7 +135,7 @@ defmodule Exq.Manager.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def init([opts]) do
+  def init(opts) do
     {:ok, localhost} = :inet.gethostname()
 
     {queues, work_table} = setup_queues(opts)
