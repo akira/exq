@@ -14,7 +14,7 @@ defmodule Exq.Manager.Supervisor do
       worker(Exq.Manager.Server, [opts]),
       supervisor(Exq.Worker.Supervisor, [opts])
     ]
-    supervise(children, strategy: :one_for_one, max_restarts: 500, max_seconds: 5)
+    supervise(children, strategy: :one_for_one, max_restarts: 20, max_seconds: 5)
   end
 
   def server_name(nil), do: Exq

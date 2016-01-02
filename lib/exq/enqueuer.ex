@@ -39,11 +39,11 @@ defmodule Exq.Enqueuer do
   end
 
   def queues(pid) do
-    GenServer.call(pid, {:queues})
+    GenServer.call(pid, :queues)
   end
 
   def busy(pid) do
-    GenServer.call(pid, {:busy})
+    GenServer.call(pid, :busy)
   end
 
   def stats(pid, key) do
@@ -55,11 +55,11 @@ defmodule Exq.Enqueuer do
   end
 
   def processes(pid) do
-    GenServer.call(pid, {:processes})
+    GenServer.call(pid, :processes)
   end
 
   def jobs(pid) do
-    GenServer.call(pid, {:jobs})
+    GenServer.call(pid, :jobs)
   end
   def jobs(pid, :scheduled) do
     GenServer.call(pid, {:jobs, :scheduled})
@@ -69,7 +69,7 @@ defmodule Exq.Enqueuer do
   end
 
   def queue_size(pid) do
-    GenServer.call(pid, {:queue_size})
+    GenServer.call(pid, :queue_size)
   end
   def queue_size(pid, :scheduled) do
     GenServer.call(pid, {:queue_size, :scheduled})
@@ -87,6 +87,6 @@ defmodule Exq.Enqueuer do
   end
 
   def stop(pid) do
-    GenServer.call(pid, {:stop})
+    GenServer.call(pid, :stop)
   end
 end

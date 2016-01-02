@@ -212,7 +212,7 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state,0}
   end
 
-  def handle_call({:stop}, _from, state) do
+  def handle_call(:stop, _from, state) do
     { :stop, :normal, :ok, state }
   end
 

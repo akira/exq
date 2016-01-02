@@ -32,7 +32,7 @@ defmodule Exq.Scheduler.Server do
   end
 
   def start_timeout(pid) do
-    GenServer.cast(pid, {:start_timeout})
+    GenServer.cast(pid, :start_timeout)
   end
 
 ##===========================================================
@@ -56,7 +56,7 @@ defmodule Exq.Scheduler.Server do
     {:ok, state}
   end
 
-  def handle_cast({:start_timeout}, state) do
+  def handle_cast(:start_timeout, state) do
     handle_info(:timeout, state)
   end
 
@@ -65,7 +65,7 @@ defmodule Exq.Scheduler.Server do
     {:noreply, state, 0}
   end
 
-  def handle_call({:stop}, _from, state) do
+  def handle_call(:stop, _from, state) do
     {:stop, :normal, :ok, state}
   end
 

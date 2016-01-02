@@ -89,7 +89,7 @@ defmodule Exq.Stats.Server do
     {:noreply, state}
   end
 
-  def handle_call({:stop}, _from, state) do
+  def handle_call(:stop, _from, state) do
     { :stop, :normal, :ok, state }
   end
 
