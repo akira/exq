@@ -3,7 +3,7 @@ defmodule Exq.Mixfile do
 
   def project do
     [ app: :exq,
-      version: "0.6.0",
+      version: "0.6.1",
       elixir: "~> 1.0.0 or ~> 1.1.1",
       elixirc_paths: ["lib"],
       package: [
@@ -35,7 +35,7 @@ defmodule Exq.Mixfile do
       { :uuid, ">= 1.0.0" },
       { :redix, ">= 0.3.4"},
       { :poison, ">= 1.2.0 and < 2.0.0"},
-      { :timex, "~> 0.19.5" },
+      { :timex, ">= 1.0.0" },
       { :excoveralls, "~> 0.3", only: :test },
       { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test}
     ]
