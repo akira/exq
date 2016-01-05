@@ -60,20 +60,6 @@ defmodule Exq.Scheduler.Server do
     handle_info(:timeout, state)
   end
 
-  def handle_cast(_request, state) do
-    Logger.error("UNKNOWN CAST")
-    {:noreply, state, 0}
-  end
-
-  def handle_call(:stop, _from, state) do
-    {:stop, :normal, :ok, state}
-  end
-
-  def handle_call(_request, _from, state) do
-    Logger.error("UNKNOWN CALL")
-    {:reply, :unknown, state, 0}
-  end
-
   def handle_info(:timeout, state) do
     {updated_state, timeout} = dequeue(state)
     {:noreply, updated_state, timeout}
@@ -90,8 +76,4 @@ defmodule Exq.Scheduler.Server do
     Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace)
     {state, state.scheduler_poll_timeout}
   end
-
-  def stop(_pid) do
-  end
-
 end

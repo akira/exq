@@ -212,15 +212,6 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state,0}
   end
 
-  def handle_call(:stop, _from, state) do
-    { :stop, :normal, :ok, state }
-  end
-
-  def handle_call(_request, _from, state) do
-    Logger.error("UNKNOWN CALL")
-    {:reply, :unknown, state, 0}
-  end
-
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
@@ -233,23 +224,13 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 0}
   end
 
-  def handle_cast(_request, state) do
-    Logger.error("UNKNOWN CAST")
-    {:noreply, state, 0}
-  end
-
   def handle_info(:timeout, state) do
     {updated_state, timeout} = dequeue_and_dispatch(state)
     {:noreply, updated_state, timeout}
   end
 
   def handle_info(info, state) do
-    Logger.error("UNKNOWN CALL #{Kernel.inspect info}")
     {:noreply, state, state.poll_timeout}
-  end
-
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
   end
 
   def terminate(_reason, state) do

@@ -103,10 +103,6 @@ defmodule Exq.Worker.Server do
     {:noreply, state}
   end
 
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
-  end
-
 ##===========================================================
 ## Internal Functions
 ##===========================================================

@@ -84,28 +84,6 @@ defmodule Exq.Stats.Server do
     {:noreply, state}
   end
 
-  def handle_cast(data, state) do
-    Logger.error("INVALID MESSAGE #{Kernel.inspect data}")
-    {:noreply, state}
-  end
-
-  def handle_call(:stop, _from, state) do
-    { :stop, :normal, :ok, state }
-  end
-
-  def handle_info(info, state) do
-    Logger.error("INVALID MESSAGE #{info}")
-    {:noreply, state}
-  end
-
-  def terminate(_reason, _state) do
-    {:ok}
-  end
-
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
-  end
-
 ##===========================================================
 ## Methods
 ##===========================================================

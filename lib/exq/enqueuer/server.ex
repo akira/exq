@@ -87,10 +87,6 @@ defmodule Exq.Enqueuer.Server do
     {:reply, response, state}
   end
 
-  def handle_call(:stop, _from, state) do
-    { :stop, :normal, :ok, state }
-  end
-
   # WebUI Stats callbacks
 
   def handle_call(:processes, _from, state) do
@@ -194,10 +190,6 @@ defmodule Exq.Enqueuer.Server do
   def handle_call(:realtime_stats, _from, state) do
     {:ok, failures, successes} = JobStat.realtime_stats(state.redis, state.namespace)
     {:reply, {:ok, failures, successes}, state, 0}
-  end
-
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
   end
 
   def terminate(_reason, state) do
