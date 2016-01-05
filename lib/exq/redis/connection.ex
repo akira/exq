@@ -10,7 +10,7 @@ defmodule Exq.Redis.Connection do
   @default_timeout 5000
 
   def flushdb!(redis) do
-    {:ok, res} = q(redis, [:flushdb])
+    {:ok, res} = q(redis, ["flushdb"])
     res
   end
 

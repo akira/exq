@@ -1,12 +1,17 @@
 defmodule Exq.Api do
+  @moduledoc """
+  Interface for retrieving Exq stats.
+  Pid is currently Exq.Enqueuer process (TODO: Split this out to other GenServer)
+  """
+
   require Logger
 
   def queues(pid) do
-    GenServer.call(pid, {:queues})
+    GenServer.call(pid, :queues)
   end
 
   def busy(pid) do
-    GenServer.call(pid, {:busy})
+    GenServer.call(pid, :busy)
   end
 
   def stats(pid, key) do
@@ -18,11 +23,11 @@ defmodule Exq.Api do
   end
 
   def processes(pid) do
-    GenServer.call(pid, {:processes})
+    GenServer.call(pid, :processes)
   end
 
   def jobs(pid) do
-    GenServer.call(pid, {:jobs})
+    GenServer.call(pid, :jobs)
   end
 
   def jobs(pid, queue) do
@@ -30,11 +35,11 @@ defmodule Exq.Api do
   end
 
   def failed(pid) do
-    GenServer.call(pid, {:failed})
+    GenServer.call(pid, :failed)
   end
 
   def retries(pid) do
-    GenServer.call(pid, {:retries})
+    GenServer.call(pid, :retries)
   end
 
   def scheduled(pid) do
@@ -42,7 +47,7 @@ defmodule Exq.Api do
   end
 
   def queue_size(pid) do
-    GenServer.call(pid, {:queue_size})
+    GenServer.call(pid, :queue_size)
   end
   def queue_size(pid, :scheduled) do
     GenServer.call(pid, {:queue_size, :scheduled})
@@ -68,11 +73,11 @@ defmodule Exq.Api do
   end
 
   def clear_failed(pid) do
-    GenServer.call(pid, {:clear_failed})
+    GenServer.call(pid, :clear_failed)
   end
 
   def clear_processes(pid) do
-    GenServer.call(pid, {:clear_processes})
+    GenServer.call(pid, :clear_processes)
   end
 
   def retry_failed(pid, jid) do
@@ -80,7 +85,7 @@ defmodule Exq.Api do
   end
 
   def realtime_stats(pid) do
-    GenServer.call(pid, {:realtime_stats})
+    GenServer.call(pid, :realtime_stats)
   end
 
 end

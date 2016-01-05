@@ -123,7 +123,7 @@ defmodule Exq.Manager.Server do
   end
 
   def start_link(opts\\[]) do
-    GenServer.start_link(__MODULE__, [opts], [{:name, Exq.Manager.Supervisor.server_name(opts[:name])}])
+    GenServer.start_link(__MODULE__, opts, [{:name, Exq.Manager.Supervisor.server_name(opts[:name])}])
   end
 
   def job_terminated(exq, namespace, queue, job_json) do
@@ -135,7 +135,7 @@ defmodule Exq.Manager.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def init([opts]) do
+  def init(opts) do
     {:ok, localhost} = :inet.gethostname()
 
     {queues, work_table} = setup_queues(opts)
@@ -212,15 +212,6 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state,0}
   end
 
-  def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
-  end
-
-  def handle_call(_request, _from, state) do
-    Logger.error("UNKNOWN CALL")
-    {:reply, :unknown, state, 0}
-  end
-
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
@@ -233,23 +224,13 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 0}
   end
 
-  def handle_cast(_request, state) do
-    Logger.error("UNKNOWN CAST")
-    {:noreply, state, 0}
-  end
-
   def handle_info(:timeout, state) do
     {updated_state, timeout} = dequeue_and_dispatch(state)
     {:noreply, updated_state, timeout}
   end
 
-  def handle_info(info, state) do
-    Logger.error("UNKNOWN CALL #{Kernel.inspect info}")
+  def handle_info(_info, state) do
     {:noreply, state, state.poll_timeout}
-  end
-
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
   end
 
   def terminate(_reason, state) do
@@ -272,7 +253,7 @@ defmodule Exq.Manager.Server do
     rescue_timeout({state, state.poll_timeout}, fn ->
       jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.host, queues)
 
-      job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job!(state, potential_job) end)
+      job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job(state, potential_job) end)
 
       cond do
         Enum.any?(job_results, fn(status) -> elem(status, 1) == :dispatch end) ->
@@ -300,18 +281,18 @@ defmodule Exq.Manager.Server do
   Dispatch job to worker if it is not empty
   Also update worker count for dispatched job
   """
-  def dispatch_job!(state, potential_job) do
+  def dispatch_job(state, potential_job) do
     case potential_job do
       {:ok, {:none, _queue}} ->
         {:ok, :none}
       {:ok, {job, queue}} ->
-        dispatch_job!(state, job, queue)
+        dispatch_job(state, job, queue)
         {:ok, :dispatch}
       {status, reason} ->
         {:error, {status, reason}}
     end
   end
-  def dispatch_job!(state, job, queue) do
+  def dispatch_job(state, job, queue) do
     {:ok, worker} = Exq.Worker.Supervisor.start_child(
       state.workers_sup,
       [job, state.pid, queue, state.work_table,

@@ -24,22 +24,22 @@ defmodule Exq.Scheduler.Server do
   end
 
   def start(opts \\ []) do
-    GenServer.start(__MODULE__, [opts])
+    GenServer.start(__MODULE__, opts)
   end
 
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, [opts], [{:name, opts[:name]|| __MODULE__}])
+    GenServer.start_link(__MODULE__, opts, [{:name, opts[:name]|| __MODULE__}])
   end
 
   def start_timeout(pid) do
-    GenServer.cast(pid, {:start_timeout})
+    GenServer.cast(pid, :start_timeout)
   end
 
 ##===========================================================
 ## gen server callbacks
 ##===========================================================
 
-  def init([opts]) do
+  def init(opts) do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     queues = Keyword.get(opts, :queues)
     scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
@@ -56,22 +56,8 @@ defmodule Exq.Scheduler.Server do
     {:ok, state}
   end
 
-  def handle_cast({:start_timeout}, state) do
+  def handle_cast(:start_timeout, state) do
     handle_info(:timeout, state)
-  end
-
-  def handle_cast(_request, state) do
-    Logger.error("UNKNOWN CAST")
-    {:noreply, state, 0}
-  end
-
-  def handle_call({:stop}, _from, state) do
-    {:stop, :normal, :ok, state}
-  end
-
-  def handle_call(_request, _from, state) do
-    Logger.error("UNKNOWN CALL")
-    {:reply, :unknown, state, 0}
   end
 
   def handle_info(:timeout, state) do
@@ -90,8 +76,4 @@ defmodule Exq.Scheduler.Server do
     Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace)
     {state, state.scheduler_poll_timeout}
   end
-
-  def stop(_pid) do
-  end
-
 end

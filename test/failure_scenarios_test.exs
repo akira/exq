@@ -34,7 +34,7 @@ defmodule FailureScenariosTest do
   test "handle Redis connection lost on manager" do
     conn = FlakyConnection.start(redis_host, redis_port)
 
-    {:ok, _} = Exq.start_link([name: :exq_f, port: conn.port ])
+    {:ok, _} = Exq.start_link([name: ExqF, port: conn.port ])
 
     wait_long
     # Stop Redis and wait for a bit
@@ -48,15 +48,15 @@ defmodule FailureScenariosTest do
                   FlakyConnectionHandler, ['127.0.0.1', redis_port, agent])
 
     wait_long
-    assert_exq_up(:exq_f)
-    Exq.stop(:exq_f)
+    assert_exq_up(ExqF)
+    Exq.stop(ExqF)
   end
 
   test "handle Redis connection lost on enqueue" do
     conn = FlakyConnection.start(redis_host, redis_port)
 
     # Start Exq but don't listen to any queues
-    {:ok, _} = Exq.start_link([name: :exq_f, port: conn.port])
+    {:ok, _} = Exq.start_link([name: ExqF, port: conn.port])
 
     wait_long
     # Stop Redis
@@ -64,10 +64,10 @@ defmodule FailureScenariosTest do
     wait_long
 
     # enqueue with redis stopped
-    enq_result = Exq.enqueue(:exq_f, "default", "FakeWorker", [])
+    enq_result = Exq.enqueue(ExqF, "default", "FakeWorker", [])
     assert enq_result ==  {:error, :closed}
 
-    enq_result = Exq.enqueue_at(:exq_f, "default", Time.now, ExqTest.PerformWorker, [])
+    enq_result = Exq.enqueue_at(ExqF, "default", Time.now, ExqTest.PerformWorker, [])
     assert enq_result ==  {:error, :closed}
 
     # Starting Redis again and things should be back to normal
@@ -79,8 +79,8 @@ defmodule FailureScenariosTest do
                   FlakyConnectionHandler, ['127.0.0.1', redis_port, agent])
     wait_long
 
-    assert_exq_up(:exq_f)
-    Exq.stop(:exq_f)
+    assert_exq_up(ExqF)
+    Exq.stop(ExqF)
   end
 
   test "handle supervisor tree shutdown properly" do

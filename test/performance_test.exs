@@ -37,9 +37,9 @@ defmodule PerformanceTest do
     started = :os.timestamp
     max_timeout_ms = 5 * 1_000
 
-    {:ok, sup} = Exq.start([name: :perf, host: redis_host, port: redis_port, namespace: "test", concurrency: :infinite])
-    for _ <- 1..1000, do: Exq.enqueue(:perf, "default", PerformanceTest.Worker, ["keep_on_trucking"])
-    Exq.enqueue(:perf, "default", PerformanceTest.Worker, ["last"])
+    {:ok, sup} = Exq.start(name: ExqPerf)
+    for _ <- 1..1000, do: Exq.enqueue(ExqPerf, "default", PerformanceTest.Worker, ["keep_on_trucking"])
+    Exq.enqueue(ExqPerf, "default", PerformanceTest.Worker, ["last"])
 
     # Wait for last message
     receive do

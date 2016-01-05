@@ -56,11 +56,11 @@ defmodule Exq.Stats.Server do
 ##===========================================================
 
   def start_link(opts \\[]) do
-    GenServer.start_link(__MODULE__, [opts], name: opts[:name] || __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: opts[:name] || __MODULE__)
   end
 
   # These are the callbacks that GenServer.Behaviour will use
-  def init([opts]) do
+  def init(opts) do
     {:ok, %State{redis: opts[:redis]}}
   end
 
@@ -82,28 +82,6 @@ defmodule Exq.Stats.Server do
   def handle_cast({:process_terminated, namespace, process}, state) do
     :ok = JobStat.remove_process(state.redis, namespace, process)
     {:noreply, state}
-  end
-
-  def handle_cast(data, state) do
-    Logger.error("INVALID MESSAGE #{Kernel.inspect data}")
-    {:noreply, state}
-  end
-
-  def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
-  end
-
-  def handle_info(info, state) do
-    Logger.error("INVALID MESSAGE #{info}")
-    {:noreply, state}
-  end
-
-  def terminate(_reason, _state) do
-    {:ok}
-  end
-
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
   end
 
 ##===========================================================

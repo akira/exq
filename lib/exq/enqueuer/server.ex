@@ -29,20 +29,20 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def start(opts \\ []) do
-    GenServer.start(__MODULE__, [opts])
+    GenServer.start(__MODULE__, opts)
   end
 
   def start_link(opts \\ []) do
     redis_name = opts[:redis] || Exq.Redis.Supervisor.client_name(opts[:name])
     opts = Keyword.merge(opts, [redis: redis_name])
-    GenServer.start_link(__MODULE__, [opts], name: opts[:name] || __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: opts[:name] || __MODULE__)
   end
 
 ##===========================================================
 ## gen server callbacks
 ##===========================================================
 
-  def init([opts]) do
+  def init(opts) do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     case Process.whereis(opts[:redis]) do
       nil -> Exq.Redis.Supervisor.start_link(opts)
@@ -87,18 +87,14 @@ defmodule Exq.Enqueuer.Server do
     {:reply, response, state}
   end
 
-  def handle_call({:stop}, _from, state) do
-    { :stop, :normal, :ok, state }
-  end
-
   # WebUI Stats callbacks
 
-  def handle_call({:processes}, _from, state) do
+  def handle_call(:processes, _from, state) do
     processes = JobStat.processes(state.redis, state.namespace)
     {:reply, {:ok, processes}, state, 0}
   end
 
-  def handle_call({:busy}, _from, state) do
+  def handle_call(:busy, _from, state) do
     count = JobStat.busy(state.redis, state.namespace)
     {:reply, {:ok, count}, state, 0}
   end
@@ -113,22 +109,22 @@ defmodule Exq.Enqueuer.Server do
     {:reply, {:ok, count}, state, 0}
   end
 
-  def handle_call({:queues}, _from, state) do
+  def handle_call(:queues, _from, state) do
     queues = list_queues(state.redis, state.namespace)
     {:reply, {:ok, queues}, state, 0}
   end
 
-  def handle_call({:failed}, _from, state) do
-   jobs = list_failed(state.redis, state.namespace) ++ list_retry(state.redis, state.namespace)
+  def handle_call(:failed, _from, state) do
+   jobs = list_failed(state.redis, state.namespace)
    {:reply, {:ok, jobs}, state, 0}
   end
 
-  def handle_call({:retries}, _from, state) do
+  def handle_call(:retries, _from, state) do
    jobs = list_retry(state.redis, state.namespace)
    {:reply, {:ok, jobs}, state, 0}
   end
 
-  def handle_call({:jobs}, _from, state) do
+  def handle_call(:jobs, _from, state) do
     queues = list_queues(state.redis, state.namespace)
     jobs = for q <- queues, do: {q, list_jobs(state.redis, state.namespace, q)}
     {:reply, {:ok, jobs}, state, 0}
@@ -142,7 +138,7 @@ defmodule Exq.Enqueuer.Server do
     {:reply, {:ok, jobs}, state, 0}
   end
 
-  def handle_call({:queue_size}, _from, state) do
+  def handle_call(:queue_size, _from, state) do
     queues = list_queues(state.redis, state.namespace)
     sizes = for q <- queues, do: {q, queue_size(state.redis, state.namespace, q)}
     {:reply, {:ok, sizes}, state, 0}
@@ -181,23 +177,19 @@ defmodule Exq.Enqueuer.Server do
     {:reply, {:ok}, state, 0}
   end
 
-  def handle_call({:clear_failed}, _from, state) do
+  def handle_call(:clear_failed, _from, state) do
     JobStat.clear_failed(state.redis, state.namespace)
     {:reply, {:ok}, state, 0}
   end
 
-  def handle_call({:clear_processes}, _from, state) do
+  def handle_call(:clear_processes, _from, state) do
     JobStat.clear_processes(state.redis, state.namespace)
     {:reply, {:ok}, state, 0}
   end
 
-  def handle_call({:realtime_stats}, _from, state) do
+  def handle_call(:realtime_stats, _from, state) do
     {:ok, failures, successes} = JobStat.realtime_stats(state.redis, state.namespace)
     {:reply, {:ok, failures, successes}, state, 0}
-  end
-
-  def code_change(_old_version, state, _extra) do
-    {:ok, state}
   end
 
   def terminate(_reason, state) do
