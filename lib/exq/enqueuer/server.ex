@@ -115,7 +115,7 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def handle_call(:failed, _from, state) do
-   jobs = list_failed(state.redis, state.namespace) ++ list_retry(state.redis, state.namespace)
+   jobs = list_failed(state.redis, state.namespace)
    {:reply, {:ok, jobs}, state, 0}
   end
 
