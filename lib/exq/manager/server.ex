@@ -253,7 +253,7 @@ defmodule Exq.Manager.Server do
     rescue_timeout({state, state.poll_timeout}, fn ->
       jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.host, queues)
 
-      job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job!(state, potential_job) end)
+      job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job(state, potential_job) end)
 
       cond do
         Enum.any?(job_results, fn(status) -> elem(status, 1) == :dispatch end) ->
@@ -281,18 +281,18 @@ defmodule Exq.Manager.Server do
   Dispatch job to worker if it is not empty
   Also update worker count for dispatched job
   """
-  def dispatch_job!(state, potential_job) do
+  def dispatch_job(state, potential_job) do
     case potential_job do
       {:ok, {:none, _queue}} ->
         {:ok, :none}
       {:ok, {job, queue}} ->
-        dispatch_job!(state, job, queue)
+        dispatch_job(state, job, queue)
         {:ok, :dispatch}
       {status, reason} ->
         {:error, {status, reason}}
     end
   end
-  def dispatch_job!(state, job, queue) do
+  def dispatch_job(state, job, queue) do
     {:ok, worker} = Exq.Worker.Supervisor.start_child(
       state.workers_sup,
       [job, state.pid, queue, state.work_table,
