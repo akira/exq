@@ -44,7 +44,8 @@ Then run ```mix deps.get```.
 
 By default, Exq will use configuration from your config.exs file.  You can use this
 to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis).
-The "concurrency" setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
+The `queues` list specifices which queues Exq will listen to for new jobs.
+The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
 
 ```elixir
 config :exq,
@@ -139,8 +140,6 @@ To enqueue jobs:
 {:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"])
 
 {:ok, ack} = Exq.enqueue(Exq, "default", "MyWorker", ["arg1", "arg2"])
-
-{:ok, ack} = Exq.enqueue(Exq, "default", "MyWorker/custom_method", [])
 ```
 
 You can also enqueue jobs without starting workers:
