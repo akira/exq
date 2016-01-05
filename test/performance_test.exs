@@ -37,9 +37,9 @@ defmodule PerformanceTest do
     started = :os.timestamp
     max_timeout_ms = 5 * 1_000
 
-    {:ok, sup} = Exq.start(name: ExqPerf)
-    for _ <- 1..1000, do: Exq.enqueue(ExqPerf, "default", PerformanceTest.Worker, ["keep_on_trucking"])
-    Exq.enqueue(ExqPerf, "default", PerformanceTest.Worker, ["last"])
+    {:ok, sup} = Exq.start
+    for _ <- 1..1000, do: Exq.enqueue(Exq, "default", PerformanceTest.Worker, ["keep_on_trucking"])
+    Exq.enqueue(Exq, "default", PerformanceTest.Worker, ["last"])
 
     # Wait for last message
     receive do
