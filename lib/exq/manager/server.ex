@@ -229,7 +229,7 @@ defmodule Exq.Manager.Server do
     {:noreply, updated_state, timeout}
   end
 
-  def handle_info(info, state) do
+  def handle_info(_info, state) do
     {:noreply, state, state.poll_timeout}
   end
 

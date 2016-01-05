@@ -1,4 +1,9 @@
 defmodule Exq.Api do
+  @moduledoc """
+  Interface for retrieving Exq stats.
+  Pid is currently Exq.Enqueuer process (TODO: Split this out to other GenServer)
+  """
+
   require Logger
 
   def queues(pid) do
