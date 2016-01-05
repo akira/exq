@@ -78,7 +78,7 @@ defmodule WorkerTest do
   end
 
   test "worker killed still sends stats" do
-    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"SuicideWorker\", \"args\": [] }")
+    {:ok, worker} = start_worker("{ \"queue\": \"default\", \"class\": \"WorkerTest.SuicideWorker\", \"args\": [] }")
     assert_terminate(worker, false)
   end
 
