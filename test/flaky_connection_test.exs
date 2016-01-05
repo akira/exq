@@ -29,7 +29,7 @@ defmodule FlakyConnectionTest do
     Mix.Config.persist([exq: [redis_timeout: 2010]])
 
     Process.register(self(), :tester)
-    {:ok, sup} = Exq.start([name: ExqPerf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
+    {:ok, sup} = Exq.start([name: ExqPerf, port: conn.port])
 
     FlakyConnection.set_latency(conn, 1000)
 
@@ -48,7 +48,7 @@ defmodule FlakyConnectionTest do
 
     Process.register(self(), :tester)
 
-    {:ok, sup} = Exq.start([name: ExqPerf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
+    {:ok, sup} = Exq.start([name: ExqPerf, port: conn.port])
 
     FlakyConnection.set_latency(conn, 5500)
 
@@ -73,7 +73,7 @@ defmodule FlakyConnectionTest do
 
     Process.register(self(), :tester)
 
-    {:ok, sup} = Exq.start([name: ExqPerf, host: 'localhost', port: conn.port, namespace: "test", concurrency: :infinite])
+    {:ok, sup} = Exq.start([name: ExqPerf, port: conn.port])
 
     FlakyConnection.set_latency(conn, 5500)
 
