@@ -83,21 +83,23 @@ defmodule Exq.Redis.JobStat do
   end
 
   def realtime_stats(redis, namespace) do
-    failure_keys = Connection.keys!(redis, JobQueue.full_key(namespace, "stat:failed_rt:*"))
-    failures = for key <- failure_keys do
-      date = Binary.take_prefix(key, JobQueue.full_key(namespace, "stat:failed_rt:"))
-      count = Connection.get!(redis, key)
-      {date, count}
-    end
+    {:ok, [failure_keys, success_keys]} = Connection.qp(redis, [
+      ["KEYS", JobQueue.full_key(namespace, "stat:failed_rt:*")],
+      ["KEYS", JobQueue.full_key(namespace, "stat:processed_rt:*")]
+    ])
 
-    success_keys = Connection.keys!(redis, JobQueue.full_key(namespace, "stat:processed_rt:*"))
-    successes = for key <- success_keys do
-      date = Binary.take_prefix(key, JobQueue.full_key(namespace, "stat:processed_rt:"))
-      count = Connection.get!(redis, key)
-      {date, count}
-    end
+    formatter = realtime_stats_formatter(redis, namespace)
+    failures = formatter.(failure_keys, "stat:failed_rt:")
+    successes = formatter.(success_keys, "stat:processed_rt:")
 
     {:ok, failures, successes}
   end
 
+  defp realtime_stats_formatter(redis, namespace) do
+    fn(keys, ns) ->
+      {:ok, counts } = Connection.qp(redis, Enum.map(keys, &(["GET", &1])))
+      Enum.map(keys, &(Binary.take_prefix(&1, JobQueue.full_key(namespace, ns))))
+      |> Enum.zip(counts)
+    end
+  end
 end

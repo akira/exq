@@ -16,6 +16,7 @@ end
 defmodule ExqTestUtil do
   @timeout 20
   @long_timeout 100
+  @too_long_timeout 1100
 
   def redis_host do
     Exq.Support.Config.get(:host)
@@ -60,6 +61,10 @@ defmodule ExqTestUtil do
 
   def wait_long do
     :timer.sleep(@long_timeout)
+  end
+
+  def wait_too_long do
+    :timer.sleep(@too_long_timeout)
   end
 
   def reset_config do
