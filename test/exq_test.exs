@@ -269,29 +269,4 @@ defmodule ExqTest do
     stop_process(sup)
     stop_process(enq_sup)
   end
-
-  test "show realtime statistics" do
-    Exq.start_link
-
-    Exq.enqueue(Exq, "default", ExqTest.EmptyMethodWorker, [])
-    Exq.enqueue(Exq, "default", ExqTest.EmptyMethodWorker, [])
-    Exq.enqueue(Exq, "default", "ExqTest.MissingMethodWorker/fail", [])
-
-    wait_too_long
-
-    Exq.enqueue(Exq, "default", ExqTest.EmptyMethodWorker, [])
-    Exq.enqueue(Exq, "default", "ExqTest.MissingMethodWorker/fail", [])
-
-    wait_too_long
-
-    Exq.enqueue(Exq, "default", ExqTest.EmptyMethodWorker, [])
-
-    wait_long
-
-    Exq.Enqueuer.Server.start_link(name: ExqE)
-    {:ok, failures, successes} = Exq.Api.realtime_stats(ExqE)
-
-    assert Enum.count(failures) == 2
-    assert Enum.count(successes) == 3
-  end
 end

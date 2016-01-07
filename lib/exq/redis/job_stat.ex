@@ -11,9 +11,8 @@ defmodule Exq.Redis.JobStat do
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
 
-  def record_processed(redis, namespace, _job) do
-    time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
-    date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
+  def record_processed(redis, namespace, _job, current_date \\ Date.universal) do
+    {time, date} = format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis,[
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
@@ -24,9 +23,8 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, _error, _job) do
-    time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
-    date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
+  def record_failure(redis, namespace, _error, _job, current_date \\ Date.universal) do
+    {time, date} = format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis, [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
@@ -101,5 +99,13 @@ defmodule Exq.Redis.JobStat do
       Enum.map(keys, &(Binary.take_prefix(&1, JobQueue.full_key(namespace, ns))))
       |> Enum.zip(counts)
     end
+  end
+
+  defp format_current_date(current_date) do
+    format_fn = fn(format) ->
+      DateFormat.format!(current_date, format, :strftime)
+    end
+
+    {format_fn.("%Y-%m-%d %T %z"), format_fn.("%Y-%m-%d")}
   end
 end
