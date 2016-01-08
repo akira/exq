@@ -61,19 +61,25 @@ defmodule Exq.Redis.JobStat do
   end
 
   def remove_queue(redis, namespace, queue) do
-    Connection.srem!(redis, JobQueue.full_key(namespace, "queues"), queue)
-    Connection.del!(redis, JobQueue.queue_key(namespace, queue))
+    Connection.qp(redis, [
+      ["SREM", JobQueue.full_key(namespace, "queues"), queue],
+      ["DEL", JobQueue.queue_key(namespace, queue)]
+    ])
   end
 
   def remove_failed(redis, namespace, jid) do
-    Connection.decr!(redis, JobQueue.full_key(namespace, "stat:failed"))
     {:ok, failure, _idx} = find_failed(redis, namespace, jid)
-    Connection.zrem!(redis, JobQueue.full_key(namespace, "dead"), failure)
+    Connection.qp(redis, [
+      ["DECR", JobQueue.full_key(namespace, "stat:failed")],
+      ["ZREM", JobQueue.full_key(namespace, "dead"), failure]
+    ])
   end
 
   def clear_failed(redis, namespace) do
-    Connection.set!(redis, JobQueue.full_key(namespace, "stat:failed"), 0)
-    Connection.del!(redis, JobQueue.full_key(namespace, "dead"))
+    Connection.qp(redis, [
+      ["SET", JobQueue.full_key(namespace, "stat:failed"), 0],
+      ["DEL", JobQueue.full_key(namespace, "dead")]
+    ])
   end
 
   def clear_processes(redis, namespace) do
