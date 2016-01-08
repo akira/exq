@@ -11,9 +11,8 @@ defmodule Exq.Redis.JobStat do
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
 
-  def record_processed(redis, namespace, _job) do
-    time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
-    date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
+  def record_processed(redis, namespace, _job, current_date \\ Date.universal) do
+    {time, date} = format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis,[
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
@@ -24,9 +23,8 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, _error, _job) do
-    time = DateFormat.format!(Date.universal, "%Y-%m-%d %T %z", :strftime)
-    date = DateFormat.format!(Date.universal, "%Y-%m-%d", :strftime)
+  def record_failure(redis, namespace, _error, _job, current_date \\ Date.universal) do
+    {time, date} = format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis, [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
@@ -83,21 +81,31 @@ defmodule Exq.Redis.JobStat do
   end
 
   def realtime_stats(redis, namespace) do
-    failure_keys = Connection.keys!(redis, JobQueue.full_key(namespace, "stat:failed_rt:*"))
-    failures = for key <- failure_keys do
-      date = Binary.take_prefix(key, JobQueue.full_key(namespace, "stat:failed_rt:"))
-      count = Connection.get!(redis, key)
-      {date, count}
-    end
+    {:ok, [failure_keys, success_keys]} = Connection.qp(redis, [
+      ["KEYS", JobQueue.full_key(namespace, "stat:failed_rt:*")],
+      ["KEYS", JobQueue.full_key(namespace, "stat:processed_rt:*")]
+    ])
 
-    success_keys = Connection.keys!(redis, JobQueue.full_key(namespace, "stat:processed_rt:*"))
-    successes = for key <- success_keys do
-      date = Binary.take_prefix(key, JobQueue.full_key(namespace, "stat:processed_rt:"))
-      count = Connection.get!(redis, key)
-      {date, count}
-    end
+    formatter = realtime_stats_formatter(redis, namespace)
+    failures = formatter.(failure_keys, "stat:failed_rt:")
+    successes = formatter.(success_keys, "stat:processed_rt:")
 
     {:ok, failures, successes}
   end
 
+  defp realtime_stats_formatter(redis, namespace) do
+    fn(keys, ns) ->
+      {:ok, counts } = Connection.qp(redis, Enum.map(keys, &(["GET", &1])))
+      Enum.map(keys, &(Binary.take_prefix(&1, JobQueue.full_key(namespace, ns))))
+      |> Enum.zip(counts)
+    end
+  end
+
+  defp format_current_date(current_date) do
+    format_fn = fn(format) ->
+      DateFormat.format!(current_date, format, :strftime)
+    end
+
+    {format_fn.("%Y-%m-%d %T %z"), format_fn.("%Y-%m-%d")}
+  end
 end
