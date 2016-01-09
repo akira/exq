@@ -101,9 +101,13 @@ defmodule Exq.Redis.JobStat do
 
   defp realtime_stats_formatter(redis, namespace) do
     fn(keys, ns) ->
-      {:ok, counts } = Connection.qp(redis, Enum.map(keys, &(["GET", &1])))
-      Enum.map(keys, &(Binary.take_prefix(&1, JobQueue.full_key(namespace, ns))))
-      |> Enum.zip(counts)
+      if Enum.empty?(keys) do
+        []
+      else
+        {:ok, counts } = Connection.qp(redis, Enum.map(keys, &(["GET", &1])))
+        Enum.map(keys, &(Binary.take_prefix(&1, JobQueue.full_key(namespace, ns))))
+        |> Enum.zip(counts)
+      end
     end
   end
 
