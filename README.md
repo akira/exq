@@ -33,7 +33,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.6.1"}
+      {:exq, "~> 0.6.2"}
     ]
   end
 ```
