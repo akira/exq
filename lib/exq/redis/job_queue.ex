@@ -149,7 +149,7 @@ defmodule Exq.Redis.JobQueue do
           Logger.info("Re-enqueueing job from backup for host [#{host}] and queue [#{queue}]")
           re_enqueue_backup(redis, namespace, host, queue)
         end
-      _ ->
+      _ -> nil
     end
   end
 
