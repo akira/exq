@@ -35,6 +35,9 @@ defmodule Exq.Scheduler.Server do
     GenServer.cast(pid, :start_timeout)
   end
 
+  def server_name(nil), do: Exq.Scheduler.Server
+  def server_name(name), do: "#{name}.Scheduler.Server" |> String.to_atom
+
 ##===========================================================
 ## gen server callbacks
 ##===========================================================

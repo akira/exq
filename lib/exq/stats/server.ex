@@ -51,6 +51,9 @@ defmodule Exq.Stats.Server do
     :ok
   end
 
+  def server_name(nil), do: Exq.Stats.Server
+  def server_name(name), do: "#{name}.Stats.Server" |> String.to_atom
+
 ##===========================================================
 ## gen server callbacks
 ##===========================================================

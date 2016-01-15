@@ -33,7 +33,7 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def start_link(opts \\ []) do
-    redis_name = opts[:redis] || Exq.Redis.Supervisor.client_name(opts[:name])
+    redis_name = opts[:redis] || Exq.Manager.Supervisor.redis_client_name(opts[:name])
     opts = Keyword.merge(opts, [redis: redis_name])
     GenServer.start_link(__MODULE__, opts, name: opts[:name] || __MODULE__)
   end
@@ -45,7 +45,9 @@ defmodule Exq.Enqueuer.Server do
   def init(opts) do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     case Process.whereis(opts[:redis]) do
-      nil -> Exq.Redis.Supervisor.start_link(opts)
+      nil ->
+        {redix_opts, connection_opts} = Exq.Manager.Supervisor.redix_opts(opts)
+        Redix.start_link(redix_opts, connection_opts)
       _ -> :ok
     end
     state = %State{redis: opts[:redis],
@@ -240,5 +242,11 @@ defmodule Exq.Enqueuer.Server do
   def queue_size(redis, namespace, queue) do
     Connection.llen!(redis, full_key(namespace, "queue:#{queue}"))
   end
+
+  def server_name(name, type \\ :normal)
+  def server_name(nil, _), do: Exq.Enqueuer
+  def server_name(name, :normal), do: name
+  def server_name(name, :start_by_manager), do: "#{name}.Enqueuer" |> String.to_atom
+
 
 end
