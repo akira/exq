@@ -123,7 +123,7 @@ defmodule Exq.Manager.Server do
   end
 
   def start_link(opts\\[]) do
-    GenServer.start_link(__MODULE__, opts, [{:name, Exq.Manager.Supervisor.server_name(opts[:name])}])
+    GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
   def job_terminated(exq, namespace, queue, job_json) do
@@ -208,11 +208,7 @@ defmodule Exq.Manager.Server do
     {:noreply, state, state.poll_timeout}
   end
 
-  def terminate(_reason, state) do
-    case Process.whereis(state.redis) do
-      nil -> :ignore
-      pid -> Redix.stop(pid)
-    end
+  def terminate(_reason, _state) do
     :ok
   end
 
@@ -336,7 +332,7 @@ defmodule Exq.Manager.Server do
       {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
     catch
       err, reason ->
-        opts = Exq.Manager.Supervisor.redix_opts(opts)
+        opts = Exq.Opts.redis_opts(opts)
         raise """
         \n\n\n#{String.duplicate("=", 100)}
         ERROR! Could not connect to Redis!
@@ -350,5 +346,8 @@ defmodule Exq.Manager.Server do
         """
     end
   end
+
+  defp server_name(nil), do: Exq
+  defp server_name(name), do: name
 
 end

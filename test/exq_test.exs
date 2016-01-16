@@ -1,6 +1,5 @@
 Code.require_file "test_helper.exs", __DIR__
 
-
 defmodule ExqTest do
   use ExUnit.Case
   use Timex
@@ -259,7 +258,7 @@ defmodule ExqTest do
     # if we kill Exq too fast we dont record the failure because exq is gone
     wait_long
 
-    {:ok, enq_sup} = Exq.Enqueuer.Server.start_link(name: ExqE)
+    {:ok, enq_sup} = Exq.Enqueuer.Supervisor.start_link(name: ExqE)
 
     # Find the job in the processed queue
     {:ok, _, _} = Exq.Api.find_failed(ExqE, jid)

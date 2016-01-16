@@ -51,15 +51,15 @@ defmodule Exq.Stats.Server do
     :ok
   end
 
-  def server_name(nil), do: Exq.Stats.Server
-  def server_name(name), do: "#{name}.Stats.Server" |> String.to_atom
+  def server_name(nil), do: Exq.Stats
+  def server_name(name), do: "#{name}.Stats" |> String.to_atom
 
 ##===========================================================
 ## gen server callbacks
 ##===========================================================
 
   def start_link(opts \\[]) do
-    GenServer.start_link(__MODULE__, opts, name: opts[:name] || __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
   # These are the callbacks that GenServer.Behaviour will use

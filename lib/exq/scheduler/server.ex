@@ -28,15 +28,15 @@ defmodule Exq.Scheduler.Server do
   end
 
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts, [{:name, opts[:name]|| __MODULE__}])
+    GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
   def start_timeout(pid) do
     GenServer.cast(pid, :start_timeout)
   end
 
-  def server_name(nil), do: Exq.Scheduler.Server
-  def server_name(name), do: "#{name}.Scheduler.Server" |> String.to_atom
+  def server_name(nil), do: Exq.Scheduler
+  def server_name(name), do: "#{name}.Scheduler" |> String.to_atom
 
 ##===========================================================
 ## gen server callbacks
@@ -46,12 +46,7 @@ defmodule Exq.Scheduler.Server do
     namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
     queues = Keyword.get(opts, :queues)
     scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
-    redis = opts[:redis]
-    case Process.whereis(redis) do
-      nil -> Exq.Redis.Supervisor.start_link(opts)
-      _ -> :ok
-    end
-    state = %State{redis: redis, namespace: namespace,
+    state = %State{redis: opts[:redis], namespace: namespace,
       queues: queues, scheduler_poll_timeout: scheduler_poll_timeout}
 
     start_timeout(self)
@@ -79,4 +74,5 @@ defmodule Exq.Scheduler.Server do
     Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace)
     {state, state.scheduler_poll_timeout}
   end
+
 end
