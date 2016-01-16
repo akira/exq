@@ -7,7 +7,7 @@ defmodule Exq.Enqueuer.Supervisor do
 
   def init(opts) do
    redis = opts[:redis] || Exq.Opts.redis_client_name(opts[:name])
-   opts = Keyword.merge(opts, [redis: redis, start_by_top_sup: false])
+   opts = Keyword.merge(opts, [redis: redis, start_by_enqueuer_sup: true])
    redis_worker =
      case Process.whereis(redis) do
        nil ->

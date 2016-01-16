@@ -54,12 +54,13 @@ test "redis_opts" do
      ]])
     {_redis_opts, _connection_opts, server_opts} = Exq.Opts.conform_opts
     [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
-      poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: name,
+      workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: name,
       scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency]
     = server_opts
     assert scheduler_enable == true
     assert namespace == "exq"
     assert scheduler_poll_timeout == 200
+    assert workers_sup == Exq.Worker.Sup
     assert poll_timeout == 100
     assert enqueuer == Exq.Enqueuer
     assert stats == Exq.Stats

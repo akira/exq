@@ -22,10 +22,6 @@ defmodule Exq.Scheduler.Server do
     defstruct redis: nil, namespace: nil, queues: nil, scheduler_poll_timeout: nil
   end
 
-  def start(opts \\ []) do
-    GenServer.start(__MODULE__, opts)
-  end
-
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end

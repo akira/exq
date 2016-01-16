@@ -41,18 +41,24 @@ defmodule Exq.Opts do
     namespace = opts[:namespace] || Config.get(:namespace, "exq")
     scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout, 200)
     poll_timeout = opts[:poll_timeout] || Config.get(:poll_timeout, 50)
+
     enqueuer = Exq.Enqueuer.Server.server_name(opts[:name])
     stats = Exq.Stats.Server.server_name(opts[:name])
     scheduler = Exq.Scheduler.Server.server_name(opts[:name])
-    queues = get_queues(opts)
-    concurrency = get_concurrency(opts)
-    [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
+    workers_sup = Exq.Worker.Supervisor.supervisor_name(opts[:name])
+
+    queue_configs = opts[:queues] || Config.get(:queues, ["default"])
+    per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency, 10_000)
+    queues = get_queues(queue_configs)
+    concurrency = get_concurrency(queue_configs, per_queue_concurrency)
+
+    [scheduler_enable: scheduler_enable, namespace: namespace,
+     scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,
      poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: opts[:name],
      scheduler: scheduler, queues: queues, redis: opts[:redis], concurrency: concurrency]
   end
 
-  defp get_queues(opts) do
-    queue_configs = opts[:queues] || Config.get(:queues, ["default"])
+  defp get_queues(queue_configs) do
     Enum.map(queue_configs, fn queue_config ->
       case queue_config do
         {queue, _concurrency} -> queue
@@ -61,9 +67,7 @@ defmodule Exq.Opts do
     end)
   end
 
-  defp get_concurrency(opts) do
-    queue_configs = opts[:queues] || Config.get(:queues, ["default"])
-    per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency, 10_000)
+  defp get_concurrency(queue_configs, per_queue_concurrency) do
     Enum.map(queue_configs, fn (queue_config) ->
         case queue_config do
           {queue, concurrency} -> {queue, concurrency, 0}

@@ -28,14 +28,10 @@ defmodule Exq.Enqueuer.Server do
     defstruct redis: nil, namespace: nil
   end
 
-  def start(opts \\ []) do
-    GenServer.start(__MODULE__, opts)
-  end
-
   def start_link(opts \\ []) do
     server_name =
-      case opts[:start_by_top_sup] do
-        false -> opts[:name]
+      case opts[:start_by_enqueuer_sup] do
+        true -> opts[:name]
         _ -> server_name(opts[:name])
       end
     GenServer.start_link(__MODULE__, opts, name: server_name)

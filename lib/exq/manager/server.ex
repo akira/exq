@@ -142,8 +142,8 @@ defmodule Exq.Manager.Server do
 
     state = %State{work_table: work_table,
                    redis: opts[:redis],
-                   stats: Exq.Stats.Server.server_name(opts[:name]),
-                   workers_sup: Exq.Worker.Supervisor.supervisor_name(opts[:name]),
+                   stats: opts[:stats],
+                   workers_sup: opts[:workers_sup],
                    enqueuer: opts[:enqueuer],
                    host:  to_string(localhost),
                    namespace: opts[:namespace],
