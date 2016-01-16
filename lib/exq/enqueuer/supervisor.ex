@@ -22,7 +22,9 @@ defmodule Exq.Enqueuer.Supervisor do
    |> supervise(strategy: :one_for_one, max_restarts: 20)
   end
 
-  def supervisor_name(nil), do: Exq.Enqueuer.Sup
-  def supervisor_name(name), do: "#{name}.Sup" |> String.to_atom
+  def supervisor_name(name) do
+    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    "#{name}.Enqueuer.Sup" |> String.to_atom
+  end
 
 end

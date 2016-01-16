@@ -7,8 +7,10 @@ defmodule Exq.Opts do
   @doc """
    Return top supervisor's name default is Exq.Sup
   """
-  def top_supervisor(nil), do: Exq.Sup
-  def top_supervisor(name), do: "#{name}.Sup" |> String.to_atom
+  def top_supervisor(name) do
+    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    "#{name}.Sup" |> String.to_atom
+  end
 
   @doc """
    Return {redis_options, redis_connection_opts, gen_server_opts}
@@ -33,8 +35,10 @@ defmodule Exq.Opts do
      [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
   end
 
-  def redis_client_name(nil), do: Exq.Redis.Client
-  def redis_client_name(name), do: "#{name}.Redis.Client" |> String.to_atom
+  def redis_client_name(name) do
+    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    "#{name}.Redis.Client" |> String.to_atom
+  end
 
   defp server_opts(opts) do
     scheduler_enable = opts[:scheduler_enable] || Config.get(:scheduler_enable, true)

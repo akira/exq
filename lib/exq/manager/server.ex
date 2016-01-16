@@ -347,7 +347,7 @@ defmodule Exq.Manager.Server do
     end
   end
 
-  defp server_name(nil), do: Exq
+  defp server_name(nil), do: Config.get(:name, Exq)
   defp server_name(name), do: name
 
 end

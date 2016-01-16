@@ -229,9 +229,9 @@ defmodule Exq.Enqueuer.Server do
     Connection.llen!(redis, full_key(namespace, "queue:#{queue}"))
   end
 
-  # def server_name(name, type \\ :normal)
-  def server_name(nil), do: Exq.Enqueuer
-  # def server_name(name), do: name
-  def server_name(name), do: "#{name}.Enqueuer" |> String.to_atom
+  def server_name(name) do
+    unless name, do: name = Config.get(:name, Exq)
+    "#{name}.Enqueuer" |> String.to_atom
+  end
 
 end

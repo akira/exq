@@ -51,8 +51,10 @@ defmodule Exq.Stats.Server do
     :ok
   end
 
-  def server_name(nil), do: Exq.Stats
-  def server_name(name), do: "#{name}.Stats" |> String.to_atom
+  def server_name(name) do
+    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    "#{name}.Stats" |> String.to_atom
+  end
 
 ##===========================================================
 ## gen server callbacks
