@@ -17,7 +17,6 @@ defmodule Exq.Scheduler.Server do
 
   require Logger
   use GenServer
-  alias Exq.Support.Config
 
   defmodule State do
     defstruct redis: nil, namespace: nil, queues: nil, scheduler_poll_timeout: nil

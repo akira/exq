@@ -39,16 +39,13 @@ defmodule Exq do
       max_seconds: 5)
   end
 
-  # todo refactor better
-  def stop(pid) when is_pid(pid) do
-    Process.exit(pid, :shutdown)
-  end
-  def stop(name) when is_atom(name) do
-    case Process.whereis(top_supervisor(name)) do
-      nil -> :ok
-      pid ->
-        stop(pid)
-    end
+  def stop(nil), do: :ok
+  def stop(pid) when is_pid(pid), do: Process.exit(pid, :shutdown)
+  def stop(name) do
+      name
+      |> top_supervisor
+      |> Process.whereis
+      |> stop
   end
 
   @doc """

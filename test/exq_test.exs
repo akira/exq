@@ -67,7 +67,7 @@ defmodule ExqTest do
 
   test "enqueue and run job" do
     Process.register(self, :exqtest)
-    {:ok, sup} = Exq.start_link()
+    {:ok, sup} = Exq.start_link
     {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.PerformWorker, [])
     assert_receive {:worked}
     stop_process(sup)
@@ -258,7 +258,7 @@ defmodule ExqTest do
     # if we kill Exq too fast we dont record the failure because exq is gone
     wait_long
 
-    {:ok, enq_sup} = Exq.Enqueuer.Supervisor.start_link(name: ExqE)
+    {:ok, enq_sup} = Exq.Enqueuer.start_link(name: ExqE)
 
     # Find the job in the processed queue
     {:ok, _, _} = Exq.Api.find_failed(ExqE, jid)
