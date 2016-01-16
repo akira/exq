@@ -33,8 +33,6 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def start_link(opts \\ []) do
-    redis_name = opts[:redis] || Exq.Opts.redis_client_name(opts[:name])
-    opts = Keyword.merge(opts, [redis: redis_name])
     server_name =
       case opts[:start_by_top_sup] do
         false -> opts[:name]
@@ -48,8 +46,9 @@ defmodule Exq.Enqueuer.Server do
 ##===========================================================
 
   def init(opts) do
-    namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
-    state = %State{redis: opts[:redis], namespace: namespace}
+    redis = opts[:redis] || Exq.Opts.redis_client_name(opts[:name])
+    namespace = opts[:namespace] || Config.get(:namespace, "exq")
+    state = %State{redis: redis, namespace: namespace}
     {:ok, state}
   end
 

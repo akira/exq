@@ -22,12 +22,12 @@ defmodule Exq.Opts do
   end
 
   def redis_opts(opts \\ []) do
-    host = Keyword.get(opts, :host, Config.get(:host, '127.0.0.1'))
-    port = Keyword.get(opts, :port, Config.get(:port, 6379))
-    database = Keyword.get(opts, :database, Config.get(:database, 0))
-    password = Keyword.get(opts, :password, Config.get(:password))
-    reconnect_on_sleep = Keyword.get(opts, :reconnect_on_sleep, Config.get(:reconnect_on_sleep, 100))
-    timeout = Keyword.get(opts, :redis_timeout, Config.get(:redis_timeout, @default_timeout))
+    host = opts[:host] || Config.get(:host, '127.0.0.1')
+    port = opts[:port] || Config.get(:port, 6379)
+    database = opts[:database] || Config.get(:database, 0)
+    password = opts[:password] || Config.get(:password)
+    reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep, 100)
+    timeout = opts[:redis_timeout] || Config.get(:redis_timeout, @default_timeout)
     if is_binary(host), do: host = String.to_char_list(host)
     {[host: host, port: port, database: database, password: password],
      [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
@@ -37,10 +37,10 @@ defmodule Exq.Opts do
   def redis_client_name(name), do: "#{name}.Redis.Client" |> String.to_atom
 
   defp server_opts(opts) do
-    scheduler_enable = Keyword.get(opts, :scheduler_enable, Config.get(:scheduler_enable, true))
-    namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
-    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
-    poll_timeout = Keyword.get(opts, :poll_timeout, Config.get(:poll_timeout, 50))
+    scheduler_enable = opts[:scheduler_enable] || Config.get(:scheduler_enable, true)
+    namespace = opts[:namespace] || Config.get(:namespace, "exq")
+    scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout, 200)
+    poll_timeout = opts[:poll_timeout] || Config.get(:poll_timeout, 50)
     enqueuer = Exq.Enqueuer.Server.server_name(opts[:name])
     stats = Exq.Stats.Server.server_name(opts[:name])
     scheduler = Exq.Scheduler.Server.server_name(opts[:name])
@@ -52,7 +52,7 @@ defmodule Exq.Opts do
   end
 
   defp get_queues(opts) do
-    queue_configs = Keyword.get(opts, :queues, Config.get(:queues, ["default"]))
+    queue_configs = opts[:queues] || Config.get(:queues, ["default"])
     Enum.map(queue_configs, fn queue_config ->
       case queue_config do
         {queue, _concurrency} -> queue
@@ -62,8 +62,8 @@ defmodule Exq.Opts do
   end
 
   defp get_concurrency(opts) do
-    queue_configs = Keyword.get(opts, :queues, Config.get(:queues, ["default"]))
-    per_queue_concurrency = Keyword.get(opts, :concurrency, Config.get(:concurrency, 10_000))
+    queue_configs = opts[:queues] || Config.get(:queues, ["default"])
+    per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency, 10_000)
     Enum.map(queue_configs, fn (queue_config) ->
         case queue_config do
           {queue, concurrency} -> {queue, concurrency, 0}

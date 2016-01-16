@@ -43,11 +43,8 @@ defmodule Exq.Scheduler.Server do
 ##===========================================================
 
   def init(opts) do
-    namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
-    queues = Keyword.get(opts, :queues)
-    scheduler_poll_timeout = Keyword.get(opts, :scheduler_poll_timeout, Config.get(:scheduler_poll_timeout, 200))
-    state = %State{redis: opts[:redis], namespace: namespace,
-      queues: queues, scheduler_poll_timeout: scheduler_poll_timeout}
+    state = %State{redis: opts[:redis], namespace: opts[:namespace],
+      queues: opts[:queues], scheduler_poll_timeout: opts[:scheduler_poll_timeout]}
 
     start_timeout(self)
 
