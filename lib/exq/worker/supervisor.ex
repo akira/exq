@@ -13,8 +13,10 @@ defmodule Exq.Worker.Supervisor do
     supervise(children, strategy: :simple_one_for_one)
   end
 
-  def supervisor_name(nil), do: Exq.Worker.Sup
-  def supervisor_name(name), do: "#{name}.Worker.Sup" |> String.to_atom
+  def supervisor_name(name) do
+    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    "#{name}.Worker.Sup" |> String.to_atom
+  end
 
   def start_child(sup, args) do
     Supervisor.start_child(sup, args)

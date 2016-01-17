@@ -44,11 +44,13 @@ Then run ```mix deps.get```.
 
 By default, Exq will use configuration from your config.exs file.  You can use this
 to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis).
+The `name` you can custom Exq's name by anything, same as `Exq.start_link([name: Name])` default is Exq
 The `queues` list specifices which queues Exq will listen to for new jobs.
 The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
 
 ```elixir
 config :exq,
+  name: Exq,
   host: "127.0.0.1",
   port: 6379,
   password: "optional_redis_auth",
@@ -165,7 +167,7 @@ time = Timex.Date.from({{2015, 12, 25}, {8, 0, 0}}) |> Timex.Date.to_timestamp
 
 ### Dynamic queue subscriptions:
 
-The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start.  However, we can also dynamically add and remove queue subscriptions after exq has started.
+The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start_link.  However, we can also dynamically add and remove queue subscriptions after exq has started.
 
 To subscribe to a new queue:
 ```elixir

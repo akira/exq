@@ -25,17 +25,16 @@ defmodule Exq.Enqueuer.Server do
   use GenServer
 
   defmodule State do
-    defstruct redis: nil, namespace: nil, redis_owner: false
-  end
-
-  def start(opts \\ []) do
-    GenServer.start(__MODULE__, opts)
+    defstruct redis: nil, namespace: nil
   end
 
   def start_link(opts \\ []) do
-    redis_name = opts[:redis] || Exq.Redis.Supervisor.client_name(opts[:name])
-    opts = Keyword.merge(opts, [redis: redis_name])
-    GenServer.start_link(__MODULE__, opts, name: opts[:name] || __MODULE__)
+    server_name =
+      case opts[:start_by_enqueuer_sup] do
+        true -> opts[:name]
+        _ -> server_name(opts[:name])
+      end
+    GenServer.start_link(__MODULE__, opts, name: server_name)
   end
 
 ##===========================================================
@@ -43,14 +42,9 @@ defmodule Exq.Enqueuer.Server do
 ##===========================================================
 
   def init(opts) do
-    namespace = Keyword.get(opts, :namespace, Config.get(:namespace, "exq"))
-    case Process.whereis(opts[:redis]) do
-      nil -> Exq.Redis.Supervisor.start_link(opts)
-      _ -> :ok
-    end
-    state = %State{redis: opts[:redis],
-                   redis_owner: true,
-                   namespace: namespace}
+    redis = opts[:redis] || Exq.Support.Opts.redis_client_name(opts[:name])
+    namespace = opts[:namespace] || Config.get(:namespace, "exq")
+    state = %State{redis: redis, namespace: namespace}
     {:ok, state}
   end
 
@@ -192,13 +186,7 @@ defmodule Exq.Enqueuer.Server do
     {:reply, {:ok, failures, successes}, state, 0}
   end
 
-  def terminate(_reason, state) do
-    if state.redis_owner do
-      case Process.whereis(state.redis) do
-        nil -> :ignore
-        pid -> Redix.stop(pid)
-      end
-    end
+  def terminate(_reason, _state) do
     :ok
   end
 
@@ -239,6 +227,11 @@ defmodule Exq.Enqueuer.Server do
   end
   def queue_size(redis, namespace, queue) do
     Connection.llen!(redis, full_key(namespace, "queue:#{queue}"))
+  end
+
+  def server_name(name) do
+    unless name, do: name = Config.get(:name, Exq)
+    "#{name}.Enqueuer" |> String.to_atom
   end
 
 end

@@ -4,6 +4,7 @@ config :logger, :console,
   format: "\n$date $time [$level]: $message \n"
 
 config :exq,
+  name: Exq,
   host: "127.0.0.1",
   port: 6379,
   namespace: "exq",

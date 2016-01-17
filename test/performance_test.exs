@@ -37,7 +37,7 @@ defmodule PerformanceTest do
     started = :os.timestamp
     max_timeout_ms = 5 * 1_000
 
-    {:ok, sup} = Exq.start
+    {:ok, sup} = Exq.start_link
     for _ <- 1..1000, do: Exq.enqueue(Exq, "default", PerformanceTest.Worker, ["keep_on_trucking"])
     Exq.enqueue(Exq, "default", PerformanceTest.Worker, ["last"])
 

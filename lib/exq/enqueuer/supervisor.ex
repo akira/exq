@@ -6,19 +6,25 @@ defmodule Exq.Enqueuer.Supervisor do
   end
 
   def init(opts) do
-    children = [
-      worker(Exq.Enqueuer.Server, [Keyword.merge(opts, [name: server_name(opts[:name])])])
-      ]
-    supervise(children, strategy: :one_for_one, max_restarts: 20)
+   redis = opts[:redis] || Exq.Support.Opts.redis_client_name(opts[:name])
+   opts = Keyword.merge(opts, [redis: redis, start_by_enqueuer_sup: true])
+   redis_worker =
+     case Process.whereis(redis) do
+       nil ->
+         {redix_opts, connection_opts} = Exq.Support.Opts.redis_opts(opts)
+         [worker(Redix, [redix_opts, connection_opts])]
+       _ -> []
+     end
+   children = [
+     worker(Exq.Enqueuer.Server, [opts]),
+     ]
+   redis_worker ++ children
+   |> supervise(strategy: :one_for_one, max_restarts: 20)
   end
 
-  def server_name(name, type \\ :normal)
-
-  def server_name(nil, _), do: Exq.Enqueuer
-  def server_name(name, :normal), do: name
-  def server_name(name, :start_by_manager), do: "#{name}.Enqueuer" |> String.to_atom
-
-  def supervisor_name(nil), do: Exq.Enqueuer.Sup
-  def supervisor_name(name), do: "#{name}.Sup" |> String.to_atom
+  def supervisor_name(name) do
+    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    "#{name}.Enqueuer.Sup" |> String.to_atom
+  end
 
 end

@@ -21,35 +21,6 @@ defmodule Exq.RedisTest do
     :ok
   end
 
-  test "info" do
-    Mix.Config.persist([exq: [host: '127.0.0.1', port: 6379, password: '', database: 0, reconnect_on_sleep: 100, redis_timeout: 5000]])
-    {[host: host, port: port, database: database, password: password],
-      [backoff: reconnect_on_sleep, timeout: timeout, name: client_name]}
-     = Exq.Redis.Supervisor.info
-    assert host == '127.0.0.1'
-    assert port == 6379
-    assert password == ''
-    assert database == 0
-    assert reconnect_on_sleep == 100
-    assert timeout == 5000
-    assert client_name == Exq.Redis.Client
-
-    Mix.Config.persist([exq: [host: '127.1.1.1', password: 'password']])
-    {redis_opts, _} = Exq.Redis.Supervisor.info
-    assert redis_opts[:host] == '127.1.1.1'
-    assert redis_opts[:password] == 'password'
-
-    Mix.Config.persist([exq: [password: "binary_password"]])
-
-    {redis_opts, _} = Exq.Redis.Supervisor.info
-    assert redis_opts[:password] == "binary_password"
-
-    Mix.Config.persist([exq: [password: nil]])
-    {redis_opts, _} = Exq.Redis.Supervisor.info
-    assert redis_opts[:password] == nil
-
-  end
-
   test "smembers empty" do
     m = Connection.smembers!(:testredis, "bogus")
     assert m == []
