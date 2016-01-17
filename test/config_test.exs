@@ -18,7 +18,7 @@ test "redis_opts" do
     Mix.Config.persist([exq: [host: '127.0.0.1', port: 6379, password: '', database: 0, reconnect_on_sleep: 100, redis_timeout: 5000]])
     {[host: host, port: port, database: database, password: password],
       [backoff: reconnect_on_sleep, timeout: timeout, name: client_name]}
-     = Exq.Opts.redis_opts
+     = Exq.Support.Opts.redis_opts
     assert host == '127.0.0.1'
     assert port == 6379
     assert password == ''
@@ -28,17 +28,17 @@ test "redis_opts" do
     assert client_name == nil
 
     Mix.Config.persist([exq: [host: '127.1.1.1', password: 'password']])
-    {redis_opts, _} = Exq.Opts.redis_opts
+    {redis_opts, _} = Exq.Support.Opts.redis_opts
     assert redis_opts[:host] == '127.1.1.1'
     assert redis_opts[:password] == 'password'
 
     Mix.Config.persist([exq: [password: "binary_password"]])
 
-    {redis_opts, _} = Exq.Opts.redis_opts
+    {redis_opts, _} = Exq.Support.Opts.redis_opts
     assert redis_opts[:password] == "binary_password"
 
     Mix.Config.persist([exq: [password: nil]])
-    {redis_opts, _} = Exq.Opts.redis_opts
+    {redis_opts, _} = Exq.Support.Opts.redis_opts
     assert redis_opts[:password] == nil
 
   end
@@ -52,7 +52,7 @@ test "redis_opts" do
      poll_timeout: 100,
      redis_timeout: 5000,
      ]])
-    {_redis_opts, _connection_opts, server_opts} = Exq.Opts.conform_opts
+    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts
     [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
       workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: name,
       scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency]
@@ -71,7 +71,7 @@ test "redis_opts" do
     assert concurrency == [{"default", 100, 0}]
 
     Mix.Config.persist([exq: [queues: [{"default", 1000}, {"test1", 2000}]]])
-    {_redis_opts, _connection_opts, server_opts} = Exq.Opts.conform_opts
+    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts
     assert server_opts[:queues] == ["default", "test1"]
     assert server_opts[:concurrency] == [{"default", 1000, 0}, {"test1", 2000, 0}]
 
