@@ -94,7 +94,11 @@ defmodule TestRedis do
   end
 
   def flush_all do
-    Connection.flushdb! :testredis
+    try do
+      Connection.flushdb! :testredis
+    catch
+      :exit, {:timeout, info} -> nil
+    end
   end
 
   def teardown do
