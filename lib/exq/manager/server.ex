@@ -332,7 +332,7 @@ defmodule Exq.Manager.Server do
       {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
     catch
       err, reason ->
-        opts = Exq.Opts.redis_opts(opts)
+        opts = Exq.Support.Opts.redis_opts(opts)
         raise """
         \n\n\n#{String.duplicate("=", 100)}
         ERROR! Could not connect to Redis!

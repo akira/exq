@@ -1,4 +1,4 @@
-defmodule Exq.Opts do
+defmodule Exq.Support.Opts do
 
   alias Exq.Support.Config
 

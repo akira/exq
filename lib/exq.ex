@@ -2,7 +2,7 @@ defmodule Exq do
   require Logger
   use Application
 
-  import Exq.Opts
+  import Exq.Support.Opts
 
   # Mixin Enqueue API
   use Exq.Enqueuer.EnqueueApi

@@ -6,12 +6,12 @@ defmodule Exq.Enqueuer.Supervisor do
   end
 
   def init(opts) do
-   redis = opts[:redis] || Exq.Opts.redis_client_name(opts[:name])
+   redis = opts[:redis] || Exq.Support.Opts.redis_client_name(opts[:name])
    opts = Keyword.merge(opts, [redis: redis, start_by_enqueuer_sup: true])
    redis_worker =
      case Process.whereis(redis) do
        nil ->
-         {redix_opts, connection_opts} = Exq.Opts.redis_opts(opts)
+         {redix_opts, connection_opts} = Exq.Support.Opts.redis_opts(opts)
          [worker(Redix, [redix_opts, connection_opts])]
        _ -> []
      end

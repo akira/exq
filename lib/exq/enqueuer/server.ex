@@ -42,7 +42,7 @@ defmodule Exq.Enqueuer.Server do
 ##===========================================================
 
   def init(opts) do
-    redis = opts[:redis] || Exq.Opts.redis_client_name(opts[:name])
+    redis = opts[:redis] || Exq.Support.Opts.redis_client_name(opts[:name])
     namespace = opts[:namespace] || Config.get(:namespace, "exq")
     state = %State{redis: redis, namespace: namespace}
     {:ok, state}
