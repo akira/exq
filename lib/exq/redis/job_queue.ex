@@ -68,9 +68,9 @@ defmodule Exq.Redis.JobQueue do
   end
   def enqueue(redis, namespace, queue, job_json) do
     try do
-      response = Redix.pipeline(redis, [
+      response = Connection.qp(redis, [
         ["SADD", full_key(namespace, "queues"), queue],
-        ["LPUSH", queue_key(namespace, queue), job_json]], [timeout: Config.get(:redis_timeout, 5000)])
+        ["LPUSH", queue_key(namespace, queue), job_json]])
 
       case response do
         {:ok, [%Redix.Error{}, %Redix.Error{}]} = error -> error
@@ -123,7 +123,7 @@ defmodule Exq.Redis.JobQueue do
     deq_commands = Enum.map(queues, fn(queue) ->
       ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, host, queue)]
     end)
-    resp = Redix.pipeline(redis, deq_commands, [timeout: Config.get(:redis_timeout, 5000)])
+    resp = Connection.qp(redis, deq_commands)
 
     case resp do
       {:error, reason} -> [{:error, reason}]
@@ -161,17 +161,23 @@ defmodule Exq.Redis.JobQueue do
     scheduler_dequeue(redis, namespace, time_to_score(Time.now))
   end
   def scheduler_dequeue(redis, namespace, max_score) do
-    Enum.reduce(schedule_queues(namespace), 0, fn(schedule_queue, acc) ->
-      resp = Connection.zrangebyscore(redis, schedule_queue, 0, max_score)
-      case resp do
-        {:ok, jobs}      ->
-          deq_count = scheduler_dequeue_requeue(jobs, redis, namespace, schedule_queue, 0)
-          deq_count + acc
-        {:error, reason} ->
-         Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
-         acc
-      end
-    end)
+    queues = schedule_queues(namespace)
+    commands = Enum.map(queues, &(["ZRANGEBYSCORE", &1, 0, max_score]))
+    resp = Connection.qp(redis, commands)
+    case resp do
+      {:error, reason} -> [{:error, reason}]
+      {:ok, responses} ->
+        Enum.zip(queues, responses) |> Enum.reduce(0, fn({queue, response}, acc) ->
+          case response do
+            jobs when is_list(jobs) ->
+              deq_count = scheduler_dequeue_requeue(jobs, redis, namespace, queue, 0)
+              deq_count + acc
+            %Redix.Error{} = reason ->
+             Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
+             acc
+          end
+        end)
+    end
   end
 
   def scheduler_dequeue_requeue([], _redis, _namespace, _schedule_queue, count), do: count

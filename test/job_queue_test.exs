@@ -88,9 +88,14 @@ defmodule JobQueueTest do
 
   test "scheduler_dequeue enqueue_at" do
     JobQueue.enqueue_at(:testredis, "test", "default", Time.now, MyWorker, [])
-    assert JobQueue.scheduler_dequeue(:testredis, "test") == 1
+    {jid, job_json} = JobQueue.to_job_json("retry", MyWorker, [])
+    JobQueue.enqueue_job_at(:testredis, "test", job_json, jid, Time.now, "test:retry")
+    assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], false)
+
+    assert_dequeue_job(["retry"], true)
+    assert_dequeue_job(["retry"], false)
   end
 
   test "scheduler_dequeue max_score" do
