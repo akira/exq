@@ -22,10 +22,11 @@ defmodule Exq do
     # make sure redis always first(start in order)
     children = [
       worker(Redix, [redis_opts, connection_opts]),
+      worker(Exq.Middleware.Server, [opts]),
+      worker(Exq.Manager.Server, [opts]),
       worker(Exq.Stats.Server, [opts]),
       worker(Exq.Enqueuer.Server, [opts]),
-      supervisor(Exq.Worker.Supervisor, [opts]),
-      worker(Exq.Manager.Server, [opts]),
+      supervisor(Exq.Worker.Supervisor, [opts])
     ]
 
     if opts[:scheduler_enable] do

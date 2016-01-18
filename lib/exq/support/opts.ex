@@ -50,16 +50,19 @@ defmodule Exq.Support.Opts do
     stats = Exq.Stats.Server.server_name(opts[:name])
     scheduler = Exq.Scheduler.Server.server_name(opts[:name])
     workers_sup = Exq.Worker.Supervisor.supervisor_name(opts[:name])
+    middleware = Exq.Middleware.Server.server_name(opts[:name])
 
     queue_configs = opts[:queues] || Config.get(:queues, ["default"])
     per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency, 10_000)
     queues = get_queues(queue_configs)
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
+    default_middleware = Config.get(:middleware, [])
 
     [scheduler_enable: scheduler_enable, namespace: namespace,
      scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,
      poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: opts[:name],
-     scheduler: scheduler, queues: queues, redis: opts[:redis], concurrency: concurrency]
+     scheduler: scheduler, queues: queues, redis: opts[:redis], concurrency: concurrency,
+     middleware: middleware, default_middleware: default_middleware]
   end
 
   defp get_queues(queue_configs) do

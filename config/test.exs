@@ -16,4 +16,6 @@ config :exq,
   redis_timeout: 5000,
   genserver_timeout: 5000,
   test_with_local_redis: true,
-  max_retries: 0
+  max_retries: 0,
+  middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
+    Exq.Middleware.Logger]
