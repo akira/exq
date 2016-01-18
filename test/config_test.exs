@@ -8,13 +8,17 @@ defmodule Exq.ConfigTest do
     :ok
   end
 
+  setup do
+    on_exit fn -> ExqTestUtil.reset_config end
+  end
+
   test "Mix.Config should change the host." do
     assert Exq.Support.Config.get(:host) != "127.1.1.1"
     Mix.Config.persist([exq: [host: "127.1.1.1"]])
     assert Exq.Support.Config.get(:host) == "127.1.1.1"
   end
 
-test "redis_opts" do
+  test "redis_opts" do
     Mix.Config.persist([exq: [host: '127.0.0.1', port: 6379, password: '', database: 0, reconnect_on_sleep: 100, redis_timeout: 5000]])
     {[host: host, port: port, database: database, password: password],
       [backoff: reconnect_on_sleep, timeout: timeout, name: client_name]}
