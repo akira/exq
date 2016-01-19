@@ -1,4 +1,3 @@
-Code.require_file "test_helper.exs", __DIR__
 defmodule Exq.ConfigTest do
   use ExUnit.Case
   require Mix.Config
