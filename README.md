@@ -143,6 +143,7 @@ To enqueue jobs:
 
 {:ok, ack} = Exq.enqueue(Exq, "default", "MyWorker", ["arg1", "arg2"])
 ```
+In this example, `"arg1"` will get passed as the first argument to the `perform` method in your worker, `"arg2"` will be second argument, etc.
 
 You can also enqueue jobs without starting workers:
 
