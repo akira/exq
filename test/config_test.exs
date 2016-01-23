@@ -58,7 +58,8 @@ defmodule Exq.ConfigTest do
     {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts
     [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
       workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: name,
-      scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency]
+      scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency, middleware: middleware,
+      default_middleware: default_middleware]
     = server_opts
     assert scheduler_enable == true
     assert namespace == "exq"
@@ -72,6 +73,9 @@ defmodule Exq.ConfigTest do
     assert queues == ["default"]
     assert redis == Exq.Redis.Client
     assert concurrency == [{"default", 100, 0}]
+    assert middleware == Exq.Middleware.Server
+    assert default_middleware == [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
+      Exq.Middleware.Logger]
 
     Mix.Config.persist([exq: [queues: [{"default", 1000}, {"test1", 2000}]]])
     {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts

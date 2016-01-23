@@ -16,20 +16,19 @@ defmodule Exq.Worker.Server do
 
   Expects :work message after initialization to kickoff work.
   """
-  require Logger
   use GenServer
 
-  alias Exq.Redis.JobQueue
-  alias Exq.Stats.Server, as: Stats
+  alias Exq.Middleware.Server, as: Middleware
+  alias Exq.Middleware.Pipeline
 
   defmodule State do
-    defstruct job_json: nil, job: nil, manager: nil, queue: nil, namespace: nil,
-      work_table: nil, worker_module: nil, stats: nil, host: nil,
-      process_info: nil, redis: nil
+    defstruct job_json: nil, manager: nil, queue: nil, namespace: nil,
+      work_table: nil, stats: nil, host: nil, redis: nil, middleware: nil, pipeline: nil,
+      middleware_state: nil
   end
 
-  def start_link(job_json, manager, queue, work_table, stats, namespace, host, redis) do
-    GenServer.start(__MODULE__, {job_json, manager, queue, work_table, stats, namespace, host, redis}, [])
+  def start_link(job_json, manager, queue, work_table, stats, namespace, host, redis, middleware) do
+    GenServer.start(__MODULE__, {job_json, manager, queue, work_table, stats, namespace, host, redis, middleware}, [])
   end
 
   @doc """
@@ -43,17 +42,16 @@ defmodule Exq.Worker.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def init({job_json, manager, queue, work_table, stats, namespace, host, redis}) do
+  def init({job_json, manager, queue, work_table, stats, namespace, host, redis, middleware}) do
     {
       :ok,
       %State{
         job_json: job_json, manager: manager, queue: queue,
         work_table: work_table, stats: stats, namespace: namespace,
-        host: host, redis: redis
+        host: host, redis: redis, middleware: middleware
       }
     }
   end
-
   @doc """
   Kickoff work associated with worker.
 
@@ -64,13 +62,10 @@ defmodule Exq.Worker.Server do
   Calls :dispatch to then call target module.
   """
   def handle_cast(:work, state) do
-    {:ok, process_info} = Stats.add_process(state.stats, state.namespace, self(), state.host, state.job_json)
-    job = Exq.Support.Job.from_json(state.job_json)
-    target = String.replace(job.class, "::", ".")
-    [mod | _func_or_empty] = Regex.split(~r/\//, target)
+    state = %{state | middleware_state: Middleware.all(state.middleware)}
+    state = %{state | pipeline: before_work(state)}
     GenServer.cast(self, :dispatch)
-    {:noreply, %{state | worker_module: String.to_atom("Elixir.#{mod}"),
-                 job: job, process_info: process_info } }
+    {:noreply, state}
   end
 
 
@@ -78,7 +73,7 @@ defmodule Exq.Worker.Server do
   Dispatch work to the target module (call :perform method of target)
   """
   def handle_cast(:dispatch, state) do
-    dispatch_work(state.worker_module, state.job.args)
+    dispatch_work(state.pipeline.assigns.worker_module, state.pipeline.assigns.job.args)
     {:noreply, state }
   end
 
@@ -86,7 +81,7 @@ defmodule Exq.Worker.Server do
   Worker done with normal termination message
   """
   def handle_cast(:done, state) do
-    worker_finished(state)
+    after_processed_work(state)
     {:stop, :normal, state }
   end
 
@@ -95,7 +90,12 @@ defmodule Exq.Worker.Server do
   end
 
   def handle_info({:DOWN, _, :process, _, error}, state) do
-    worker_failed(state, error)
+    error_message = error
+    |> Inspect.Algebra.to_doc(%Inspect.Opts{})
+    |> Inspect.Algebra.format(%Inspect.Opts{}.width)
+    |> to_string
+
+    after_failed_work(state, error_message)
     {:stop, :normal, state}
   end
 
@@ -118,67 +118,20 @@ defmodule Exq.Worker.Server do
     Process.monitor(pid)
   end
 
-  def worker_finished(state) do
-    notify_manager(state)
-    notify_stats(state)
-    remove_job_from_backup(state)
+  defp before_work(state) do
+    %Pipeline{event: :before_work, worker_pid: self}
+    |> Pipeline.assign_worker_state(state)
+    |> Pipeline.chain(state.middleware_state)
   end
 
-  def worker_failed(state, error) do
-    error_msg = error |>
-      Inspect.Algebra.to_doc(%Inspect.Opts{}) |>
-      Inspect.Algebra.format(%Inspect.Opts{}.width) |>
-      to_string
-
-    notify_manager(state)
-    notify_stats(state, error_msg)
-    retry_or_fail_job(state, error_msg)
-    remove_job_from_backup(state)
+  defp after_processed_work(state) do
+    %Pipeline{event: :after_processed_work, worker_pid: self, assigns: state.pipeline.assigns}
+    |> Pipeline.chain(state.middleware_state)
   end
 
-  defp retry_or_fail_job(state, error_msg) do
-    if state.job do
-      JobQueue.retry_or_fail_job(state.redis, state.namespace, state.job, to_string(error_msg))
-    end
+  defp after_failed_work(state, error_message) do
+    %Pipeline{event: :after_failed_work, worker_pid: self, assigns: state.pipeline.assigns}
+    |> Pipeline.assign(:error_message, error_message)
+    |> Pipeline.chain(state.middleware_state)
   end
-
-  defp notify_stats(state) do
-    case is_alive?(state.stats) do
-      nil ->
-        Logger.error("Worker terminated, but stats was not alive.")
-      _pid ->
-        Stats.process_terminated(state.stats, state.namespace, state.process_info)
-        Stats.record_processed(state.stats, state.namespace, state.job)
-    end
-  end
-  defp notify_stats(state, error_msg) do
-    case is_alive?(state.stats) do
-      nil ->
-        Logger.error("Worker terminated, but stats was not alive.")
-      _pid ->
-        Stats.process_terminated(state.stats, state.namespace, state.process_info)
-        Stats.record_failure(state.stats, state.namespace, to_string(error_msg), state.job)
-    end
-  end
-
-  defp remove_job_from_backup(state) do
-    JobQueue.remove_job_from_backup(state.redis, state.namespace, state.host, state.queue, state.job_json)
-  end
-
-  defp notify_manager(state) do
-    case is_alive?(state.manager) do
-      true ->
-        Exq.Manager.Server.job_terminated(state.manager, state.namespace, state.queue, state.job_json)
-      _ ->
-        Logger.error("Worker terminated, but manager was not alive.")
-    end
-  end
-
-  defp is_alive?(pid) when is_pid(pid) do
-    Process.alive?(pid)
-  end
-  defp is_alive?(sup) when is_atom(sup) do
-    Process.whereis(sup)
-  end
-  defp is_alive?(_), do: false
 end
