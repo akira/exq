@@ -30,7 +30,7 @@ defmodule Exq.Enqueuer.Server do
 
   def start_link(opts \\ []) do
     server_name =
-      case opts[:start_by_enqueuer_sup] do
+      case opts[:start_by_enqueuer_sup] && opts[:name] do
         true -> opts[:name]
         _ -> server_name(opts[:name])
       end
