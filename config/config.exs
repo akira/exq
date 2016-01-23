@@ -16,7 +16,7 @@ config :exq,
   redis_timeout: 5000,
   genserver_timeout: 5000,
   max_retries: 25,
-  midlleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
+  middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
     Exq.Middleware.Logger]
 
 import_config "#{Mix.env}.exs"

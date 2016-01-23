@@ -56,7 +56,8 @@ defmodule Exq.Support.Opts do
     per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency, 10_000)
     queues = get_queues(queue_configs)
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
-    default_middleware = Config.get(:middleware, [])
+    default_middleware = Config.get(:middleware, [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
+    Exq.Middleware.Logger])
 
     [scheduler_enable: scheduler_enable, namespace: namespace,
      scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,
