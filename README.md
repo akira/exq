@@ -16,6 +16,7 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
   * You can run both Exq and Toniq in the same app for different workers.
 * Exq supports uncapped amount of jobs running, or also allows a max limit per queue.
 * Exq supports job retries with exponential backoff.
+* Exq supports configurable middleware for customization / plugins.
 * Exq tracks several stats including failed busy, and processed jobs.
 * Exq stores in progress jobs in a backup queue (using the Redis RPOPLPUSH command).
   This means that if the system or worker is restarted while a job is in progress,
@@ -166,21 +167,6 @@ time = Timex.Date.from({{2015, 12, 25}, {8, 0, 0}}) |> Timex.Date.to_timestamp
 {:ok, ack} = Exq.enqueue_at(Exq, "default", time, MyWorker, ["arg1", "arg2"])
 ```
 
-### Dynamic queue subscriptions:
-
-The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start_link.  However, we can also dynamically add and remove queue subscriptions after exq has started.
-
-To subscribe to a new queue:
-```elixir
-# last arg is optional and is the max concurrency for the queue
-:ok = Exq.subscribe(Exq, "new_queue_name", 10)
-```
-
-To unsubscribe from a queue:
-```elixir
-:ok = Exq.unsubscribe(Exq, "queue_to_unsubscribe")
-```
-
 ### Creating Workers:
 
 To create a worker, create an elixir module matching the worker name that will be
@@ -214,6 +200,30 @@ defmodule MyWorker do
   end
 end
 ```
+
+### Dynamic queue subscriptions:
+
+The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start_link.  However, we can also dynamically add and remove queue subscriptions after exq has started.
+
+To subscribe to a new queue:
+```elixir
+# last arg is optional and is the max concurrency for the queue
+:ok = Exq.subscribe(Exq, "new_queue_name", 10)
+```
+
+To unsubscribe from a queue:
+```elixir
+:ok = Exq.unsubscribe(Exq, "queue_to_unsubscribe")
+```
+
+## Middleware Support
+
+If you'd like to customize worker execution and/or create plugins like Sidekiq/Resque have, Exq supports custom middleware. The first step would be to define the middleware in config.exs and add your middleware into the chain:
+```elixir
+  middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
+    Exq.Middleware.Logger]
+```
+You can then create a module that implements the middleware behavior and defines `before_work`,  `after_processed_work` and `after_failed_work` functions.  You can also halt execution of the chain as well. For a simple example of middleware implementation, see the [Exq Logger Middleware](https://github.com/akira/exq/blob/master/lib/exq/middleware/logger.ex).
 
 ## Using with Phoenix and Ecto
 
