@@ -111,7 +111,7 @@ defmodule ExqTest do
   test "enqueue with separate enqueuer" do
     Process.register(self, :exqtest)
     {:ok, exq_sup} = Exq.start_link
-    {:ok, enq_sup} = Exq.Enqueuer.start_link(name: ExqE)
+    {:ok, enq_sup} = Exq.Enqueuer.Supervisor.start_link(name: ExqE)
     {:ok, _} = Exq.Enqueuer.enqueue(ExqE, "default", ExqTest.PerformWorker, [])
     assert_receive {:worked}
     stop_process(exq_sup)

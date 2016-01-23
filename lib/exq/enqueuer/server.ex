@@ -30,9 +30,10 @@ defmodule Exq.Enqueuer.Server do
 
   def start_link(opts \\ []) do
     server_name =
-      case opts[:start_by_enqueuer_sup] && opts[:name] do
-        true -> opts[:name]
-        _ -> server_name(opts[:name])
+      if opts[:start_by_enqueuer_sup] && opts[:name] do
+        opts[:name]
+      else
+        server_name(opts[:name])
       end
     GenServer.start_link(__MODULE__, opts, name: server_name)
   end

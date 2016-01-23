@@ -124,7 +124,7 @@ defmodule MiddlewareTest do
 
   test "restores default middleware after process kill" do
     {:ok, _pid} = Exq.start_link
-    chain = [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager, Exq.Middleware.Logger]
+    chain = [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager]
     assert Middleware.all(Middleware) == chain
 
     pid = Process.whereis(Middleware)

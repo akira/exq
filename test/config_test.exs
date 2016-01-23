@@ -74,8 +74,7 @@ defmodule Exq.ConfigTest do
     assert redis == Exq.Redis.Client
     assert concurrency == [{"default", 100, 0}]
     assert middleware == Exq.Middleware.Server
-    assert default_middleware == [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
-      Exq.Middleware.Logger]
+    assert default_middleware == [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager]
 
     Mix.Config.persist([exq: [queues: [{"default", 1000}, {"test1", 2000}]]])
     {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts
