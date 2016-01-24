@@ -44,10 +44,12 @@ Then run ```mix deps.get```.
 ### Configuration:
 
 By default, Exq will use configuration from your config.exs file.  You can use this
-to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis).
-The `name` you can custom Exq's name by anything, same as `Exq.start_link([name: Name])` default is Exq
-The `queues` list specifices which queues Exq will listen to for new jobs.
-The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
+to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options). 
+
+Other options include:
+* The `queues` list specifices which queues Exq will listen to for new jobs.
+* The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
+* The `name` option allows you to customize Exq's registered name, similar to usingas `Exq.start_link([name: Name])`. The default is Exq.
 
 ```elixir
 config :exq,
@@ -122,7 +124,14 @@ You can add Exq into your OTP application list, and it will start an instance of
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
 
 ## Using iex:
-If you'd like to try Exq out on the iex console, you can do this by typing ```iex -S mix``` after ```mix deps.get```.
+If you'd like to try Exq out on the iex console, you can do this by typing 
+```
+mix deps.get
+```
+and then 
+```
+iex -S mix
+```  
 
 ### Standalone Exq:
 
