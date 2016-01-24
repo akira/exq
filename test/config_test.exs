@@ -43,6 +43,9 @@ defmodule Exq.ConfigTest do
     {redis_opts, _} = Exq.Support.Opts.redis_opts
     assert redis_opts[:password] == nil
 
+    Mix.Config.persist([exq: [url: "redis_url"]])
+    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    assert redis_opts == "redis_url"
   end
 
   test "conform_opts" do

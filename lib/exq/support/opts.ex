@@ -24,15 +24,19 @@ defmodule Exq.Support.Opts do
   end
 
   def redis_opts(opts \\ []) do
-    host = opts[:host] || Config.get(:host, '127.0.0.1')
-    port = opts[:port] || Config.get(:port, 6379)
-    database = opts[:database] || Config.get(:database, 0)
-    password = opts[:password] || Config.get(:password)
+    redis_opts = if url = opts[:url] || Config.get(:url) do
+      url
+    else
+      host = opts[:host] || Config.get(:host, '127.0.0.1')
+      port = opts[:port] || Config.get(:port, 6379)
+      database = opts[:database] || Config.get(:database, 0)
+      password = opts[:password] || Config.get(:password)
+      [host: host, port: port, database: database, password: password]
+    end
     reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep, 100)
     timeout = opts[:redis_timeout] || Config.get(:redis_timeout, @default_timeout)
     if is_binary(host), do: host = String.to_char_list(host)
-    {[host: host, port: port, database: database, password: password],
-     [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
+    {redis_opts, [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
   end
 
   def redis_client_name(name) do
