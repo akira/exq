@@ -97,7 +97,7 @@ defmodule TestRedis do
     try do
       Connection.flushdb! :testredis
     catch
-      :exit, {:timeout, info} -> nil
+      :exit, {:timeout, _info} -> nil
     end
   end
 
