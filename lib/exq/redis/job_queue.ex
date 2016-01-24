@@ -27,12 +27,14 @@ defmodule Exq.Redis.JobQueue do
   Find a current job by job id (but do not pop it)
   """
   def find_job(redis, namespace, jid, :scheduled) do
-    Connection.zrangebyscore!(redis, scheduled_queue_key(namespace))
-      |> find_job(jid)
+    redis
+    |> Connection.zrangebyscore!(scheduled_queue_key(namespace))
+    |> find_job(jid)
   end
   def find_job(redis, namespace, jid, queue) do
-    Connection.lrange!(redis, queue_key(namespace, queue))
-      |> find_job(jid)
+    redis
+    |> Connection.lrange!(queue_key(namespace, queue))
+    |> find_job(jid)
   end
   def find_job(jobs, jid) do
     finder = fn({j, _idx}) ->
@@ -167,7 +169,9 @@ defmodule Exq.Redis.JobQueue do
     case resp do
       {:error, reason} -> [{:error, reason}]
       {:ok, responses} ->
-        Enum.zip(queues, responses) |> Enum.reduce(0, fn({queue, response}, acc) ->
+        queues
+        |> Enum.zip(responses)
+        |> Enum.reduce(0, fn({queue, response}, acc) ->
           case response do
             jobs when is_list(jobs) ->
               deq_count = scheduler_dequeue_requeue(jobs, redis, namespace, queue, 0)

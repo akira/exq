@@ -56,8 +56,9 @@ defmodule Exq.Redis.JobStat do
   end
 
   def find_failed(redis, namespace, jid) do
-    Connection.zrange!(redis, JobQueue.full_key(namespace, "dead"), 0, -1)
-      |> JobQueue.find_job(jid)
+    redis
+    |> Connection.zrange!(JobQueue.full_key(namespace, "dead"), 0, -1)
+    |> JobQueue.find_job(jid)
   end
 
   def remove_queue(redis, namespace, queue) do

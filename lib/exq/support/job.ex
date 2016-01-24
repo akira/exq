@@ -27,7 +27,7 @@ defmodule Exq.Support.Job do
   end
 
   def to_json(job) do
-    Enum.into([
+    json = Enum.into([
       args: job.args,
       class: job.class,
       enqueued_at: job.enqueued_at,
@@ -40,6 +40,6 @@ defmodule Exq.Support.Job do
       queue: job.queue,
       retry: job.retry,
       retry_count: job.retry_count], HashDict.new)
-    Json.encode!(job)
+    Json.encode!(json)
   end
 end
