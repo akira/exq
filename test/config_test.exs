@@ -36,7 +36,6 @@ defmodule Exq.ConfigTest do
     assert redis_opts[:password] == 'password'
 
     Mix.Config.persist([exq: [password: "binary_password"]])
-
     {redis_opts, _} = Exq.Support.Opts.redis_opts
     assert redis_opts[:password] == "binary_password"
 
