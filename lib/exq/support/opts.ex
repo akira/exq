@@ -13,11 +13,11 @@ defmodule Exq.Support.Opts do
   @doc """
    Return {redis_options, redis_connection_opts, gen_server_opts}
   """
-  def conform_opts(opts \\[]) do
+  def conform_opts(opts \\ []) do
     redis = redis_client_name(opts[:name])
     opts = [{:redis, redis}|opts]
     {redis_opts, connection_opts} = redis_opts(opts)
-    server_opts = server_opts(opts)
+    server_opts = server_opts(opts[:mode], opts)
     {redis_opts, connection_opts, server_opts}
   end
 
@@ -42,7 +42,7 @@ defmodule Exq.Support.Opts do
     "#{name}.Redis.Client" |> String.to_atom
   end
 
-  defp server_opts(opts) do
+  defp server_opts(:default, opts) do
     scheduler_enable = opts[:scheduler_enable] || Config.get(:scheduler_enable)
     namespace = opts[:namespace] || Config.get(:namespace)
     scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout)
@@ -64,7 +64,11 @@ defmodule Exq.Support.Opts do
      scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,
      poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: opts[:name],
      scheduler: scheduler, queues: queues, redis: opts[:redis], concurrency: concurrency,
-     middleware: middleware, default_middleware: default_middleware]
+     middleware: middleware, default_middleware: default_middleware, mode: opts[:mode]]
+  end
+  defp server_opts(mode, opts) do
+    namespace = opts[:namespace] || Config.get(:namespace)
+    [name: opts[:name], namespace: namespace, redis: opts[:redis], mode: opts[:mode]]
   end
 
   defp get_queues(queue_configs) do

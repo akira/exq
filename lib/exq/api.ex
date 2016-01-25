@@ -1,10 +1,12 @@
 defmodule Exq.Api do
   @moduledoc """
   Interface for retrieving Exq stats.
-  Pid is currently Exq.Enqueuer process (TODO: Split this out to other GenServer)
+  Pid is currently Exq.Api process
   """
 
-  require Logger
+  def start_link(opts \\ []) do
+    Exq.start_link(Keyword.put(opts, :mode, :api))
+  end
 
   def queues(pid) do
     GenServer.call(pid, :queues)
@@ -87,5 +89,4 @@ defmodule Exq.Api do
   def realtime_stats(pid) do
     GenServer.call(pid, :realtime_stats)
   end
-
 end

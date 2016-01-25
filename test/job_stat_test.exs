@@ -45,16 +45,17 @@ defmodule JobStatTest do
     JobStat.record_failure(:testredis, "test", nil, nil, time1)
     JobStat.record_failure(:testredis, "test", nil, nil, time2)
 
-    Exq.Enqueuer.start_link(name: ExqE)
-    {:ok, failures, successes} = Exq.Api.realtime_stats(ExqE)
+    Exq.start_link(mode: :api, name: ExqApi)
+    {:ok, failures, successes} = Exq.Api.realtime_stats(ExqApi.Api)
 
     assert List.keysort(failures, 0) == [{"2016-01-07 13:30:00 +0000", "1"}, {"2016-01-07 14:05:15 +0000", "1"}]
     assert List.keysort(successes, 0) == [{"2016-01-07 13:30:00 +0000", "2"}, {"2016-01-07 14:05:15 +0000", "1"}]
   end
 
   test "show realtime statistics with no data" do
-    Exq.Enqueuer.start_link(name: ExqE)
-    {:ok, failures, successes} = Exq.Api.realtime_stats(ExqE)
+    Exq.start_link(mode: :api, name: ExqApi)
+
+    {:ok, failures, successes} = Exq.Api.realtime_stats(ExqApi.Api)
 
     assert List.keysort(failures, 0) == []
     assert List.keysort(successes, 0) == []

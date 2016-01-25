@@ -48,20 +48,23 @@ defmodule Exq.ConfigTest do
     assert redis_opts == "redis_url"
   end
 
-  test "conform_opts" do
-    Mix.Config.persist([exq: [queues: ["default"],
-     scheduler_enable: true,
-     namespace: "exq",
-     concurrency: 100,
-     scheduler_poll_timeout: 200,
-     poll_timeout: 100,
-     redis_timeout: 5000,
-     ]])
-    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts
+  test "default conform_opts" do
+    Mix.Config.persist([
+      exq: [
+        queues: ["default"],
+        scheduler_enable: true,
+        namespace: "exq",
+        concurrency: 100,
+        scheduler_poll_timeout: 200,
+        poll_timeout: 100,
+        redis_timeout: 5000,
+      ]
+    ])
+    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :default])
     [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
       workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: name,
       scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency, middleware: middleware,
-      default_middleware: default_middleware]
+      default_middleware: default_middleware, mode: mode]
     = server_opts
     assert scheduler_enable == true
     assert namespace == "exq"
@@ -77,12 +80,21 @@ defmodule Exq.ConfigTest do
     assert concurrency == [{"default", 100, 0}]
     assert middleware == Exq.Middleware.Server
     assert default_middleware == [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager]
+    assert mode == :default
 
     Mix.Config.persist([exq: [queues: [{"default", 1000}, {"test1", 2000}]]])
-    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts
+    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :default])
     assert server_opts[:queues] == ["default", "test1"]
     assert server_opts[:concurrency] == [{"default", 1000, 0}, {"test1", 2000, 0}]
-
   end
 
+  test "api conform_opts" do
+    Mix.Config.persist([exq: []])
+    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :api])
+    [name: name, namespace: namespace, redis: redis, mode: mode] = server_opts
+    assert namespace == "test"
+    assert name == nil
+    assert redis == Exq.Redis.Client
+    assert mode == :api
+  end
 end

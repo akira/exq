@@ -7,6 +7,6 @@ defmodule Exq.Enqueuer do
   use Exq.Enqueuer.EnqueueApi
 
   def start_link(opts \\ []) do
-    Exq.Enqueuer.Supervisor.start_link(opts)
+    Exq.start_link(Keyword.put(opts, :mode, :enqueuer))
   end
 end

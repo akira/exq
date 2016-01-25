@@ -111,11 +111,24 @@ defmodule ExqTest do
   test "enqueue with separate enqueuer" do
     Process.register(self, :exqtest)
     {:ok, exq_sup} = Exq.start_link
-    {:ok, enq_sup} = Exq.Enqueuer.Supervisor.start_link(name: ExqE)
-    {:ok, _} = Exq.Enqueuer.enqueue(ExqE, "default", ExqTest.PerformWorker, [])
+    {:ok, enq_srv} = Exq.start_link(mode: :enqueuer, name: ExqE)
+    {:ok, _} = Exq.Enqueuer.enqueue(ExqE.Enqueuer, "default", ExqTest.PerformWorker, [])
     assert_receive {:worked}
     stop_process(exq_sup)
-    stop_process(enq_sup)
+    stop_process(enq_srv)
+  end
+
+  test "enqueue with separate enqueuer even if main Exq process is down" do
+    Process.register(self, :exqtest)
+    {:ok, exq_sup} = Exq.start_link
+    stop_process(exq_sup)
+    {:ok, enq_srv} = Exq.start_link(mode: :enqueuer)
+    {:ok, _} = Exq.Enqueuer.enqueue(Exq.Enqueuer, "default", ExqTest.PerformWorker, [])
+
+    stop_process(enq_srv)
+    {:ok, exq_sup} = Exq.start_link
+    assert_receive {:worked}
+    stop_process(exq_sup)
   end
 
   test "run jobs on multiple queues" do
@@ -255,15 +268,14 @@ defmodule ExqTest do
 
     # if we kill Exq too fast we dont record the failure because exq is gone
     wait_long
+    stop_process(sup)
 
-    {:ok, enq_sup} = Exq.Enqueuer.start_link(name: ExqE)
+    {:ok, sup} = Exq.start_link(mode: :api)
 
     # Find the job in the processed queue
-    {:ok, _, _} = Exq.Api.find_failed(ExqE, jid)
+    {:ok, _, _} = Exq.Api.find_failed(Exq.Api, jid)
 
     wait_long
-
     stop_process(sup)
-    stop_process(enq_sup)
   end
 end
