@@ -23,7 +23,7 @@ defmodule Exq.Enqueuer.Supervisor do
   end
 
   def supervisor_name(name) do
-    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    unless name, do: name = Exq.Support.Config.get(:name)
     "#{name}.Enqueuer.Sup" |> String.to_atom
   end
 

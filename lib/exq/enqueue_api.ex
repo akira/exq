@@ -24,7 +24,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
       * `{:error, reason}` if there was an error enqueueing job
       """
       def enqueue(pid, queue, worker, args) do
-        GenServer.call(pid, {:enqueue, queue, worker, args}, Config.get(:genserver_timeout, 5000))
+        GenServer.call(pid, {:enqueue, queue, worker, args}, Config.get(:genserver_timeout))
       end
       def enqueue(pid, from, queue, worker, args) do
         GenServer.cast(pid, {:enqueue, from, queue, worker, args})
@@ -41,7 +41,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `args` - Array of args to send to worker
       """
       def enqueue_at(pid, queue, time, worker, args) do
-        GenServer.call(pid, {:enqueue_at, queue, time, worker, args}, Config.get(:genserver_timeout, 5000))
+        GenServer.call(pid, {:enqueue_at, queue, time, worker, args}, Config.get(:genserver_timeout))
       end
       def enqueue_at(pid, from, queue, time, worker, args) do
         GenServer.cast(pid, {:enqueue_at, from, queue, time, worker, args})
@@ -58,7 +58,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `args` - Array of args to send to worker
       """
       def enqueue_in(pid, queue, offset, worker, args) do
-        GenServer.call(pid, {:enqueue_in, queue, offset, worker, args}, Config.get(:genserver_timeout, 5000))
+        GenServer.call(pid, {:enqueue_in, queue, offset, worker, args}, Config.get(:genserver_timeout))
       end
       def enqueue_in(pid, from, queue, offset, worker, args) do
         GenServer.cast(pid, {:enqueue_in, from, queue, offset, worker, args})
