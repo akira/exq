@@ -2,13 +2,11 @@ defmodule Exq.Support.Opts do
 
   alias Exq.Support.Config
 
-  @default_timeout 5000
-
   @doc """
    Return top supervisor's name default is Exq.Sup
   """
   def top_supervisor(name) do
-    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    unless name, do: name = Exq.Support.Config.get(:name)
     "#{name}.Sup" |> String.to_atom
   end
 
@@ -27,27 +25,27 @@ defmodule Exq.Support.Opts do
     redis_opts = if url = opts[:url] || Config.get(:url) do
       url
     else
-      host = opts[:host] || Config.get(:host, '127.0.0.1')
-      port = opts[:port] || Config.get(:port, 6379)
+      host = opts[:host] || Config.get(:host)
+      port = opts[:port] || Config.get(:port)
       database = opts[:database] || Config.get(:database, 0)
       password = opts[:password] || Config.get(:password)
       [host: host, port: port, database: database, password: password]
     end
     reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep, 100)
-    timeout = opts[:redis_timeout] || Config.get(:redis_timeout, @default_timeout)
+    timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
     if is_binary(host), do: host = String.to_char_list(host)
     {redis_opts, [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
   end
 
   def redis_client_name(name) do
-    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    unless name, do: name = Exq.Support.Config.get(:name)
     "#{name}.Redis.Client" |> String.to_atom
   end
 
   defp server_opts(opts) do
-    scheduler_enable = opts[:scheduler_enable] || Config.get(:scheduler_enable, true)
-    namespace = opts[:namespace] || Config.get(:namespace, "exq")
-    scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout, 200)
+    scheduler_enable = opts[:scheduler_enable] || Config.get(:scheduler_enable)
+    namespace = opts[:namespace] || Config.get(:namespace)
+    scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout)
     poll_timeout = opts[:poll_timeout] || Config.get(:poll_timeout, 50)
 
     enqueuer = Exq.Enqueuer.Server.server_name(opts[:name])
@@ -56,12 +54,11 @@ defmodule Exq.Support.Opts do
     workers_sup = Exq.Worker.Supervisor.supervisor_name(opts[:name])
     middleware = Exq.Middleware.Server.server_name(opts[:name])
 
-    queue_configs = opts[:queues] || Config.get(:queues, ["default"])
+    queue_configs = opts[:queues] || Config.get(:queues)
     per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency, 10_000)
     queues = get_queues(queue_configs)
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
-    default_middleware = Config.get(:middleware, [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
-    Exq.Middleware.Logger])
+    default_middleware = Config.get(:middleware)
 
     [scheduler_enable: scheduler_enable, namespace: namespace,
      scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,

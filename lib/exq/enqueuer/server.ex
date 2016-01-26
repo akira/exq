@@ -44,7 +44,7 @@ defmodule Exq.Enqueuer.Server do
 
   def init(opts) do
     redis = opts[:redis] || Exq.Support.Opts.redis_client_name(opts[:name])
-    namespace = opts[:namespace] || Config.get(:namespace, "exq")
+    namespace = opts[:namespace] || Config.get(:namespace)
     state = %State{redis: redis, namespace: namespace}
     {:ok, state}
   end
@@ -231,7 +231,7 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def server_name(name) do
-    unless name, do: name = Config.get(:name, Exq)
+    unless name, do: name = Config.get(:name)
     "#{name}.Enqueuer" |> String.to_atom
   end
 

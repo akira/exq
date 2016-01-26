@@ -20,9 +20,6 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Support.Config
   alias Exq.Support.Randomize
 
-  @default_max_retries 25
-  @default_queue "default"
-
   @doc """
   Find a current job by job id (but do not pop it)
   """
@@ -231,7 +228,7 @@ defmodule Exq.Redis.JobQueue do
 
   def retry_or_fail_job(redis, namespace, %{retry: true} = job, error) do
     retry_count = (job.retry_count || 0) + 1
-    max_retries = Config.get(:max_retries, @default_max_retries)
+    max_retries = Config.get(:max_retries)
 
     if (retry_count <= max_retries) do
       job = %{job |

@@ -69,7 +69,7 @@ defmodule Exq.Middleware.Server do
   Returns middleware server name
   """
   def server_name(name) do
-    unless name, do: name = Exq.Support.Config.get(:name, Exq)
+    unless name, do: name = Exq.Support.Config.get(:name)
     "#{name}.Middleware.Server" |> String.to_atom
   end
 
