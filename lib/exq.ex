@@ -15,7 +15,6 @@ defmodule Exq do
 
   # Exq methods
   def start_link(opts \\ []) do
-    unless opts[:mode], do: opts = Keyword.put(opts, :mode, Config.get(:mode))
     children = Exq.Support.Mode.children(opts)
 
     Supervisor.start_link(children,

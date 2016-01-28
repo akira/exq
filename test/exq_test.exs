@@ -111,21 +111,21 @@ defmodule ExqTest do
   test "enqueue with separate enqueuer" do
     Process.register(self, :exqtest)
     {:ok, exq_sup} = Exq.start_link
-    {:ok, enq_srv} = Exq.start_link(mode: :enqueuer, name: ExqE)
+    {:ok, enq_sup} = Exq.start_link(mode: :enqueuer, name: ExqE)
     {:ok, _} = Exq.Enqueuer.enqueue(ExqE.Enqueuer, "default", ExqTest.PerformWorker, [])
     assert_receive {:worked}
     stop_process(exq_sup)
-    stop_process(enq_srv)
+    stop_process(enq_sup)
   end
 
   test "enqueue with separate enqueuer even if main Exq process is down" do
     Process.register(self, :exqtest)
     {:ok, exq_sup} = Exq.start_link
     stop_process(exq_sup)
-    {:ok, enq_srv} = Exq.start_link(mode: :enqueuer)
+    {:ok, enq_sup} = Exq.start_link(mode: :enqueuer)
     {:ok, _} = Exq.Enqueuer.enqueue(Exq.Enqueuer, "default", ExqTest.PerformWorker, [])
 
-    stop_process(enq_srv)
+    stop_process(enq_sup)
     {:ok, exq_sup} = Exq.start_link
     assert_receive {:worked}
     stop_process(exq_sup)
