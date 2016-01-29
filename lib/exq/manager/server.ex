@@ -293,7 +293,7 @@ defmodule Exq.Manager.Server do
     work_table
   end
 
-  defp add_queue(state, queue, concurrency \\ Config.get(:concurrency, 10_000)) do
+  defp add_queue(state, queue, concurrency \\ Config.get(:concurrency)) do
     queue_concurrency = {queue, concurrency, 0}
     :ets.insert(state.work_table, queue_concurrency)
     GenServer.cast(self, {:re_enqueue_backup, queue})

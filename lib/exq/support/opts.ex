@@ -28,11 +28,11 @@ defmodule Exq.Support.Opts do
     else
       host = opts[:host] || Config.get(:host)
       port = opts[:port] || Config.get(:port)
-      database = opts[:database] || Config.get(:database, 0)
+      database = opts[:database] || Config.get(:database)
       password = opts[:password] || Config.get(:password)
       [host: host, port: port, database: database, password: password]
     end
-    reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep, 100)
+    reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep)
     timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
     {redis_opts, [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
   end
@@ -46,7 +46,7 @@ defmodule Exq.Support.Opts do
     scheduler_enable = opts[:scheduler_enable] || Config.get(:scheduler_enable)
     namespace = opts[:namespace] || Config.get(:namespace)
     scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout)
-    poll_timeout = opts[:poll_timeout] || Config.get(:poll_timeout, 50)
+    poll_timeout = opts[:poll_timeout] || Config.get(:poll_timeout)
 
     enqueuer = Exq.Enqueuer.Server.server_name(opts[:name])
     stats = Exq.Stats.Server.server_name(opts[:name])
@@ -55,7 +55,7 @@ defmodule Exq.Support.Opts do
     middleware = Exq.Middleware.Server.server_name(opts[:name])
 
     queue_configs = opts[:queues] || Config.get(:queues)
-    per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency, 10_000)
+    per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency)
     queues = get_queues(queue_configs)
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
     default_middleware = Config.get(:middleware)
