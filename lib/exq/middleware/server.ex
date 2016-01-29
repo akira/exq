@@ -41,7 +41,6 @@ defmodule Exq.Middleware.Server do
   """
 
   use GenServer
-  alias Exq.Middleware.Pipeline
 
   @doc """
   Starts middleware server

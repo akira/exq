@@ -23,11 +23,11 @@ defmodule Exq.Middleware.Logger do
   end
 
 
-  defp delta(%Pipeline{assigns: assigns} = pipeline) do
+  defp delta(%Pipeline{assigns: assigns}) do
     Time.diff(Time.now, assigns.started_at, :secs)
   end
 
-  defp log_context(%Pipeline{assigns: assigns} = pipeline) do
+  defp log_context(%Pipeline{assigns: assigns}) do
     "#{assigns.worker_module}[#{assigns.job.jid}]"
   end
 end

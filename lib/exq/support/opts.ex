@@ -34,7 +34,6 @@ defmodule Exq.Support.Opts do
     end
     reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep, 100)
     timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
-    if is_binary(host), do: host = String.to_char_list(host)
     {redis_opts, [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
   end
 
