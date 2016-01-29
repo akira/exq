@@ -28,6 +28,7 @@ defmodule Exq.Support.Mode do
       worker(Exq.Manager.Server, [opts]),
       worker(Exq.Stats.Server, [opts]),
       worker(Exq.Enqueuer.Server, [opts]),
+      worker(Exq.Api.Server, [opts]),
       supervisor(Exq.Worker.Supervisor, [opts])
     ]
 
