@@ -2,7 +2,7 @@ defmodule Exq do
   require Logger
   use Application
 
-  import Exq.Support.Opts
+  import Exq.Support.Opts, only: [top_supervisor: 1]
 
   # Mixin Enqueue API
   use Exq.Enqueuer.EnqueueApi
@@ -15,23 +15,7 @@ defmodule Exq do
 
   # Exq methods
   def start_link(opts \\ []) do
-    import Supervisor.Spec, warn: false
-
-    {redis_opts, connection_opts, opts} = conform_opts(opts)
-
-    # make sure redis always first(start in order)
-    children = [
-      worker(Redix, [redis_opts, connection_opts]),
-      worker(Exq.Middleware.Server, [opts]),
-      worker(Exq.Manager.Server, [opts]),
-      worker(Exq.Stats.Server, [opts]),
-      worker(Exq.Enqueuer.Server, [opts]),
-      supervisor(Exq.Worker.Supervisor, [opts])
-    ]
-
-    if opts[:scheduler_enable] do
-      children = children ++ [worker(Exq.Scheduler.Server, [opts])]
-    end
+    children = Exq.Support.Mode.children(opts)
 
     Supervisor.start_link(children,
       name: top_supervisor(opts[:name]),

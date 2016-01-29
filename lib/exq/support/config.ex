@@ -1,6 +1,7 @@
 defmodule Exq.Support.Config do
   @default_config %{
     name: Exq,
+    mode: :default,
     host: "127.0.0.1",
     port: 6379,
     namespace: "exq",
