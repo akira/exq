@@ -34,7 +34,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.6.3"}
+      {:exq, "~> 0.6.4"}
     ]
   end
 ```
@@ -44,7 +44,7 @@ Then run ```mix deps.get```.
 ### Configuration:
 
 By default, Exq will use configuration from your config.exs file.  You can use this
-to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options). 
+to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options).
 
 Other options include:
 * The `queues` list specifices which queues Exq will listen to for new jobs.
@@ -124,14 +124,14 @@ You can add Exq into your OTP application list, and it will start an instance of
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
 
 ## Using iex:
-If you'd like to try Exq out on the iex console, you can do this by typing 
+If you'd like to try Exq out on the iex console, you can do this by typing
 ```
 mix deps.get
 ```
-and then 
+and then
 ```
 iex -S mix
-```  
+```
 
 ### Standalone Exq:
 
