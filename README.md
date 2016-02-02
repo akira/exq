@@ -236,16 +236,14 @@ You can then create a module that implements the middleware behavior and defines
 
 ## Using with Phoenix and Ecto
 
-If you would like to use Exq alongside Phoenix and Ecto, you will need to add Exq to your supervision hierarchy so that the Ecto Repo is available by the time jobs start processing. To do this, edit your application file and add a supervisor module. For example, if we have an application called ```HelloPhoenix```, you would edit ```lib/hello_phoenix.ex``` and add the Exq supervisor:
+If you would like to use Exq alongside Phoenix and Ecto, for example, if we have an application called ```HelloPhoenix```, you would edit ```lib/hello_phoenix.ex``` :
 ```elixir
     children = [
       # Start the endpoint when the application starts
       supervisor(HelloPhoenix.Endpoint, []),
       # Start the Ecto repository
       worker(HelloPhoenix.Repo, []),
-
-      #Add the Exq supervisor
-      supervisor(Exq, [])
+           
 
       # Here you could define other workers and supervisors as children
       # worker(HelloPhoenix.Worker, [arg1, arg2, arg3]),
@@ -256,7 +254,7 @@ Also, add :tzdata to your mix.exs application list:
 ```elixir
   def application do
     [mod: {Chat, []},
-     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :tzdata]]
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq, :tzdata]]
   end
 ```
 
