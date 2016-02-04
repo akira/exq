@@ -24,7 +24,7 @@ defmodule Exq.Middleware.Logger do
 
 
   defp delta(%Pipeline{assigns: assigns}) do
-    Time.diff(Time.now, assigns.started_at, :secs)
+    Time.diff(Time.now, assigns.started_at, :usecs)
   end
 
   defp log_context(%Pipeline{assigns: assigns}) do
