@@ -105,7 +105,7 @@ defmodule Exq.Api.Server do
   end
 
   def handle_call({:remove_queue, queue}, _from, state) do
-    JobStat.remove_queue(state, queue)
+    JobStat.remove_queue(state.redis, state.namespace, queue)
     {:reply, {:ok}, state, 0}
   end
 
