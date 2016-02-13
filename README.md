@@ -23,6 +23,19 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
   the job will be re_enqueued when the node is restarted and not lost.
 * Exq provides an optional web UI that you can use to view several stats as well as rate of job processing.
 
+### Do you need Exq?
+
+While you may reach for Sidekiq / Resque / Celery by default when writing apps in other languages, in Elixir there are some good options to consider that are already provided by the lanuage and platform. So before adding Exq or any Redis backed queueing library to your application, make sure to get familiar with OTP and see if that is enough for your needs. Redis backed queueing libraries do add additional infrastructure complexity and also overhead due to serialization / marshalling, so make sure to evaluate whether or it is an actual need.  
+
+Some OTP related documentation to look at:
+ 
+* http://elixir-lang.org/getting-started/mix-otp/genserver.html
+* http://elixir-lang.org/docs/v1.1/elixir/Task.html
+* http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html
+* http://erlang.org/doc/
+
+If you need a durable jobs, retries with exponential backoffs, dynamically scheduled jobs in the future - that are all able to survive application restarts, then an externally backed queueing library such as Exq could be a good fit. 
+
 ## Getting Started:
 
 This assumes you have an instance of [Redis](http://redis.io/) to use.
