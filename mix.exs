@@ -38,7 +38,12 @@ defmodule Exq.Mixfile do
       { :poison, ">= 1.2.0 and < 2.0.0"},
       { :timex, ">= 1.0.0" },
       { :excoveralls, "~> 0.3", only: :test },
-      { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test}
+      { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
+
+      # docs
+      {:ex_doc, ">= 0.10.0", only: :dev},
+      {:earmark, "~> 0.1", only: :dev},
+      {:inch_ex, ">= 0.0.0", only: :dev}
     ]
   end
 end

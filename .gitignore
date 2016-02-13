@@ -9,4 +9,4 @@ _build/
 .*.swp
 *.swo
 stdout
-
+/doc
