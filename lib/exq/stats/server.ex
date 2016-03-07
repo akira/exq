@@ -10,8 +10,11 @@ defmodule Exq.Stats.Server do
   """
   use GenServer
   use Timex
+
+  alias Timex.Format.DateTime.Formatter
   alias Exq.Redis.JobStat
   alias Exq.Support.Process
+
   require Logger
 
   defmodule State do
@@ -22,7 +25,10 @@ defmodule Exq.Stats.Server do
   Add in progress worker process
   """
   def add_process(stats, namespace, worker, host, job) do
-    process_info = %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.universal, "{ISO}")}
+    process_info = %Process{pid: worker,
+                            host: host,
+                            job: job,
+                            started_at: Formatter.format!(DateTime.universal, "{ISO}")}
     GenServer.cast(stats, {:add_process, namespace, process_info})
     {:ok, process_info}
   end

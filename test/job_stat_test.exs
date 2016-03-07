@@ -36,8 +36,8 @@ defmodule JobStatTest do
   end
 
   test "show realtime statistics" do
-    {:ok, time1} = DateFormat.parse("2016-01-07T13:30:00+00", "{ISO}")
-    {:ok, time2} = DateFormat.parse("2016-01-07T14:05:15+00", "{ISO}")
+    {:ok, time1} = Timex.parse("2016-01-07T13:30:00+00", "{ISO}")
+    {:ok, time2} = Timex.parse("2016-01-07T14:05:15+00", "{ISO}")
 
     JobStat.record_processed(:testredis, "test", nil, time1)
     JobStat.record_processed(:testredis, "test", nil, time2)
