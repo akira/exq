@@ -99,17 +99,17 @@ defmodule JobQueueTest do
   test "scheduler_dequeue max_score" do
     JobQueue.enqueue_in(:testredis, "test", "default", 300, MyWorker, [])
     now = Time.now
-    time1 = Time.add(now, Time.from(140, :secs))
+    time1 = Time.add(now, Time.from(140, :seconds))
     JobQueue.enqueue_at(:testredis, "test", "default", time1, MyWorker, [])
-    time2 = Time.add(now, Time.from(150, :secs))
+    time2 = Time.add(now, Time.from(150, :seconds))
     JobQueue.enqueue_at(:testredis, "test", "default", time2, MyWorker, [])
-    time2a = Time.add(now, Time.from(151, :secs))
-    time2b = Time.add(now, Time.from(159, :secs))
-    time3 = Time.add(now, Time.from(160, :secs))
+    time2a = Time.add(now, Time.from(151, :seconds))
+    time2b = Time.add(now, Time.from(159, :seconds))
+    time3 = Time.add(now, Time.from(160, :seconds))
     JobQueue.enqueue_at(:testredis, "test", "default", time3, MyWorker, [])
-    time4 = Time.add(now, Time.from(160000001, :usecs))
+    time4 = Time.add(now, Time.from(160000001, :microseconds))
     JobQueue.enqueue_at(:testredis, "test", "default", time4, MyWorker, [])
-    time5 = Time.add(now, Time.from(300, :secs))
+    time5 = Time.add(now, Time.from(300, :seconds))
 
     api_state = %Exq.Api.Server.State{redis: :testredis, namespace: "test"}
     assert Exq.Api.Server.queue_size(api_state, "default") == 0
