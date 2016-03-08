@@ -25,16 +25,16 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
 
 ### Do you need Exq?
 
-While you may reach for Sidekiq / Resque / Celery by default when writing apps in other languages, in Elixir there are some good options to consider that are already provided by the lanuage and platform. So before adding Exq or any Redis backed queueing library to your application, make sure to get familiar with OTP and see if that is enough for your needs. Redis backed queueing libraries do add additional infrastructure complexity and also overhead due to serialization / marshalling, so make sure to evaluate whether or it is an actual need.  
+While you may reach for Sidekiq / Resque / Celery by default when writing apps in other languages, in Elixir there are some good options to consider that are already provided by the lanuage and platform. So before adding Exq or any Redis backed queueing library to your application, make sure to get familiar with OTP and see if that is enough for your needs. Redis backed queueing libraries do add additional infrastructure complexity and also overhead due to serialization / marshalling, so make sure to evaluate whether or it is an actual need.
 
 Some OTP related documentation to look at:
- 
+
 * http://elixir-lang.org/getting-started/mix-otp/genserver.html
 * http://elixir-lang.org/docs/v1.1/elixir/Task.html
 * http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html
 * http://erlang.org/doc/
 
-If you need a durable jobs, retries with exponential backoffs, dynamically scheduled jobs in the future - that are all able to survive application restarts, then an externally backed queueing library such as Exq could be a good fit. 
+If you need a durable jobs, retries with exponential backoffs, dynamically scheduled jobs in the future - that are all able to survive application restarts, then an externally backed queueing library such as Exq could be a good fit.
 
 ## Getting Started:
 
@@ -47,7 +47,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.6.4"}
+      {:exq, "~> 0.6.5"}
     ]
   end
 ```
@@ -123,7 +123,7 @@ Note that ```scheduler_enable``` has to be set to ```true``` and ```max_retries`
 
 ### OTP Application:
 
-You can add Exq into your OTP application list, and it will start an instance of Exq along with your application startup.  It will use the configuration from your ```config.exs``` file. 
+You can add Exq into your OTP application list, and it will start an instance of Exq along with your application startup.  It will use the configuration from your ```config.exs``` file.
 
 ```elixir
   def application do
