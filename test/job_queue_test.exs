@@ -145,7 +145,7 @@ defmodule JobQueueTest do
     assert jid != nil
 
     [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
-    job = Poison.decode!(job_str, as: Exq.Support.Job)
+    job = Poison.decode!(job_str, as: %Exq.Support.Job{})
     assert job.jid == jid
   end
 

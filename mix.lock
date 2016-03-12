@@ -15,7 +15,7 @@
   "jsx": {:hex, :jsx, "2.6.2"},
   "mimerl": {:hex, :mimerl, "1.0.2"},
   "plug": {:hex, :plug, "1.0.2"},
-  "poison": {:hex, :poison, "1.5.0"},
+  "poison": {:hex, :poison, "2.1.0"},
   "ranch": {:hex, :ranch, "1.1.0"},
   "redix": {:hex, :redix, "0.3.4"},
   "ssl_verify_hostname": {:hex, :ssl_verify_hostname, "1.0.5"},
