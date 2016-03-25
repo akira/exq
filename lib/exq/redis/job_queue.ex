@@ -4,7 +4,7 @@ defmodule Exq.Redis.JobQueue do
 
   It provides functionality for:
     * Storing jobs in Redis
-    * Fetching the next job(s) to be excuted (and storing a backup of these).
+    * Fetching the next job(s) to be executed (and storing a backup of these).
     * Scheduling future jobs in Redis
     * Fetching scheduling jobs and moving them to current job list
     * Retrying or failing a job
