@@ -1,6 +1,6 @@
 defmodule Exq.Support.Job do
   @moduledoc """
-  Serializeable Job format used by Exq
+  Serializable Job format used by Exq
   """
 
   defstruct error_message: nil, error_class: nil, failed_at: nil, retry: false,

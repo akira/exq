@@ -25,7 +25,7 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
 
 ### Do you need Exq?
 
-While you may reach for Sidekiq / Resque / Celery by default when writing apps in other languages, in Elixir there are some good options to consider that are already provided by the lanuage and platform. So before adding Exq or any Redis backed queueing library to your application, make sure to get familiar with OTP and see if that is enough for your needs. Redis backed queueing libraries do add additional infrastructure complexity and also overhead due to serialization / marshalling, so make sure to evaluate whether or it is an actual need.
+While you may reach for Sidekiq / Resque / Celery by default when writing apps in other languages, in Elixir there are some good options to consider that are already provided by the language and platform. So before adding Exq or any Redis backed queueing library to your application, make sure to get familiar with OTP and see if that is enough for your needs. Redis backed queueing libraries do add additional infrastructure complexity and also overhead due to serialization / marshalling, so make sure to evaluate whether or it is an actual need.
 
 Some OTP related documentation to look at:
 
@@ -60,9 +60,9 @@ By default, Exq will use configuration from your config.exs file.  You can use t
 to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options).
 
 Other options include:
-* The `queues` list specifices which queues Exq will listen to for new jobs.
+* The `queues` list specifies which queues Exq will listen to for new jobs.
 * The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
-* The `name` option allows you to customize Exq's registered name, similar to usingas `Exq.start_link([name: Name])`. The default is Exq.
+* The `name` option allows you to customize Exq's registered name, similar to using `Exq.start_link([name: Name])`. The default is Exq.
 
 ```elixir
 config :exq,

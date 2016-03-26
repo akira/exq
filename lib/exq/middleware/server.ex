@@ -4,7 +4,7 @@ defmodule Exq.Middleware.Server do
   when performing particular job. Middleware chain defaults to Stats, Job and Manager middlewares.
 
   To push new middleware you must create module with common interface. Interface is similar to `Plug`
-  impelemntation. It has three functions, every function receives `Exq.Middlewares.Pipeline` structure
+  implementation. It has three functions, every function receives `Exq.Middlewares.Pipeline` structure
   and every function must return the same structure, modified or not.
 
   Basically, `before_work/1` function may update worker state, while `after_processed_work/1` and
