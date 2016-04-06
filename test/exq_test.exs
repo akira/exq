@@ -273,7 +273,7 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link(mode: :api)
 
     # Find the job in the processed queue
-    {:ok, _, _} = Exq.Api.find_failed(Exq.Api, jid)
+    {:ok, _} = Exq.Api.find_failed(Exq.Api, jid)
 
     wait_long
     stop_process(sup)
