@@ -125,7 +125,6 @@ defmodule Exq.Redis.Connection do
     q(redis, ["ZRANGEBYSCORE", set, min, max])
   end
 
-  # TODO cleanup / tests
   def zrangebyscorewithscore!(redis, set, min \\ "0", max \\ "+inf") do
     {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
     items

@@ -9,6 +9,8 @@ defmodule Exq.Redis.JobStat do
 
   alias Timex.Format.DateTime.Formatter
   alias Exq.Support.Binary
+  alias Exq.Support.Process
+  alias Exq.Support.Job
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
 
@@ -41,7 +43,8 @@ defmodule Exq.Redis.JobStat do
   end
 
   def processes(redis, namespace) do
-    Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
+    list = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || []
+    Enum.map(list, &Process.from_json/1)
   end
 
   def add_process(redis, namespace, process_info) do
@@ -59,7 +62,7 @@ defmodule Exq.Redis.JobStat do
   def find_failed(redis, namespace, jid) do
     redis
     |> Connection.zrange!(JobQueue.full_key(namespace, "dead"), 0, -1)
-    |> JobQueue.find_job(jid)
+    |> JobQueue.search_jobs(jid)
   end
 
   def remove_queue(redis, namespace, queue) do
@@ -70,10 +73,10 @@ defmodule Exq.Redis.JobStat do
   end
 
   def remove_failed(redis, namespace, jid) do
-    {:ok, failure, _idx} = find_failed(redis, namespace, jid)
+    {:ok, failure} = find_failed(redis, namespace, jid)
     Connection.qp(redis, [
       ["DECR", JobQueue.full_key(namespace, "stat:failed")],
-      ["ZREM", JobQueue.full_key(namespace, "dead"), failure]
+      ["ZREM", JobQueue.full_key(namespace, "dead"), Job.to_json(failure)]
     ])
   end
 
@@ -119,5 +122,19 @@ defmodule Exq.Redis.JobStat do
     end
 
     {format_fn.("%Y-%m-%d %T %z"), format_fn.("%Y-%m-%d")}
+  end
+
+  def get_count(redis, namespace, key) do
+    case Connection.get!(redis, JobQueue.full_key(namespace, "stat:#{key}")) do
+      :undefined ->
+        0
+      nil ->
+        0
+      count when is_integer(count) ->
+        count
+      count ->
+        {val, _} = Integer.parse(count)
+        val
+    end
   end
 end

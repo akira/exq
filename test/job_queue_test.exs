@@ -112,8 +112,8 @@ defmodule JobQueueTest do
     time5 = Time.add(now, Time.from(300, :seconds))
 
     api_state = %Exq.Api.Server.State{redis: :testredis, namespace: "test"}
-    assert Exq.Api.Server.queue_size(api_state, "default") == 0
-    assert Exq.Api.Server.queue_size(api_state, :scheduled) == 5
+    assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 0
+    assert JobQueue.queue_size(api_state.redis, api_state.namespace, :scheduled) == 5
 
     assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time2a)) == 2
     assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time2b)) == 0
@@ -122,8 +122,8 @@ defmodule JobQueueTest do
     assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time4)) == 1
     assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time5)) == 1
 
-    assert Exq.Api.Server.queue_size(api_state, "default") == 5
-    assert Exq.Api.Server.queue_size(api_state, :scheduled) == 0
+    assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 5
+    assert JobQueue.queue_size(api_state.redis, api_state.namespace, :scheduled) == 0
 
 
     assert_dequeue_job(["default"], true)

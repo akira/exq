@@ -114,7 +114,7 @@ end
 
 # Don't run parallel tests to prevent redis issues
 # Exclude longer running failure condition tests by default
-ExUnit.configure(seed: 0, max_cases: 1, exclude: [failure_scenarios: true])
+ExUnit.configure(seed: 0, max_cases: 1, exclude: [failure_scenarios: true, pending: true])
 
 # Start logger
 :application.start(:logger)

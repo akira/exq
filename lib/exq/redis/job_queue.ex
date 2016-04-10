@@ -21,36 +21,6 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Support.Config
   alias Exq.Support.Randomize
 
-  @doc """
-  Find a current job by job id (but do not pop it)
-  """
-  def find_job(redis, namespace, jid, :scheduled) do
-    redis
-    |> Connection.zrangebyscore!(scheduled_queue_key(namespace))
-    |> find_job(jid)
-  end
-  def find_job(redis, namespace, jid, queue) do
-    redis
-    |> Connection.lrange!(queue_key(namespace, queue))
-    |> find_job(jid)
-  end
-  def find_job(jobs, jid) do
-    finder = fn({j, _idx}) ->
-      job = Exq.Support.Job.from_json(j)
-      job.jid == jid
-    end
-
-    error = Enum.find(Enum.with_index(jobs), finder)
-
-    case error do
-      nil ->
-        {:not_found, nil}
-      _ ->
-        {job, idx} = error
-        {:ok, job, idx}
-    end
-  end
-
   def enqueue(redis, namespace, queue, worker, args) do
     {jid, job_json} = to_job_json(queue, worker, args)
     case enqueue(redis, namespace, queue, job_json) do
@@ -223,6 +193,10 @@ defmodule Exq.Redis.JobQueue do
     full_key(namespace, "retry")
   end
 
+  def failed_queue_key(namespace) do
+    full_key(namespace, "dead")
+  end
+
   def time_to_score(time) do
     Float.to_string(time |> Time.to_seconds, [decimals: 6])
   end
@@ -232,6 +206,17 @@ defmodule Exq.Redis.JobQueue do
     max_retries = Config.get(:max_retries)
 
     if (retry_count <= max_retries) do
+      retry_job(redis, namespace, job, retry_count, error)
+    else
+      Logger.info("Max retries on job #{job.jid} exceeded")
+      fail_job(redis, namespace, job, error)
+    end
+  end
+  def retry_or_fail_job(redis, namespace, job, error) do
+    fail_job(redis, namespace, job, error)
+  end
+
+  def retry_job(redis, namespace, job, retry_count, error) do
       job = %{job |
         failed_at: Formatter.format!(DateTime.universal, "{ISO}"),
         retry_count: retry_count,
@@ -243,13 +228,6 @@ defmodule Exq.Redis.JobQueue do
       time = Time.add(Time.now, Time.from(offset * 1_000_000, :microseconds))
       Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
       enqueue_job_at(redis, namespace, Job.to_json(job), job.jid, time, retry_queue_key(namespace))
-    else
-      Logger.info("Max retries on job #{job.jid} exceeded")
-      fail_job(redis, namespace, job, error)
-    end
-  end
-  def retry_or_fail_job(redis, namespace, job, error) do
-    fail_job(redis, namespace, job, error)
   end
 
   def fail_job(redis, namespace, job, error) do
@@ -260,8 +238,123 @@ defmodule Exq.Redis.JobQueue do
     Connection.zadd!(redis, full_key(namespace, "dead"), time_to_score(Time.now), job_json)
   end
 
+  def queue_size(redis, namespace) do
+    queues = list_queues(redis, namespace)
+    for q <- queues, do: {q, queue_size(redis, namespace, q)}
+  end
+  def queue_size(redis, namespace, :scheduled) do
+    Connection.zcard!(redis, scheduled_queue_key(namespace))
+  end
+  def queue_size(redis, namespace, :retry) do
+    Connection.zcard!(redis, retry_queue_key(namespace))
+  end
+  def queue_size(redis, namespace, queue) do
+    Connection.llen!(redis, queue_key(namespace, queue))
+  end
+
+  def delete_queue(redis, namespace, queue) do
+    Connection.del!(redis, full_key(namespace, queue))
+  end
+
+  def jobs(redis, namespace) do
+    queues = list_queues(redis, namespace)
+    for q <- queues, do: {q, jobs(redis, namespace, q)}
+  end
+
+  def jobs(redis, namespace, queue) do
+    Connection.lrange!(redis, queue_key(namespace, queue))
+    |> Enum.map(&Job.from_json/1)
+  end
+
+  def scheduled_jobs(redis, namespace, queue) do
+    Connection.zrangebyscore!(redis, full_key(namespace, queue))
+    |> Enum.map(&Job.from_json/1)
+  end
+
+  def scheduled_jobs_with_scores(redis, namespace, queue) do
+    Connection.zrangebyscorewithscore!(redis, full_key(namespace, queue))
+    |> Enum.chunk(2)
+    |> Enum.map( fn([job, score]) -> {Job.from_json(job), score} end)
+  end
+
+  def failed(redis, namespace) do
+    Connection.zrange!(redis, failed_queue_key(namespace))
+    |> Enum.map(&Job.from_json/1)
+  end
+
+  def retry_size(redis, namespace) do
+    Connection.zcard!(redis, retry_queue_key(namespace))
+  end
+
+  def scheduled_size(redis, namespace) do
+    Connection.zcard!(redis, scheduled_queue_key(namespace))
+  end
+
+  def failed_size(redis, namespace) do
+    Connection.zcard!(redis, failed_queue_key(namespace))
+  end
+
+  def remove_job(redis, namespace, queue, jid) do
+    {:ok, job} = find_job(redis, namespace, jid, queue, false)
+    Connection.lrem!(redis, queue_key(namespace, queue), job)
+  end
+
+  def remove_retry(redis, namespace, jid) do
+    {:ok, job} = find_job(redis, namespace, jid, :retry, false)
+    Connection.zrem!(redis, retry_queue_key(namespace), job)
+  end
+
+  def remove_scheduled(redis, namespace, jid) do
+    {:ok, job} = find_job(redis, namespace, jid, :scheduled, false)
+    Connection.zrem!(redis, scheduled_queue_key(namespace), job)
+  end
+
+  def list_queues(redis, namespace) do
+    Connection.smembers!(redis, full_key(namespace, "queues"))
+  end
+
+  @doc """
+  Find a current job by job id (but do not pop it)
+  """
+  def find_job(redis, namespace, jid, queue) do
+    find_job(redis, namespace, jid, queue, true)
+  end
+  def find_job(redis, namespace, jid, :scheduled, convert) do
+    redis
+    |> Connection.zrangebyscore!(scheduled_queue_key(namespace))
+    |> search_jobs(jid, convert)
+  end
+  def find_job(redis, namespace, jid, :retry, convert) do
+    redis
+    |> Connection.zrangebyscore!(retry_queue_key(namespace))
+    |> search_jobs(jid, convert)
+  end
+  def find_job(redis, namespace, jid, queue, convert) do
+    redis
+    |> Connection.lrange!(queue_key(namespace, queue))
+    |> search_jobs(jid, convert)
+  end
+
+  def search_jobs(jobs_json, jid) do
+    search_jobs(jobs_json, jid, true)
+  end
+  def search_jobs(jobs_json, jid, true) do
+    found_job = jobs_json
+    |> Enum.map(&Job.from_json/1)
+    |> Enum.find(fn job -> job.jid == jid end)
+    {:ok, found_job}
+  end
+  def search_jobs(jobs_json, jid, false) do
+    found_job = jobs_json
+    |> Enum.find(fn job_json ->
+      job = Job.from_json(job_json)
+      job.jid == jid
+    end)
+    {:ok, found_job}
+  end
+
   def to_job_json(queue, worker, args) do
-    to_job_json(queue, worker, args, Timex.Time.now(:milliseconds))
+    to_job_json(queue, worker, args, Timex.Time.now(:microseconds) / 1_000_000.0)
   end
   def to_job_json(queue, worker, args, enqueued_at) when is_atom(worker) do
     to_job_json(queue, to_string(worker), args, enqueued_at)

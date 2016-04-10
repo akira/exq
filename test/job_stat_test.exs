@@ -20,7 +20,7 @@ defmodule JobStatTest do
   def enqueue_and_fail_job(redis) do
     Connection.incr!(redis, "test:stat:failed")
     {:ok, jid} = Exq.enqueue(Exq, "queue", EmptyMethodWorker, [])
-    {:ok, _job, _} = JobQueue.find_job(redis, "test", jid, "queue")
+    {:ok, _job} = JobQueue.find_job(redis, "test", jid, "queue")
     JobQueue.fail_job(redis, "test", %Exq.Support.Job{jid: jid}, "forced error")
 
     {:ok, jid}

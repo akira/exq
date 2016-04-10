@@ -4,10 +4,9 @@ defmodule Exq.Api.Server do
   """
 
   alias Exq.Support.Config
-  alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
   alias Exq.Redis.JobStat
-  import Exq.Redis.JobQueue, only: [full_key: 2]
+
   use GenServer
 
   defmodule State do
@@ -37,101 +36,136 @@ defmodule Exq.Api.Server do
   end
 
   def handle_call({:stats, key}, _from, state) do
-    count = get_count(state, key)
+    count = JobStat.get_count(state.redis, state.namespace, key)
     {:reply, {:ok, count}, state, 0}
   end
 
   def handle_call({:stats, key, date}, _from, state) do
-    count = get_count(state, "#{key}:#{date}")
+    count = JobStat.get_count(state.redis, state.namespace, "#{key}:#{date}")
     {:reply, {:ok, count}, state, 0}
   end
 
   def handle_call(:queues, _from, state) do
-    queues = list_queues(state)
+    queues = JobQueue.list_queues(state.redis, state.namespace)
     {:reply, {:ok, queues}, state, 0}
   end
 
   def handle_call(:failed, _from, state) do
-   jobs = list_failed(state)
+   jobs = JobQueue.failed(state.redis, state.namespace)
    {:reply, {:ok, jobs}, state, 0}
   end
 
   def handle_call(:retries, _from, state) do
-   jobs = list_retry(state)
+   jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "retry")
    {:reply, {:ok, jobs}, state, 0}
   end
 
   def handle_call(:jobs, _from, state) do
-    queues = list_queues(state)
-    jobs = for q <- queues, do: {q, list_jobs(state, q)}
+    jobs = JobQueue.jobs(state.redis, state.namespace)
     {:reply, {:ok, jobs}, state, 0}
   end
   def handle_call({:jobs, :scheduled}, _from, state) do
-    jobs = list_jobs(state, :scheduled)
+    jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "schedule")
+    {:reply, {:ok, jobs}, state, 0}
+  end
+  def handle_call({:jobs, :scheduled_with_scores}, _from, state) do
+    jobs = JobQueue.scheduled_jobs_with_scores(state.redis, state.namespace, "schedule")
     {:reply, {:ok, jobs}, state, 0}
   end
   def handle_call({:jobs, queue}, _from, state) do
-    jobs = list_jobs(state, queue)
+    jobs = JobQueue.jobs(state.redis, state.namespace, queue)
     {:reply, {:ok, jobs}, state, 0}
   end
 
   def handle_call(:queue_size, _from, state) do
-    queues = list_queues(state)
-    sizes = for q <- queues, do: {q, queue_size(state, q)}
+    sizes = JobQueue.queue_size(state.redis, state.namespace)
     {:reply, {:ok, sizes}, state, 0}
   end
-  def handle_call({:queue_size, :scheduled}, _from, state) do
-    size = queue_size(state, :scheduled)
+  def handle_call({:queue_size, queue}, _from, state) do
+    size = JobQueue.queue_size(state.redis, state.namespace, queue)
     {:reply, {:ok, size}, state, 0}
   end
-  def handle_call({:queue_size, queue}, _from, state) do
-    size = queue_size(state, queue)
+
+  def handle_call(:scheduled_size, _from, state) do
+    size = JobQueue.scheduled_size(state.redis, state.namespace)
+    {:reply, {:ok, size}, state, 0}
+  end
+
+  def handle_call(:retry_size, _from, state) do
+    size = JobQueue.retry_size(state.redis, state.namespace)
+    {:reply, {:ok, size}, state, 0}
+  end
+
+  def handle_call(:failed_size, _from, state) do
+    size = JobQueue.failed_size(state.redis, state.namespace)
     {:reply, {:ok, size}, state, 0}
   end
 
   def handle_call({:find_failed, jid}, _from, state) do
-    {:ok, job, idx} = JobStat.find_failed(state.redis, state.namespace, jid)
-    {:reply, {:ok, job, idx}, state, 0}
+    {:ok, job} = JobStat.find_failed(state.redis, state.namespace, jid)
+    {:reply, {:ok, job}, state, 0}
   end
 
   def handle_call({:find_job, queue, jid}, _from, state) do
-    {:ok, job, idx} = JobQueue.find_job(state.redis, state.namespace, jid, queue)
-    {:reply, {:ok, job, idx}, state, 0}
+    response = JobQueue.find_job(state.redis, state.namespace, jid, queue)
+    {:reply, response, state, 0}
   end
 
-  def handle_call({:find_scheduled_job, jid}, _from, state) do
-    {:ok, job, idx} = JobQueue.find_job(state.redis, state.namespace, jid, :scheduled)
-    {:reply, {:ok, job, idx}, state, 0}
+  def handle_call({:find_scheduled, jid}, _from, state) do
+    {:ok, job} = JobQueue.find_job(state.redis, state.namespace, jid, :scheduled)
+    {:reply, {:ok, job}, state, 0}
+  end
+
+  def handle_call({:find_retry, jid}, _from, state) do
+    {:ok, job} = JobQueue.find_job(state.redis, state.namespace, jid, :retry)
+    {:reply, {:ok, job}, state, 0}
   end
 
   def handle_call({:remove_queue, queue}, _from, state) do
     JobStat.remove_queue(state.redis, state.namespace, queue)
-    {:reply, {:ok}, state, 0}
+    {:reply, :ok, state, 0}
+  end
+
+  def handle_call({:remove_job, queue, jid}, _from, state) do
+    JobQueue.remove_job(state.redis, state.namespace, queue, jid)
+    {:reply, :ok, state, 0}
+  end
+
+
+  def handle_call({:remove_retry, jid}, _from, state) do
+    JobQueue.remove_retry(state.redis, state.namespace, jid)
+    {:reply, :ok, state, 0}
+  end
+
+  def handle_call({:remove_scheduled, jid}, _from, state) do
+    JobQueue.remove_scheduled(state.redis, state.namespace, jid)
+    {:reply, :ok, state, 0}
   end
 
   def handle_call({:remove_failed, jid}, _from, state) do
     JobStat.remove_failed(state.redis, state.namespace, jid)
-    {:reply, {:ok}, state, 0}
+    {:reply, :ok, state, 0}
   end
+
 
   def handle_call(:clear_failed, _from, state) do
     JobStat.clear_failed(state.redis, state.namespace)
-    {:reply, {:ok}, state, 0}
+    {:reply, :ok, state, 0}
   end
 
   def handle_call(:clear_processes, _from, state) do
     JobStat.clear_processes(state.redis, state.namespace)
-    {:reply, {:ok}, state, 0}
+    {:reply, :ok, state, 0}
   end
 
   def handle_call(:clear_scheduled, _from, state) do
-    delete_queue(state, "schedule")
-    {:reply, {:ok}, state, 0}
+    JobQueue.delete_queue(state.redis, state.namespace, "schedule")
+    {:reply, :ok, state, 0}
   end
 
   def handle_call(:clear_retries, _from, state) do
-    delete_queue(state, "retry")
-    {:reply, {:ok}, state, 0}
+    JobQueue.delete_queue(state.redis, state.namespace, "retry")
+    {:reply, :ok, state, 0}
   end
 
   def handle_call(:realtime_stats, _from, state) do
@@ -141,49 +175,6 @@ defmodule Exq.Api.Server do
 
   def terminate(_reason, _state) do
     :ok
-  end
-
-  # Internal Functions
-  def get_count(%State{redis: redis, namespace: namespace}, key) do
-    case Connection.get!(redis, full_key(namespace, "stat:#{key}")) do
-      :undefined ->
-        0
-      count ->
-        count
-    end
-  end
-
-  def list_queues(%State{redis: redis, namespace: namespace}) do
-    Connection.smembers!(redis, full_key(namespace, "queues"))
-  end
-
-  def list_jobs(%State{redis: redis, namespace: namespace}, :scheduled) do
-    Connection.zrangebyscorewithscore!(redis, full_key(namespace, "schedule"))
-  end
-  def list_jobs(%State{redis: redis, namespace: namespace}, queue) do
-    Connection.lrange!(redis, full_key(namespace, "queue:#{queue}"))
-  end
-
-  def list_failed(%State{redis: redis, namespace: namespace}) do
-    Connection.zrange!(redis, full_key(namespace, "dead"))
-  end
-
-  def list_retry(%State{redis: redis, namespace: namespace}) do
-    Connection.zrange!(redis, full_key(namespace, "retry"))
-  end
-
-  def queue_size(%State{redis: redis, namespace: namespace}, :scheduled) do
-    Connection.zcard!(redis, full_key(namespace, "schedule"))
-  end
-  def queue_size(%State{redis: redis, namespace: namespace}, :retry) do
-    Connection.zcard!(redis, full_key(namespace, "retry"))
-  end
-  def queue_size(%State{redis: redis, namespace: namespace}, queue) do
-    Connection.llen!(redis, full_key(namespace, "queue:#{queue}"))
-  end
-
-  def delete_queue(%State{redis: redis, namespace: namespace}, queue) do
-    Connection.del!(redis, full_key(namespace, queue))
   end
 
   def server_name(name) do
