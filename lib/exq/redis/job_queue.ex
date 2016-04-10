@@ -354,7 +354,7 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def to_job_json(queue, worker, args) do
-    to_job_json(queue, worker, args, Timex.Time.now(:milliseconds))
+    to_job_json(queue, worker, args, Timex.Time.now(:microseconds) / 1_000_000.0)
   end
   def to_job_json(queue, worker, args, enqueued_at) when is_atom(worker) do
     to_job_json(queue, to_string(worker), args, enqueued_at)
