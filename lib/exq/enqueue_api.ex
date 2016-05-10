@@ -53,7 +53,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
       Expected args:
         * `pid` - PID for Exq Manager or Enqueuer to handle this
         * `queue` - Name of queue to use
-        * offset - Offset in milliseconds in the future to enqueue
+        * `offset` - Offset in seconds in the future to enqueue
         * `worker` - Worker module to target
         * `args` - Array of args to send to worker
       """
