@@ -76,7 +76,8 @@ config :exq,
   poll_timeout: 50,
   scheduler_poll_timeout: 200,
   scheduler_enable: true,
-  max_retries: 25
+  max_retries: 25,
+  shutdown_timeout: 5000
 ```
 
 ### Concurrency:
@@ -135,6 +136,9 @@ You can add Exq into your OTP application list, and it will start an instance of
 ```
 
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
+
+You can configure ```shutdown_timeout``` to allow more or less time to finish
+jobs when being shutdown.
 
 ## Using iex:
 If you'd like to try Exq out on the iex console, you can do this by typing

@@ -278,4 +278,17 @@ defmodule ExqTest do
     wait_long
     stop_process(sup)
   end
+
+  test "configure worker shutdown time" do
+    Process.register(self, :exqtest)
+    {:ok, sup} = Exq.start_link([shutdown_timeout: 200])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [500, :long])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [100, :short])
+
+    wait
+    stop_process(sup)
+
+    refute_received {"long"}
+    assert_received {"short"}
+  end
 end
