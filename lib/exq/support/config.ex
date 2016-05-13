@@ -12,6 +12,7 @@ defmodule Exq.Support.Config do
     poll_timeout: 100,
     redis_timeout: 5000,
     genserver_timeout: 5000,
+    shutdown_timeout: 5000,
     max_retries: 25,
     middleware: [
       Exq.Middleware.Stats,

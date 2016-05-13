@@ -5,9 +5,10 @@ defmodule Exq.Worker.Supervisor do
     Supervisor.start_link(__MODULE__, opts, [name: supervisor_name(opts[:name])])
   end
 
-  def init(_arg) do
+  def init(opts) do
+    shutdown_timeout = Keyword.get(opts, :shutdown_timeout)
     children = [
-      worker(Exq.Worker.Server, [], restart: :temporary)
+      worker(Exq.Worker.Server, [], restart: :temporary, shutdown: shutdown_timeout)
     ]
 
     supervise(children, strategy: :simple_one_for_one)
