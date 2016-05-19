@@ -47,7 +47,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.7.0"}
+      {:exq, "~> 0.7.1"}
     ]
   end
 ```
@@ -380,6 +380,8 @@ Victor Rodrigues (rodrigues)
 Denis Tataurov (sineed)
 
 Joe Honzawa (Joe-noh)
+
+Aaron Jensen (aaronjensen)
 
 Andrew Vy (andrewvy)
 
