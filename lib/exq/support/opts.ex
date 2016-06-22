@@ -6,7 +6,7 @@ defmodule Exq.Support.Opts do
    Return top supervisor's name default is Exq.Sup
   """
   def top_supervisor(name) do
-    unless name, do: name = Config.get(:name)
+    name = name || Config.get(:name)
     "#{name}.Sup" |> String.to_atom
   end
 
@@ -38,7 +38,7 @@ defmodule Exq.Support.Opts do
   end
 
   def redis_client_name(name) do
-    unless name, do: name = Config.get(:name)
+    name = name || Config.get(:name)
     "#{name}.Redis.Client" |> String.to_atom
   end
 
