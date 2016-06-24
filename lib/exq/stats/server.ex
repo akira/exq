@@ -58,7 +58,7 @@ defmodule Exq.Stats.Server do
   end
 
   def server_name(name) do
-    unless name, do: name = Exq.Support.Config.get(:name)
+    name = name || Exq.Support.Config.get(:name)
     "#{name}.Stats" |> String.to_atom
   end
 

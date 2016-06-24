@@ -178,7 +178,7 @@ defmodule Exq.Api.Server do
   end
 
   def server_name(name) do
-    unless name, do: name = Config.get(:name)
+    name = name || Config.get(:name)
     "#{name}.Api" |> String.to_atom
   end
 end

@@ -31,7 +31,7 @@ defmodule Exq.Scheduler.Server do
   end
 
   def server_name(name) do
-    unless name, do: name = Exq.Support.Config.get(:name)
+    name = name || Exq.Support.Config.get(:name)
     "#{name}.Scheduler" |> String.to_atom
    end
 

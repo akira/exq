@@ -33,9 +33,10 @@ defmodule Exq.Support.Mode do
     ]
 
     if opts[:scheduler_enable] do
-      children = children ++ [worker(Exq.Scheduler.Server, [opts])]
+      children ++ [worker(Exq.Scheduler.Server, [opts])]
+    else
+      children
     end
-    children
   end
   def children(:enqueuer, opts) do
     [worker(Exq.Enqueuer.Server, [opts])]

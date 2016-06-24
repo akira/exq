@@ -75,7 +75,7 @@ defmodule Exq.Enqueuer.Server do
   # Internal Functions
 
   def server_name(name) do
-    unless name, do: name = Config.get(:name)
+    name = name || Config.get(:name)
     "#{name}.Enqueuer" |> String.to_atom
   end
 end
