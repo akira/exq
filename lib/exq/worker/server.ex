@@ -64,7 +64,11 @@ defmodule Exq.Worker.Server do
   def handle_cast(:work, state) do
     state = %{state | middleware_state: Middleware.all(state.middleware)}
     state = %{state | pipeline: before_work(state)}
-    GenServer.cast(self, :dispatch)
+    case state |> Map.fetch!(:pipeline) |> Map.get(:terminated, false) do
+      # case done to run the after hooks
+      true -> nil
+      _ -> GenServer.cast(self, :dispatch)
+    end
     {:noreply, state}
   end
 

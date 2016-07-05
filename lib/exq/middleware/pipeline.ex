@@ -11,10 +11,18 @@ defmodule Exq.Middleware.Pipeline do
   * `event` - name of current middleware function, possible values are: `before_work`,
   `after_processed_work` and `after_failed_work`
   * `halted` - flag indicating whether pipeline was halted, defaults to `false`
+  * `terminated` - flag indicating whether worker and pipeline were halted, If
+      the flag was set to true, the job will not be dispatched and all after_*_work/1
+      will be skipped. For each specific middleware:
+      - Exq.Middleware.Job: Will NOT remove the backup from job queue
+      - Exq.Middleware.Logger: Will NOT record job as done or failed with timestamp
+      - Exq.Middleware.Manager: Will NOT update worker counter
+      - Exq.Middleware.Stats: Will NOT remove job from processes queue
   """
 
   defstruct assigns:      %{},
             halted:       false,
+            terminated:   false,
             worker_pid:   nil,
             event:        nil
 
@@ -32,6 +40,13 @@ defmodule Exq.Middleware.Pipeline do
   """
   def halt(%Pipeline{} = pipeline) do
     %{pipeline | halted: true}
+  end
+
+  @doc """
+  Sets `terminated` to true
+  """
+  def terminate(%Pipeline{} = pipeline) do
+    %{pipeline | terminated: true}
   end
 
   @doc """
@@ -55,6 +70,9 @@ defmodule Exq.Middleware.Pipeline do
     pipeline
   end
   def chain(%Pipeline{halted: true} = pipeline, _modules) do
+    pipeline
+  end
+  def chain(%Pipeline{terminated: true} = pipeline, _modules) do
     pipeline
   end
   def chain(pipeline, [module|modules]) do

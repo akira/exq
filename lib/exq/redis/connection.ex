@@ -74,6 +74,11 @@ defmodule Exq.Redis.Connection do
     res
   end
 
+  def sismember!(redis, set, member) do
+    {:ok, res} = q(redis, ["SISMEMBER", set, member])
+    res
+  end
+
   def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = q(redis, ["LRANGE", list, range_start, range_end])
     items
@@ -113,6 +118,11 @@ defmodule Exq.Redis.Connection do
 
   def zcard!(redis, set) do
     {:ok, count} = q(redis, ["ZCARD", set])
+    count
+  end
+
+  def zcount!(redis, set, min \\ "-inf", max \\ "+inf") do
+    {:ok, count} = q(redis, ["ZCOUNT", set, min, max])
     count
   end
 

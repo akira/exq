@@ -31,7 +31,7 @@ defmodule Exq.Middleware.Job do
     pipeline
   end
 
-  defp remove_job_from_backup(%Pipeline{assigns: assigns} = pipeline) do
+  def remove_job_from_backup(%Pipeline{assigns: assigns} = pipeline) do
     JobQueue.remove_job_from_backup(assigns.redis, assigns.namespace, assigns.host, assigns.queue,
       assigns.job_json)
     pipeline
