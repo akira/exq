@@ -25,11 +25,11 @@ defmodule Exq.Support.Mode do
   def children(:default, opts) do
     children = [
       worker(Exq.Middleware.Server, [opts]),
-      worker(Exq.Manager.Server, [opts]),
       worker(Exq.Stats.Server, [opts]),
+      supervisor(Exq.Worker.Supervisor, [opts]),
+      worker(Exq.Manager.Server, [opts]),
       worker(Exq.Enqueuer.Server, [opts]),
-      worker(Exq.Api.Server, [opts]),
-      supervisor(Exq.Worker.Supervisor, [opts])
+      worker(Exq.Api.Server, [opts])
     ]
 
     if opts[:scheduler_enable] do
