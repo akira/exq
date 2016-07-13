@@ -23,6 +23,14 @@ defmodule ExqTest do
     end
   end
 
+  defmodule SleepLastWorker do
+    def perform(time, message) do
+      Process.register(self, :sleep_last_worker )
+      send :exqtest, {message}
+      :timer.sleep(time)
+    end
+  end
+
   defmodule EmptyMethodWorker do
     def perform do
     end
@@ -291,4 +299,31 @@ defmodule ExqTest do
     refute_received {"long"}
     assert_received {"short"}
   end
+
+  test "handle supervisor tree shutdown properly with stats cleanup" do
+    Process.register(self, :exqtest)
+
+    {:ok, sup} = Exq.start_link
+
+    # call worker that sends message and sleeps for a bit
+    {:ok, _jid} = Exq.enqueue(Exq, "default", ExqTest.SleepLastWorker, [300, "worked"])
+
+    # wait until worker started
+    assert_receive {"worked"}, 100
+    stop_process(sup)
+
+    # Make sure everything is shut down properly
+    assert Process.alive?(sup) == false
+    assert Process.whereis(Exq.Manager.Server) == nil
+    assert Process.whereis(Exq.Stats.Server) == nil
+    assert Process.whereis(Exq.Scheduler.Server) == nil
+    assert Process.whereis(:sleep_last_worker) == nil
+
+    # Check that stats were cleaned up
+    {:ok, sup} = Exq.start_link
+    assert {:ok, []} == Exq.Api.processes(Exq.Api)
+
+    stop_process(sup)
+  end
+
 end
