@@ -5,16 +5,13 @@ defmodule Exq.Redis.JobStat do
   """
 
   require Logger
-  use Timex
-
-  alias Timex.Format.DateTime.Formatter
   alias Exq.Support.Binary
   alias Exq.Support.Process
   alias Exq.Support.Job
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
 
-  def record_processed(redis, namespace, _job, current_date \\ DateTime.universal) do
+  def record_processed(redis, namespace, _job, current_date \\ DateTime.utc_now) do
     {time, date} = format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis,[
@@ -26,7 +23,7 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, _error, _job, current_date \\ DateTime.universal) do
+  def record_failure(redis, namespace, _error, _job, current_date \\ DateTime.utc_now) do
     {time, date} = format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis, [
@@ -117,11 +114,16 @@ defmodule Exq.Redis.JobStat do
   end
 
   defp format_current_date(current_date) do
-    format_fn = fn(format) ->
-      Formatter.format!(current_date, format, :strftime)
-    end
+    date_time =
+      current_date
+      |> DateTime.to_string
 
-    {format_fn.("%Y-%m-%d %T %z"), format_fn.("%Y-%m-%d")}
+    date =
+      current_date
+      |> DateTime.to_date
+      |> Date.to_string
+
+    {date_time, date}
   end
 
   def get_count(redis, namespace, key) do
