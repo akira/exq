@@ -11,7 +11,6 @@ defmodule Exq.Stats.Server do
   use GenServer
   use Timex
 
-  alias Timex.Format.DateTime.Formatter
   alias Exq.Redis.JobStat
   alias Exq.Support.Process
 
@@ -28,7 +27,7 @@ defmodule Exq.Stats.Server do
     process_info = %Process{pid: worker,
                             host: host,
                             job: job,
-                            started_at: Formatter.format!(DateTime.universal, "{ISO}")}
+                            started_at: Timex.format!(Timex.now, "{ISO:Extended}")}
     GenServer.cast(stats, {:add_process, namespace, process_info})
     {:ok, process_info}
   end

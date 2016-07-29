@@ -8,7 +8,7 @@ defmodule Exq.Middleware.Logger do
 
   def before_work(pipeline) do
     Logger.info("#{log_context(pipeline)} start")
-    assign(pipeline, :started_at, Time.now)
+    assign(pipeline, :started_at, Timex.now)
   end
 
   def after_processed_work(pipeline) do
@@ -24,7 +24,7 @@ defmodule Exq.Middleware.Logger do
 
 
   defp delta(%Pipeline{assigns: assigns}) do
-    Time.diff(Time.now, assigns.started_at, :microseconds)
+    Timex.diff(Timex.now, assigns.started_at, :microseconds)
   end
 
   defp log_context(%Pipeline{assigns: assigns}) do
