@@ -2,6 +2,7 @@ defmodule JobQueueTest do
   use ExUnit.Case
   alias Exq.Redis.JobQueue
   alias Exq.Support.Job
+  alias Exq.Support.Time
 
   @host 'host-name'
 
@@ -119,12 +120,12 @@ defmodule JobQueueTest do
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 0
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, :scheduled) == 5
 
-    assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time2a)) == 2
-    assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time2b)) == 0
-    assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time3)) == 1
-    assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time3)) == 0
-    assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time4)) == 1
-    assert JobQueue.scheduler_dequeue(:testredis, "test", JobQueue.time_to_score(time5)) == 1
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time2a)) == 2
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time2b)) == 0
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time3)) == 1
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time3)) == 0
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time4)) == 1
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time5)) == 1
 
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 5
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, :scheduled) == 0

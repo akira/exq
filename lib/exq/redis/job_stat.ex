@@ -5,14 +5,11 @@ defmodule Exq.Redis.JobStat do
   """
 
   require Logger
-  alias Exq.Support.Binary
-  alias Exq.Support.Process
-  alias Exq.Support.Job
-  alias Exq.Redis.Connection
-  alias Exq.Redis.JobQueue
+  alias Exq.Support.{Binary, Process, Job, Time}
+  alias Exq.Redis.{Connection, JobQueue}
 
   def record_processed(redis, namespace, _job, current_date \\ DateTime.utc_now) do
-    {time, date} = format_current_date(current_date)
+    {time, date} = Time.format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis,[
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
@@ -24,7 +21,7 @@ defmodule Exq.Redis.JobStat do
   end
 
   def record_failure(redis, namespace, _error, _job, current_date \\ DateTime.utc_now) do
-    {time, date} = format_current_date(current_date)
+    {time, date} = Time.format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis, [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
@@ -111,19 +108,6 @@ defmodule Exq.Redis.JobStat do
         |> Enum.zip(counts)
       end
     end
-  end
-
-  defp format_current_date(current_date) do
-    date_time =
-      current_date
-      |> DateTime.to_string
-
-    date =
-      current_date
-      |> DateTime.to_date
-      |> Date.to_string
-
-    {date_time, date}
   end
 
   def get_count(redis, namespace, key) do

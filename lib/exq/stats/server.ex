@@ -11,6 +11,7 @@ defmodule Exq.Stats.Server do
   use GenServer
   alias Exq.Redis.JobStat
   alias Exq.Support.Process
+  alias Exq.Support.Time
 
   require Logger
 
@@ -22,12 +23,10 @@ defmodule Exq.Stats.Server do
   Add in progress worker process
   """
   def add_process(stats, namespace, worker, host, job) do
-    started_at = DateTime.to_unix(DateTime.utc_now, :microseconds) / 1_000_000
-
     process_info = %Process{pid: worker,
                             host: host,
                             job: job,
-                            started_at: started_at}
+                            started_at: Time.unix_seconds}
 
     GenServer.cast(stats, {:add_process, namespace, process_info})
     {:ok, process_info}
