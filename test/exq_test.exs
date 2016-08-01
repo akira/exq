@@ -111,7 +111,7 @@ defmodule ExqTest do
   test "enqueue_at and run a job" do
     Process.register(self, :exqtest)
     {:ok, sup} = Exq.start_link(scheduler_enable: true)
-    {:ok, _} = Exq.enqueue_at(Exq, "default", Time.now, ExqTest.PerformWorker, [])
+    {:ok, _} = Exq.enqueue_at(Exq, "default", Timex.now, ExqTest.PerformWorker, [])
     assert_receive {:worked}
     stop_process(sup)
   end

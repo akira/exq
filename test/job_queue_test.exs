@@ -85,9 +85,9 @@ defmodule JobQueueTest do
   end
 
   test "scheduler_dequeue enqueue_at" do
-    JobQueue.enqueue_at(:testredis, "test", "default", Time.now, MyWorker, [])
+    JobQueue.enqueue_at(:testredis, "test", "default", Timex.now, MyWorker, [])
     {jid, job_json} = JobQueue.to_job_json("retry", MyWorker, [])
-    JobQueue.enqueue_job_at(:testredis, "test", job_json, jid, Time.now, "test:retry")
+    JobQueue.enqueue_job_at(:testredis, "test", job_json, jid, Timex.now, "test:retry")
     assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], false)
@@ -98,18 +98,18 @@ defmodule JobQueueTest do
 
   test "scheduler_dequeue max_score" do
     JobQueue.enqueue_in(:testredis, "test", "default", 300, MyWorker, [])
-    now = Time.now
-    time1 = Time.add(now, Time.from(140, :seconds))
+    now = Timex.now
+    time1 = Timex.add(now, Timex.Duration.from_seconds(140))
     JobQueue.enqueue_at(:testredis, "test", "default", time1, MyWorker, [])
-    time2 = Time.add(now, Time.from(150, :seconds))
+    time2 = Timex.add(now, Timex.Duration.from_seconds(150))
     JobQueue.enqueue_at(:testredis, "test", "default", time2, MyWorker, [])
-    time2a = Time.add(now, Time.from(151, :seconds))
-    time2b = Time.add(now, Time.from(159, :seconds))
-    time3 = Time.add(now, Time.from(160, :seconds))
+    time2a = Timex.add(now, Timex.Duration.from_seconds(151))
+    time2b = Timex.add(now, Timex.Duration.from_seconds(159))
+    time3 = Timex.add(now, Timex.Duration.from_seconds(160))
     JobQueue.enqueue_at(:testredis, "test", "default", time3, MyWorker, [])
-    time4 = Time.add(now, Time.from(160000001, :microseconds))
+    time4 = Timex.add(now, Timex.Duration.from_microseconds(160000001))
     JobQueue.enqueue_at(:testredis, "test", "default", time4, MyWorker, [])
-    time5 = Time.add(now, Time.from(300, :seconds))
+    time5 = Timex.add(now, Timex.Duration.from_seconds(300))
 
     api_state = %Exq.Api.Server.State{redis: :testredis, namespace: "test"}
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 0

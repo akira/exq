@@ -29,15 +29,14 @@ defmodule JobStatTest do
   setup do
     TestRedis.setup
     on_exit(fn -> TestRedis.teardown end)
-    Tzdata.EtsHolder.start_link
     Exq.start_link
 
     :ok
   end
 
   test "show realtime statistics" do
-    {:ok, time1} = Timex.parse("2016-01-07T13:30:00+00", "{ISO}")
-    {:ok, time2} = Timex.parse("2016-01-07T14:05:15+00", "{ISO}")
+    {:ok, time1} = Timex.parse("2016-01-07T13:30:00+00", "{ISO:Extended}")
+    {:ok, time2} = Timex.parse("2016-01-07T14:05:15+00", "{ISO:Extended}")
 
     JobStat.record_processed(:testredis, "test", nil, time1)
     JobStat.record_processed(:testredis, "test", nil, time2)

@@ -14,7 +14,6 @@ defmodule Exq.Redis.JobQueue do
   use Timex
   require Logger
 
-  alias Timex.Format.DateTime.Formatter
   alias Exq.Redis.Connection
   alias Exq.Support.Json
   alias Exq.Support.Job
@@ -57,7 +56,7 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args) when is_integer(offset) do
-    time = Time.add(Time.now, Time.from(offset * 1_000_000, :microseconds))
+    time = Timex.add(Timex.now, Timex.Duration.from_microseconds(offset * 1_000_000))
     enqueue_at(redis, namespace, queue, time, worker, args)
   end
   def enqueue_at(redis, namespace, queue, time, worker, args) do
@@ -128,7 +127,7 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def scheduler_dequeue(redis, namespace) do
-    scheduler_dequeue(redis, namespace, time_to_score(Time.now))
+    scheduler_dequeue(redis, namespace, time_to_score(Timex.now))
   end
   def scheduler_dequeue(redis, namespace, max_score) do
     queues = schedule_queues(namespace)
@@ -198,7 +197,8 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def time_to_score(time) do
-    Float.to_string(time |> Time.to_seconds, [decimals: 6])
+	DateTime.to_unix(time, :microseconds)/1_000_000
+	|> Float.to_string([decimals: 6])
   end
 
   def retry_or_fail_job(redis, namespace, %{retry: true} = job, error) do
@@ -223,24 +223,24 @@ defmodule Exq.Redis.JobQueue do
 
   def retry_job(redis, namespace, job, retry_count, error) do
       job = %{job |
-        failed_at: Formatter.format!(DateTime.universal, "{ISO}"),
+        failed_at: Timex.format!(DateTime.utc_now, "{ISO:Extended}"),
         retry_count: retry_count,
         error_message: error
       }
 
       # Similar to Sidekiq strategy
       offset = :math.pow(job.retry_count, 4) + 15 + (Randomize.random(30) * (job.retry_count + 1))
-      time = Time.add(Time.now, Time.from(offset * 1_000_000, :microseconds))
+      time = Timex.add(Timex.now, Timex.Duration.from_microseconds(offset * 1_000_000))
       Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
       enqueue_job_at(redis, namespace, Job.to_json(job), job.jid, time, retry_queue_key(namespace))
   end
 
   def fail_job(redis, namespace, job, error) do
-    failed_at = Formatter.format!(DateTime.universal, "{ISO}")
+    failed_at = Timex.format!(DateTime.utc_now, "{ISO:Extended}")
     job = %{job | failed_at: failed_at, retry_count: job.retry_count || 0,
       error_class: "ExqGenericError", error_message: error}
     job_json = Job.to_json(job)
-    Connection.zadd!(redis, full_key(namespace, "dead"), time_to_score(Time.now), job_json)
+    Connection.zadd!(redis, full_key(namespace, "dead"), time_to_score(Timex.now), job_json)
   end
 
   def queue_size(redis, namespace) do
@@ -359,7 +359,7 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def to_job_json(queue, worker, args) do
-    to_job_json(queue, worker, args, Timex.Time.now(:microseconds) / 1_000_000.0)
+    to_job_json(queue, worker, args, Timex.Duration.now(:microseconds) / 1_000_000.0)
   end
   def to_job_json(queue, worker, args, enqueued_at) when is_atom(worker) do
     to_job_json(queue, to_string(worker), args, enqueued_at)
