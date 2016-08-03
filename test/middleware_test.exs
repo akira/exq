@@ -13,6 +13,39 @@ defmodule MiddlewareTest do
   defmodule MissingMethodWorker do
   end
 
+  defmodule ConstantWorker do
+    def perform do
+      42
+    end
+  end
+
+  defmodule RaiseWorker do
+    def perform do
+      raise "error"
+    end
+  end
+
+  defmodule EchoMiddleware do
+    @behaviour Exq.Middleware.Behaviour
+
+    import Exq.Middleware.Pipeline
+
+    def before_work(pipeline) do
+      send :middlewaretest, :before_work
+      pipeline
+    end
+
+    def after_processed_work(pipeline) do
+      send :middlewaretest, {:after_processed_work, pipeline.assigns.result}
+      pipeline
+    end
+
+    def after_failed_work(pipeline) do
+      send :middlewaretest, {:after_failed_work, pipeline.assigns.error}
+      pipeline
+    end
+  end
+
   defmodule MyMiddleware do
     @behaviour Exq.Middleware.Behaviour
 
@@ -114,6 +147,16 @@ defmodule MiddlewareTest do
     assert_receive :after_processed_work
   end
 
+  test "assigns result for processed work", %{middleware: middleware} do
+    {:ok, worker} = start_worker({"MiddlewareTest.ConstantWorker", "[]", middleware})
+    Middleware.push(middleware, Exq.Middleware.Job)
+    Middleware.push(middleware, EchoMiddleware)
+    Worker.work(worker)
+
+    assert_receive :before_work
+    assert_receive {:after_processed_work, 42}
+  end
+
   test "calls chain for failed work", %{middleware: middleware} do
     {:ok, worker} = start_worker({"MiddlewareTest.MissingMethodWorker", "[]", middleware})
     Middleware.push(middleware, Exq.Middleware.Job)
@@ -124,6 +167,16 @@ defmodule MiddlewareTest do
     assert state.pipeline.assigns.process_info == 1
     assert_receive :before_work
     assert_receive :after_failed_work
+  end
+
+  test "assigns error for failed work", %{middleware: middleware} do
+    {:ok, worker} = start_worker({"MiddlewareTest.RaiseWorker", "[]", middleware})
+    Middleware.push(middleware, Exq.Middleware.Job)
+    Middleware.push(middleware, EchoMiddleware)
+    Worker.work(worker)
+
+    assert_receive :before_work
+    assert_receive {:after_failed_work, {%RuntimeError{message: "error"}, _stack}}
   end
 
   test "halts middleware execution", %{middleware: middleware} do
