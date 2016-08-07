@@ -9,11 +9,9 @@ defmodule Exq.Stats.Server do
   This includes job success/failure as well as in-progress jobs
   """
   use GenServer
-  use Timex
-
-  alias Timex.Format.DateTime.Formatter
   alias Exq.Redis.JobStat
   alias Exq.Support.Process
+  alias Exq.Support.Time
 
   require Logger
 
@@ -28,7 +26,8 @@ defmodule Exq.Stats.Server do
     process_info = %Process{pid: worker,
                             host: host,
                             job: job,
-                            started_at: Formatter.format!(DateTime.universal, "{ISO}")}
+                            started_at: Time.unix_seconds}
+
     GenServer.cast(stats, {:add_process, namespace, process_info})
     {:ok, process_info}
   end

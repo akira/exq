@@ -1,6 +1,5 @@
 defmodule JobStatTest do
   use ExUnit.Case
-  use Timex
 
   alias Exq.Redis.JobStat
   alias Exq.Redis.Connection
@@ -29,15 +28,14 @@ defmodule JobStatTest do
   setup do
     TestRedis.setup
     on_exit(fn -> TestRedis.teardown end)
-    Tzdata.EtsHolder.start_link
     Exq.start_link
 
     :ok
   end
 
   test "show realtime statistics" do
-    {:ok, time1} = Timex.parse("2016-01-07T13:30:00+00", "{ISO}")
-    {:ok, time2} = Timex.parse("2016-01-07T14:05:15+00", "{ISO}")
+    {:ok, time1} = DateTime.from_unix(1452173400, :seconds)
+    {:ok, time2} = DateTime.from_unix(1452175515, :seconds)
 
     JobStat.record_processed(:testredis, "test", nil, time1)
     JobStat.record_processed(:testredis, "test", nil, time2)
@@ -48,8 +46,8 @@ defmodule JobStatTest do
     Exq.start_link(mode: :api, name: ExqApi)
     {:ok, failures, successes} = Exq.Api.realtime_stats(ExqApi.Api)
 
-    assert List.keysort(failures, 0) == [{"2016-01-07 13:30:00 +0000", "1"}, {"2016-01-07 14:05:15 +0000", "1"}]
-    assert List.keysort(successes, 0) == [{"2016-01-07 13:30:00 +0000", "2"}, {"2016-01-07 14:05:15 +0000", "1"}]
+    assert List.keysort(failures, 0) == [{"2016-01-07 13:30:00Z", "1"}, {"2016-01-07 14:05:15Z", "1"}]
+    assert List.keysort(successes, 0) == [{"2016-01-07 13:30:00Z", "2"}, {"2016-01-07 14:05:15Z", "1"}]
   end
 
   test "show realtime statistics with no data" do

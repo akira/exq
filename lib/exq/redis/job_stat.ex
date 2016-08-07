@@ -5,17 +5,11 @@ defmodule Exq.Redis.JobStat do
   """
 
   require Logger
-  use Timex
+  alias Exq.Support.{Binary, Process, Job, Time}
+  alias Exq.Redis.{Connection, JobQueue}
 
-  alias Timex.Format.DateTime.Formatter
-  alias Exq.Support.Binary
-  alias Exq.Support.Process
-  alias Exq.Support.Job
-  alias Exq.Redis.Connection
-  alias Exq.Redis.JobQueue
-
-  def record_processed(redis, namespace, _job, current_date \\ DateTime.universal) do
-    {time, date} = format_current_date(current_date)
+  def record_processed(redis, namespace, _job, current_date \\ DateTime.utc_now) do
+    {time, date} = Time.format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis,[
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
@@ -26,8 +20,8 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, _error, _job, current_date \\ DateTime.universal) do
-    {time, date} = format_current_date(current_date)
+  def record_failure(redis, namespace, _error, _job, current_date \\ DateTime.utc_now) do
+    {time, date} = Time.format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis, [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
@@ -114,14 +108,6 @@ defmodule Exq.Redis.JobStat do
         |> Enum.zip(counts)
       end
     end
-  end
-
-  defp format_current_date(current_date) do
-    format_fn = fn(format) ->
-      Formatter.format!(current_date, format, :strftime)
-    end
-
-    {format_fn.("%Y-%m-%d %T %z"), format_fn.("%Y-%m-%d")}
   end
 
   def get_count(redis, namespace, key) do

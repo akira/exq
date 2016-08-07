@@ -3,12 +3,11 @@ defmodule Exq.Middleware.Logger do
 
   alias Exq.Middleware.Pipeline
   import Pipeline
-  use Timex
   require Logger
 
   def before_work(pipeline) do
     Logger.info("#{log_context(pipeline)} start")
-    assign(pipeline, :started_at, Time.now)
+    assign(pipeline, :started_at, DateTime.utc_now)
   end
 
   def after_processed_work(pipeline) do
@@ -22,15 +21,16 @@ defmodule Exq.Middleware.Logger do
     pipeline
   end
 
-
   defp delta(%Pipeline{assigns: assigns}) do
-    Time.diff(Time.now, assigns.started_at, :microseconds)
+    now_usecs = DateTime.utc_now |> DateTime.to_unix(:microseconds)
+    started_usecs = assigns.started_at |> DateTime.to_unix(:microseconds)
+    now_usecs - started_usecs
   end
 
   defp log_context(%Pipeline{assigns: assigns}) do
     "#{assigns.worker_module}[#{assigns.job.jid}]"
   end
-  
+
   defp formatted_diff(diff) when diff > 1000, do: [diff |> div(1000) |> Integer.to_string, "ms"]
-  defp formatted_diff(diff), do: [diff |> Integer.to_string, "µs"]  
+  defp formatted_diff(diff), do: [diff |> Integer.to_string, "µs"]
 end
