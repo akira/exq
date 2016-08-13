@@ -84,8 +84,8 @@ defmodule Exq.Worker.Server do
   @doc """
   Worker done with normal termination message
   """
-  def handle_cast(:done, state) do
-    after_processed_work(state)
+  def handle_cast({:done, result}, state) do
+    after_processed_work(state, result)
     {:stop, :normal, state }
   end
 
@@ -99,7 +99,7 @@ defmodule Exq.Worker.Server do
     |> Inspect.Algebra.format(%Inspect.Opts{}.width)
     |> to_string
 
-    after_failed_work(state, error_message)
+    after_failed_work(state, error_message, error)
     {:stop, :normal, state}
   end
 
@@ -116,8 +116,8 @@ defmodule Exq.Worker.Server do
     Process.flag(:trap_exit, true)
     worker = self
     pid = spawn_link fn ->
-      apply(worker_module, :perform, args)
-      GenServer.cast(worker, :done)
+      result = apply(worker_module, :perform, args)
+      GenServer.cast(worker, {:done, result})
     end
     Process.monitor(pid)
   end
@@ -128,14 +128,16 @@ defmodule Exq.Worker.Server do
     |> Pipeline.chain(state.middleware_state)
   end
 
-  defp after_processed_work(state) do
+  defp after_processed_work(state, result) do
     %Pipeline{event: :after_processed_work, worker_pid: self, assigns: state.pipeline.assigns}
+    |> Pipeline.assign(:result, result)
     |> Pipeline.chain(state.middleware_state)
   end
 
-  defp after_failed_work(state, error_message) do
+  defp after_failed_work(state, error_message, error) do
     %Pipeline{event: :after_failed_work, worker_pid: self, assigns: state.pipeline.assigns}
     |> Pipeline.assign(:error_message, error_message)
+    |> Pipeline.assign(:error, error)
     |> Pipeline.chain(state.middleware_state)
   end
 end
