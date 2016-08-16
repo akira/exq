@@ -254,11 +254,11 @@ You can then create a module that implements the middleware behavior and defines
 
 ## Using with Phoenix and Ecto
 
-If you would like to use Exq alongside Phoenix and Ecto, add `:tzdata` and `:exq` to your mix.exs application list:
+If you would like to use Exq alongside Phoenix and Ecto, add `:exq` to your mix.exs application list:
 ```elixir
   def application do
     [mod: {Chat, []},
-     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq, :tzdata]]
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq]]
   end
 ```
 
