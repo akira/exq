@@ -48,12 +48,15 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.7.2"}
+      {:exq, "~> 0.8.0"}
     ]
   end
 ```
 
-Then run ```mix deps.get```.
+Then run ```mix deps.get```.  Please note that this version requires Elixir 1.3, and has no Timex dependencies.
+
+For Elixir 1.2 or older, you will need to use Exq version 0.7.2 in hex, and you will also need to add :tzdata to your application list.
+
 
 ### Configuration:
 
@@ -254,11 +257,11 @@ You can then create a module that implements the middleware behavior and defines
 
 ## Using with Phoenix and Ecto
 
-If you would like to use Exq alongside Phoenix and Ecto, add `:tzdata` and `:exq` to your mix.exs application list:
+If you would like to use Exq alongside Phoenix and Ecto, add `:exq` to your mix.exs application list:
 ```elixir
   def application do
     [mod: {Chat, []},
-     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq, :tzdata]]
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq]]
   end
 ```
 
