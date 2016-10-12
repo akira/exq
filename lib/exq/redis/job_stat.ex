@@ -38,18 +38,18 @@ defmodule Exq.Redis.JobStat do
 
   def processes(redis, namespace) do
     list = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || []
-    Enum.map(list, &Process.from_json/1)
+    Enum.map(list, &Process.decode/1)
   end
 
   def add_process(redis, namespace, process_info) do
-    json = Exq.Support.Process.to_json(process_info)
-    Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), json)
+    serialized = Exq.Support.Process.encode(process_info)
+    Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), serialized)
     :ok
   end
 
   def remove_process(redis, namespace, process_info) do
-    json = Exq.Support.Process.to_json(process_info)
-    Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), json)
+    serialized = Exq.Support.Process.encode(process_info)
+    Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), serialized)
     :ok
   end
 
@@ -70,7 +70,7 @@ defmodule Exq.Redis.JobStat do
     {:ok, failure} = find_failed(redis, namespace, jid)
     Connection.qp(redis, [
       ["DECR", JobQueue.full_key(namespace, "stat:failed")],
-      ["ZREM", JobQueue.full_key(namespace, "dead"), Job.to_json(failure)]
+      ["ZREM", JobQueue.full_key(namespace, "dead"), Job.encode(failure)]
     ])
   end
 

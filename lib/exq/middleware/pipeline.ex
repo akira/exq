@@ -60,7 +60,7 @@ defmodule Exq.Middleware.Pipeline do
     |> assign(    :queue, worker_state.queue)
     |> assign(  :manager, worker_state.manager)
     |> assign(    :stats, worker_state.stats)
-    |> assign( :job_json, worker_state.job_json)
+    |> assign( :job_serialized, worker_state.job_serialized)
   end
 
   @doc """

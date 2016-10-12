@@ -14,32 +14,31 @@ defmodule Exq.Redis.JobQueue do
   require Logger
 
   alias Exq.Redis.Connection
-  alias Exq.Support.Json
   alias Exq.Support.Job
   alias Exq.Support.Config
   alias Exq.Support.Randomize
   alias Exq.Support.Time
 
   def enqueue(redis, namespace, queue, worker, args) do
-    {jid, job_json} = to_job_json(queue, worker, args)
-    case enqueue(redis, namespace, queue, job_json) do
+    {jid, job_serialized} = to_job_serialized(queue, worker, args)
+    case enqueue(redis, namespace, queue, job_serialized) do
       :ok    -> {:ok, jid}
       other  -> other
     end
   end
-  def enqueue(redis, namespace, job_json) do
-    job = Json.decode!(job_json)
-    case enqueue(redis, namespace, job["queue"], job_json) do
-      :ok   -> {:ok, job["jid"]}
+  def enqueue(redis, namespace, job_serialized) do
+    job = Config.serializer.decode_job(job_serialized)
+    case enqueue(redis, namespace, job.queue, job_serialized) do
+      :ok   -> {:ok, job.jid}
       error -> error
     end
 
   end
-  def enqueue(redis, namespace, queue, job_json) do
+  def enqueue(redis, namespace, queue, job_serialized) do
     try do
       response = Connection.qp(redis, [
         ["SADD", full_key(namespace, "queues"), queue],
-        ["LPUSH", queue_key(namespace, queue), job_json]])
+        ["LPUSH", queue_key(namespace, queue), job_serialized]])
 
       case response do
         {:ok, [%Redix.Error{}, %Redix.Error{}]} = error -> error
@@ -60,14 +59,14 @@ defmodule Exq.Redis.JobQueue do
     enqueue_at(redis, namespace, queue, time, worker, args)
   end
   def enqueue_at(redis, namespace, queue, time, worker, args) do
-    {jid, job_json} = to_job_json(queue, worker, args)
-    enqueue_job_at(redis, namespace, job_json, jid, time, scheduled_queue_key(namespace))
+    {jid, job_serialized} = to_job_serialized(queue, worker, args)
+    enqueue_job_at(redis, namespace, job_serialized, jid, time, scheduled_queue_key(namespace))
   end
 
-  def enqueue_job_at(redis, _namespace, job_json, jid, time, scheduled_queue) do
+  def enqueue_job_at(redis, _namespace, job_serialized, jid, time, scheduled_queue) do
     score = Time.time_to_score(time)
     try do
-      case Connection.zadd(redis, scheduled_queue, score, job_json) do
+      case Connection.zadd(redis, scheduled_queue, score, job_serialized) do
         {:ok, _} -> {:ok, jid}
         other    -> other
       end
@@ -122,8 +121,8 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-  def remove_job_from_backup(redis, namespace, host, queue, job_json) do
-    Connection.lrem!(redis, backup_queue_key(namespace, host, queue), job_json)
+  def remove_job_from_backup(redis, namespace, host, queue, job_serialized) do
+    Connection.lrem!(redis, backup_queue_key(namespace, host, queue), job_serialized)
   end
 
   def scheduler_dequeue(redis, namespace) do
@@ -152,11 +151,11 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def scheduler_dequeue_requeue([], _redis, _namespace, _schedule_queue, count), do: count
-  def scheduler_dequeue_requeue([job_json|t], redis, namespace, schedule_queue, count) do
-    resp = Connection.zrem(redis, schedule_queue, job_json)
+  def scheduler_dequeue_requeue([job_serialized|t], redis, namespace, schedule_queue, count) do
+    resp = Connection.zrem(redis, schedule_queue, job_serialized)
     count = case resp do
       {:ok, 1} ->
-        enqueue(redis, namespace, job_json)
+        enqueue(redis, namespace, job_serialized)
         count + 1
       {:ok, _} -> count
       {:error, reason} ->
@@ -227,14 +226,14 @@ defmodule Exq.Redis.JobQueue do
       offset = :math.pow(job.retry_count, 4) + 15 + (Randomize.random(30) * (job.retry_count + 1))
       time = Time.offset_from_now(offset)
       Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
-      enqueue_job_at(redis, namespace, Job.to_json(job), job.jid, time, retry_queue_key(namespace))
+      enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
   end
 
   def fail_job(redis, namespace, job, error) do
     job = %{job | failed_at: Time.unix_seconds, retry_count: job.retry_count || 0,
       error_class: "ExqGenericError", error_message: error}
-    job_json = Job.to_json(job)
-    Connection.zadd!(redis, full_key(namespace, "dead"), Time.time_to_score, job_json)
+    job_serialized = Job.encode(job)
+    Connection.zadd!(redis, full_key(namespace, "dead"), Time.time_to_score, job_serialized)
   end
 
   def queue_size(redis, namespace) do
@@ -262,23 +261,23 @@ defmodule Exq.Redis.JobQueue do
 
   def jobs(redis, namespace, queue) do
     Connection.lrange!(redis, queue_key(namespace, queue))
-    |> Enum.map(&Job.from_json/1)
+    |> Enum.map(&Job.decode/1)
   end
 
   def scheduled_jobs(redis, namespace, queue) do
     Connection.zrangebyscore!(redis, full_key(namespace, queue))
-    |> Enum.map(&Job.from_json/1)
+    |> Enum.map(&Job.decode/1)
   end
 
   def scheduled_jobs_with_scores(redis, namespace, queue) do
     Connection.zrangebyscorewithscore!(redis, full_key(namespace, queue))
     |> Enum.chunk(2)
-    |> Enum.map( fn([job, score]) -> {Job.from_json(job), score} end)
+    |> Enum.map( fn([job, score]) -> {Job.decode(job), score} end)
   end
 
   def failed(redis, namespace) do
     Connection.zrange!(redis, failed_queue_key(namespace))
-    |> Enum.map(&Job.from_json/1)
+    |> Enum.map(&Job.decode/1)
   end
 
   def retry_size(redis, namespace) do
@@ -334,36 +333,36 @@ defmodule Exq.Redis.JobQueue do
     |> search_jobs(jid, convert)
   end
 
-  def search_jobs(jobs_json, jid) do
-    search_jobs(jobs_json, jid, true)
+  def search_jobs(jobs_serialized, jid) do
+    search_jobs(jobs_serialized, jid, true)
   end
-  def search_jobs(jobs_json, jid, true) do
-    found_job = jobs_json
-    |> Enum.map(&Job.from_json/1)
+  def search_jobs(jobs_serialized, jid, true) do
+    found_job = jobs_serialized
+    |> Enum.map(&Job.decode/1)
     |> Enum.find(fn job -> job.jid == jid end)
     {:ok, found_job}
   end
-  def search_jobs(jobs_json, jid, false) do
-    found_job = jobs_json
-    |> Enum.find(fn job_json ->
-      job = Job.from_json(job_json)
+  def search_jobs(jobs_serialized, jid, false) do
+    found_job = jobs_serialized
+    |> Enum.find(fn job_serialized ->
+      job = Job.decode(job_serialized)
       job.jid == jid
     end)
     {:ok, found_job}
   end
 
-  def to_job_json(queue, worker, args) do
-    to_job_json(queue, worker, args, Time.unix_seconds)
+  def to_job_serialized(queue, worker, args) do
+    to_job_serialized(queue, worker, args, Time.unix_seconds)
   end
-  def to_job_json(queue, worker, args, enqueued_at) when is_atom(worker) do
-    to_job_json(queue, to_string(worker), args, enqueued_at)
+  def to_job_serialized(queue, worker, args, enqueued_at) when is_atom(worker) do
+    to_job_serialized(queue, to_string(worker), args, enqueued_at)
   end
-  def to_job_json(queue, "Elixir." <> worker, args, enqueued_at) do
-    to_job_json(queue, worker, args, enqueued_at)
+  def to_job_serialized(queue, "Elixir." <> worker, args, enqueued_at) do
+    to_job_serialized(queue, worker, args, enqueued_at)
   end
-  def to_job_json(queue, worker, args, enqueued_at) do
+  def to_job_serialized(queue, worker, args, enqueued_at) do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:retry, true}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
-    {jid, Json.encode!(job)}
+    {jid, Config.serializer.encode!(job)}
   end
 end

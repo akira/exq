@@ -22,10 +22,10 @@ defmodule Exq.Stats.Server do
   @doc """
   Add in progress worker process
   """
-  def add_process(stats, namespace, worker, host, job) do
+  def add_process(stats, namespace, worker, host, job_serialized) do
     process_info = %Process{pid: worker,
                             host: host,
-                            job: job,
+                            job: Exq.Support.Config.serializer.decode_job(job_serialized),
                             started_at: Time.unix_seconds}
 
     GenServer.cast(stats, {:add_process, namespace, process_info})

@@ -5,13 +5,14 @@ defmodule Exq.Middleware.Job do
   import Pipeline
 
   def before_work(pipeline) do
-    job = Exq.Support.Job.from_json(pipeline.assigns.job_json)
+    job = Exq.Support.Job.decode(pipeline.assigns.job_serialized)
     target = String.replace(job.class, "::", ".")
     [mod | _func_or_empty] = Regex.split(~r/\//, target)
+    module = String.to_atom("Elixir.#{mod}")
 
     pipeline
     |> assign(:job, job)
-    |> assign(:worker_module, String.to_atom("Elixir.#{mod}"))
+    |> assign(:worker_module, module)
   end
 
   def after_processed_work(pipeline) do
@@ -33,7 +34,7 @@ defmodule Exq.Middleware.Job do
 
   def remove_job_from_backup(%Pipeline{assigns: assigns} = pipeline) do
     JobQueue.remove_job_from_backup(assigns.redis, assigns.namespace, assigns.host, assigns.queue,
-      assigns.job_json)
+      assigns.job_serialized)
     pipeline
   end
 end

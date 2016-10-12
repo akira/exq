@@ -6,7 +6,7 @@ defmodule Exq.Worker.Server do
   Currently uses the `terminate` callback to track job success/failure .
 
   ## Initialization:
-    * `job_json` - Full JSON payload of the Job.
+    * `job_serialized` - Full JSON payload of the Job.
     * `manager` - Manager process pid.
     * `queue` - The queue the job came from.
     * `:work_table` - In process work ets table (TODO: Remove).
@@ -22,13 +22,13 @@ defmodule Exq.Worker.Server do
   alias Exq.Middleware.Pipeline
 
   defmodule State do
-    defstruct job_json: nil, manager: nil, queue: nil, namespace: nil,
+    defstruct job_serialized: nil, manager: nil, queue: nil, namespace: nil,
       work_table: nil, stats: nil, host: nil, redis: nil, middleware: nil, pipeline: nil,
       middleware_state: nil
   end
 
-  def start_link(job_json, manager, queue, work_table, stats, namespace, host, redis, middleware) do
-    GenServer.start(__MODULE__, {job_json, manager, queue, work_table, stats, namespace, host, redis, middleware}, [])
+  def start_link(job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware) do
+    GenServer.start(__MODULE__, {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware}, [])
   end
 
   @doc """
@@ -42,11 +42,11 @@ defmodule Exq.Worker.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def init({job_json, manager, queue, work_table, stats, namespace, host, redis, middleware}) do
+  def init({job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware}) do
     {
       :ok,
       %State{
-        job_json: job_json, manager: manager, queue: queue,
+        job_serialized: job_serialized, manager: manager, queue: queue,
         work_table: work_table, stats: stats, namespace: namespace,
         host: host, redis: redis, middleware: middleware
       }
