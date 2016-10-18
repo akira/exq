@@ -127,8 +127,8 @@ defmodule Exq.Manager.Server do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
-  def job_terminated(exq, namespace, queue, job_json) do
-    GenServer.cast(exq, {:job_terminated, namespace, queue, job_json})
+  def job_terminated(exq, namespace, queue, job_serialized) do
+    GenServer.cast(exq, {:job_terminated, namespace, queue, job_serialized})
     :ok
   end
 
@@ -196,7 +196,7 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 0}
   end
 
-  def handle_cast({:job_terminated, _namespace, queue, _job_json}, state) do
+  def handle_cast({:job_terminated, _namespace, queue, _job_serialized}, state) do
     update_worker_count(state.work_table, queue, -1)
     {:noreply, state, 0}
   end

@@ -16,6 +16,7 @@ defmodule Exq.Support.Config do
     shutdown_timeout: 5000,
     reconnect_on_sleep: 100,
     max_retries: 25,
+    serializer: Exq.Serializers.JsonSerializer,
     middleware: [
       Exq.Middleware.Stats,
       Exq.Middleware.Job,
@@ -30,5 +31,9 @@ defmodule Exq.Support.Config do
 
   def get(key, fallback) do
     Application.get_env(:exq, key, fallback)
+  end
+
+  def serializer do
+    get(:serializer, Exq.Serializers.JsonSerializer)
   end
 end

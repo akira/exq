@@ -18,7 +18,7 @@ defmodule Exq.Middleware.Manager do
 
 
   defp notify(%Pipeline{assigns: assigns} = pipeline) do
-    Manager.job_terminated(assigns.manager, assigns.namespace, assigns.queue, assigns.job_json)
+    Manager.job_terminated(assigns.manager, assigns.namespace, assigns.queue, assigns.job_serialized)
     pipeline
   end
 end
