@@ -114,7 +114,7 @@ defmodule Exq.Redis.JobQueue do
     case resp do
       {:ok, job} ->
         if String.valid?(job) do
-          Logger.info("Re-enqueueing job from backup for host [#{host}] and queue [#{queue}]")
+          Logger.info("Re-enqueueing job from backup for host [#{host}] node_id [#{node_id(host)}] and queue [#{queue}]")
           re_enqueue_backup(redis, namespace, host, queue)
         end
       _ -> nil
@@ -176,7 +176,8 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def backup_queue_key(namespace, host, queue) do
-    full_key(namespace, "queue:backup::#{host}::#{queue}")
+    node_id = Config.node_identifier.node_id(host)
+    full_key(namespace, "queue:backup::#{node_id}::#{queue}")
   end
 
   def schedule_queues(namespace) do
@@ -364,5 +365,9 @@ defmodule Exq.Redis.JobQueue do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:retry, true}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Config.serializer.encode!(job)}
+  end
+
+  defp node_id(host) do
+    Config.node_identifier.node_id(host)
   end
 end
