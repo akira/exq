@@ -17,6 +17,7 @@ defmodule Exq.Support.Config do
     reconnect_on_sleep: 100,
     max_retries: 25,
     serializer: Exq.Serializers.JsonSerializer,
+    node_identifier: Exq.NodeIdentifier.HostnameIdentifier,
     middleware: [
       Exq.Middleware.Stats,
       Exq.Middleware.Job,
@@ -34,6 +35,11 @@ defmodule Exq.Support.Config do
   end
 
   def serializer do
-    get(:serializer, Exq.Serializers.JsonSerializer)
+    get(:serializer)
   end
+
+  def node_identifier do
+    get(:node_identifier)
+  end
+
 end

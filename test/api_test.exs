@@ -133,7 +133,7 @@ defmodule ApiTest do
     {:ok, jid} = Exq.enqueue_in(Exq, 'custom', 1000, Bogus, [])
     {:ok, jobs} = Exq.Api.scheduled_with_scores(Exq.Api)
     assert Enum.count(jobs) == 1
-    [{job, score}] = jobs
+    [{job, _score}] = jobs
     assert job.jid == jid
   end
 
