@@ -229,6 +229,10 @@ defmodule Exq.Redis.JobQueue do
       Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
       enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
   end
+  def retry_job(redis, namespace, job) do
+    remove_retry(redis, namespace, job.jid)
+    enqueue(redis, namespace, Job.encode(job))
+  end
 
   def fail_job(redis, namespace, job, error) do
     job = %{job | failed_at: Time.unix_seconds, retry_count: job.retry_count || 0,

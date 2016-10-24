@@ -173,6 +173,12 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, failures, successes}, state, 0}
   end
 
+  def handle_call({:retry_job, jid}, _from, state) do
+    {:ok, job} = JobQueue.find_job(state.redis, state.namespace, jid, :retry)
+    JobQueue.retry_job(state.redis, state.namespace, job)
+    {:reply, :ok, state, 0}
+  end
+
   def terminate(_reason, _state) do
     :ok
   end
