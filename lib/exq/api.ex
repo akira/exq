@@ -196,4 +196,8 @@ defmodule Exq.Api do
   def realtime_stats(pid) do
     GenServer.call(pid, :realtime_stats)
   end
+
+  def retry_job(pid, jid) do
+    GenServer.call(pid, {:retry_job, jid})
+  end
 end

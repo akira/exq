@@ -270,4 +270,13 @@ defmodule ApiTest do
     assert {:ok, [{_, "1"}], [{_, "1"}]} = Exq.Api.realtime_stats(Exq.Api)
   end
 
+  test "retry job" do
+    JobQueue.retry_job(:testredis, 'test', %Job{jid: "1234"}, 1, "this is an error")
+
+    Exq.Api.retry_job(Exq.Api, "1234")
+
+    assert {:ok, 0} = Exq.Api.retry_size(Exq.Api)
+    assert {:ok, job} = Exq.Api.find_job(Exq.Api, nil, "1234")
+    assert job.jid == "1234"
+  end
 end
