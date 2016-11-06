@@ -80,16 +80,16 @@ defmodule Exq.Redis.JobQueue do
   @doc """
   Dequeue jobs for available queues
   """
-  def dequeue(redis, namespace, host, queues) when is_list(queues) do
-    dequeue_multiple(redis, namespace, host, queues)
+  def dequeue(redis, namespace, node_id, queues) when is_list(queues) do
+    dequeue_multiple(redis, namespace, node_id, queues)
   end
 
-  defp dequeue_multiple(_redis, _namespace, _host, []) do
+  defp dequeue_multiple(_redis, _namespace, _node_id, []) do
     {:ok, {:none, nil}}
   end
-  defp dequeue_multiple(redis, namespace, host, queues) do
+  defp dequeue_multiple(redis, namespace, node_id, queues) do
     deq_commands = Enum.map(queues, fn(queue) ->
-      ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, host, queue)]
+      ["RPOPLPUSH", queue_key(namespace, queue), backup_queue_key(namespace, node_id, queue)]
     end)
     resp = Connection.qp(redis, deq_commands)
 
@@ -107,22 +107,22 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-  def re_enqueue_backup(redis, namespace, host, queue) do
+  def re_enqueue_backup(redis, namespace, node_id, queue) do
     resp = redis |> Connection.rpoplpush(
-      backup_queue_key(namespace, host, queue),
+      backup_queue_key(namespace, node_id, queue),
       queue_key(namespace, queue))
     case resp do
       {:ok, job} ->
         if String.valid?(job) do
-          Logger.info("Re-enqueueing job from backup for host [#{host}] node_id [#{node_id(host)}] and queue [#{queue}]")
-          re_enqueue_backup(redis, namespace, host, queue)
+          Logger.info("Re-enqueueing job from backup for node_id [#{node_id}] and queue [#{queue}]")
+          re_enqueue_backup(redis, namespace, node_id, queue)
         end
       _ -> nil
     end
   end
 
-  def remove_job_from_backup(redis, namespace, host, queue, job_serialized) do
-    Connection.lrem!(redis, backup_queue_key(namespace, host, queue), job_serialized)
+  def remove_job_from_backup(redis, namespace, node_id, queue, job_serialized) do
+    Connection.lrem!(redis, backup_queue_key(namespace, node_id, queue), job_serialized)
   end
 
   def scheduler_dequeue(redis, namespace) do
@@ -175,8 +175,7 @@ defmodule Exq.Redis.JobQueue do
     full_key(namespace, "queue:#{queue}")
   end
 
-  def backup_queue_key(namespace, host, queue) do
-    node_id = Config.node_identifier.node_id(host)
+  def backup_queue_key(namespace, node_id, queue) do
     full_key(namespace, "queue:backup::#{node_id}::#{queue}")
   end
 
@@ -369,9 +368,5 @@ defmodule Exq.Redis.JobQueue do
     jid = UUID.uuid4
     job = Enum.into([{:queue, queue}, {:retry, true}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Config.serializer.encode!(job)}
-  end
-
-  defp node_id(host) do
-    Config.node_identifier.node_id(host)
   end
 end
