@@ -48,7 +48,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.8.0"}
+      {:exq, "~> 0.8.1"}
     ]
   end
 ```
@@ -359,11 +359,15 @@ mix test --trace --include failure_scenarios:true --no-start
 
 Justin McNally (j-mcnally) (structtv)
 
+zhongwencool (zhongwencool)
+
+Joe Webb (ImJoeWebb)
+
+Chelsea Robb (chelsea)
+
 Nick Sanders (nicksanders)
 
 Nick Gal (nickgal)
-
-zhongwencool (zhongwencool)
 
 Ben Wilson (benwilson512)
 
@@ -400,8 +404,6 @@ Thomas Athanas (typicalpixel)
 Wen Li (wli0503)
 
 Akshay (akki91)
-
-Anantha Kumaran (ananthakumaran)
 
 Rob Gilson (D1plo1d)
 
