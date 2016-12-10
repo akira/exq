@@ -30,10 +30,11 @@ While you may reach for Sidekiq / Resque / Celery by default when writing apps i
 
 Some OTP related documentation to look at:
 
-* http://elixir-lang.org/getting-started/mix-otp/genserver.html
-* http://elixir-lang.org/docs/v1.1/elixir/Task.html
-* http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html
-* http://erlang.org/doc/
+* GenServer: http://elixir-lang.org/getting-started/mix-otp/genserver.html
+* Task: http://elixir-lang.org/docs/v1.1/elixir/Task.html
+* GenStage: https://hexdocs.pm/gen_stage/Experimental.GenStage.html
+* Supervisor: http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html
+* OTP: http://erlang.org/doc/
 
 If you need a durable jobs, retries with exponential backoffs, dynamically scheduled jobs in the future - that are all able to survive application restarts, then an externally backed queueing library such as Exq could be a good fit.
 
