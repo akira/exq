@@ -107,18 +107,6 @@ defmodule MiddlewareTest do
     end
   end
 
-  defmodule StubServer do
-    use GenServer
-
-    def handle_cast(_msg, state) do
-      {:noreply, state}
-    end
-
-    def handle_call(_msg, _from, state) do
-      {:reply, {:ok, state}, state}
-    end
-  end
-
   def start_worker({class, args, middleware}) do
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args}, \"jid\": \"123\" }"
 

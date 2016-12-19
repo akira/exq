@@ -13,6 +13,12 @@ defmodule TestStats do
   end
 end
 
+defmodule StubServer do
+  use GenServer
+  def handle_cast(_msg, state), do: {:noreply, state}
+  def handle_call(_msg, _from, state), do: {:reply, {:ok, state}, state}
+end
+
 defmodule ExqTestUtil do
   @timeout 20
   @long_timeout 100
