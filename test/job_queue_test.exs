@@ -86,7 +86,7 @@ defmodule JobQueueTest do
 
   test "scheduler_dequeue enqueue_at" do
     JobQueue.enqueue_at(:testredis, "test", "default", DateTime.utc_now, MyWorker, [])
-    {jid, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [])
+    {jid, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [], true)
     JobQueue.enqueue_job_at(:testredis, "test", job_serialized, jid, DateTime.utc_now, "test:retry")
     assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default"], true)
@@ -155,13 +155,13 @@ defmodule JobQueueTest do
   end
 
   test "to_job_serialized using module atom" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [])
+    {_jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], true)
     job = Job.decode(serialized)
     assert job.class == "MyWorker"
   end
 
   test "to_job_serialized using module string" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", "MyWorker/perform", [])
+    {_jid, serialized} = JobQueue.to_job_serialized("default", "MyWorker/perform", [], true)
     job = Job.decode(serialized)
     assert job.class == "MyWorker/perform"
   end

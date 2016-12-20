@@ -19,8 +19,8 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Support.Randomize
   alias Exq.Support.Time
 
-  def enqueue(redis, namespace, queue, worker, args) do
-    {jid, job_serialized} = to_job_serialized(queue, worker, args)
+  def enqueue(redis, namespace, queue, worker, args, retry \\ true) do
+    {jid, job_serialized} = to_job_serialized(queue, worker, args, retry)
     case enqueue(redis, namespace, queue, job_serialized) do
       :ok    -> {:ok, jid}
       other  -> other
@@ -54,12 +54,12 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-  def enqueue_in(redis, namespace, queue, offset, worker, args) when is_integer(offset) do
+  def enqueue_in(redis, namespace, queue, offset, worker, args, retry \\ true) when is_integer(offset) do
     time = Time.offset_from_now(offset)
-    enqueue_at(redis, namespace, queue, time, worker, args)
+    enqueue_at(redis, namespace, queue, time, worker, args, retry)
   end
-  def enqueue_at(redis, namespace, queue, time, worker, args) do
-    {jid, job_serialized} = to_job_serialized(queue, worker, args)
+  def enqueue_at(redis, namespace, queue, time, worker, args, retry \\ true) do
+    {jid, job_serialized} = to_job_serialized(queue, worker, args, retry)
     enqueue_job_at(redis, namespace, job_serialized, jid, time, scheduled_queue_key(namespace))
   end
 
@@ -355,18 +355,18 @@ defmodule Exq.Redis.JobQueue do
     {:ok, found_job}
   end
 
-  def to_job_serialized(queue, worker, args) do
-    to_job_serialized(queue, worker, args, Time.unix_seconds)
+  def to_job_serialized(queue, worker, args, retry) do
+    to_job_serialized(queue, worker, args, retry, Time.unix_seconds)
   end
-  def to_job_serialized(queue, worker, args, enqueued_at) when is_atom(worker) do
-    to_job_serialized(queue, to_string(worker), args, enqueued_at)
+  def to_job_serialized(queue, worker, args, retry, enqueued_at) when is_atom(worker) do
+    to_job_serialized(queue, to_string(worker), args, retry, enqueued_at)
   end
-  def to_job_serialized(queue, "Elixir." <> worker, args, enqueued_at) do
-    to_job_serialized(queue, worker, args, enqueued_at)
+  def to_job_serialized(queue, "Elixir." <> worker, args, retry, enqueued_at) do
+    to_job_serialized(queue, worker, args, retry, enqueued_at)
   end
-  def to_job_serialized(queue, worker, args, enqueued_at) do
+  def to_job_serialized(queue, worker, args, retry, enqueued_at) do
     jid = UUID.uuid4
-    job = Enum.into([{:queue, queue}, {:retry, true}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
+    job = Enum.into([{:queue, queue}, {:retry, retry}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Config.serializer.encode!(job)}
   end
 end
