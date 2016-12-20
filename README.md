@@ -3,6 +3,7 @@
 [![Travis Build Status](https://img.shields.io/travis/akira/exq.svg)](https://travis-ci.org/akira/exq)
 [![Coveralls Coverage](https://img.shields.io/coveralls/akira/exq.svg)](https://coveralls.io/github/akira/exq)
 [![Hex.pm Version](https://img.shields.io/hexpm/v/exq.svg)](https://hex.pm/packages/exq)
+[![Deps Status](https://beta.hexfaktor.org/badge/all/github/akira/exq.svg?branch=master)](https://beta.hexfaktor.org/github/akira/exq)
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 * Exq uses Redis as a store for background processing jobs.
@@ -23,6 +24,20 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
   the job will be re_enqueued when the node is restarted and not lost.
 * Exq provides an optional web UI that you can use to view several stats as well as rate of job processing.
 
+### Do you need Exq?
+
+While you may reach for Sidekiq / Resque / Celery by default when writing apps in other languages, in Elixir there are some good options to consider that are already provided by the language and platform. So before adding Exq or any Redis backed queueing library to your application, make sure to get familiar with OTP and see if that is enough for your needs. Redis backed queueing libraries do add additional infrastructure complexity and also overhead due to serialization / marshalling, so make sure to evaluate whether or it is an actual need.
+
+Some OTP related documentation to look at:
+
+* GenServer: http://elixir-lang.org/getting-started/mix-otp/genserver.html
+* Task: http://elixir-lang.org/docs/v1.1/elixir/Task.html
+* GenStage: https://hexdocs.pm/gen_stage/Experimental.GenStage.html
+* Supervisor: http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html
+* OTP: http://erlang.org/doc/
+
+If you need a durable jobs, retries with exponential backoffs, dynamically scheduled jobs in the future - that are all able to survive application restarts, then an externally backed queueing library such as Exq could be a good fit.
+
 ## Getting Started:
 
 This assumes you have an instance of [Redis](http://redis.io/) to use.
@@ -34,12 +49,15 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.6.4"}
+      {:exq, "~> 0.8.1"}
     ]
   end
 ```
 
-Then run ```mix deps.get```.
+Then run ```mix deps.get```.  Please note that this version requires Elixir 1.3, and has no Timex dependencies.
+
+For Elixir 1.2 or older, you will need to use Exq version 0.7.2 in hex, and you will also need to add :tzdata to your application list.
+
 
 ### Configuration:
 
@@ -47,9 +65,9 @@ By default, Exq will use configuration from your config.exs file.  You can use t
 to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options).
 
 Other options include:
-* The `queues` list specifices which queues Exq will listen to for new jobs.
+* The `queues` list specifies which queues Exq will listen to for new jobs.
 * The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
-* The `name` option allows you to customize Exq's registered name, similar to usingas `Exq.start_link([name: Name])`. The default is Exq.
+* The `name` option allows you to customize Exq's registered name, similar to using `Exq.start_link([name: Name])`. The default is Exq.
 
 ```elixir
 config :exq,
@@ -63,7 +81,8 @@ config :exq,
   poll_timeout: 50,
   scheduler_poll_timeout: 200,
   scheduler_enable: true,
-  max_retries: 25
+  max_retries: 25,
+  shutdown_timeout: 5000
 ```
 
 ### Concurrency:
@@ -122,6 +141,9 @@ You can add Exq into your OTP application list, and it will start an instance of
 ```
 
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
+
+You can configure ```shutdown_timeout``` to allow more or less time to finish
+jobs when being shutdown.
 
 ## Using iex:
 If you'd like to try Exq out on the iex console, you can do this by typing
@@ -236,25 +258,11 @@ You can then create a module that implements the middleware behavior and defines
 
 ## Using with Phoenix and Ecto
 
-If you would like to use Exq alongside Phoenix and Ecto, for example, if we have an application called ```HelloPhoenix```, you would edit ```lib/hello_phoenix.ex``` :
-```elixir
-    children = [
-      # Start the endpoint when the application starts
-      supervisor(HelloPhoenix.Endpoint, []),
-      # Start the Ecto repository
-      worker(HelloPhoenix.Repo, []),
-           
-
-      # Here you could define other workers and supervisors as children
-      # worker(HelloPhoenix.Worker, [arg1, arg2, arg3]),
-    ]
-```
-
-Also, add :tzdata to your mix.exs application list:
+If you would like to use Exq alongside Phoenix and Ecto, add `:exq` to your mix.exs application list:
 ```elixir
   def application do
     [mod: {Chat, []},
-     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq, :tzdata]]
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq]]
   end
 ```
 
@@ -293,7 +301,7 @@ Side::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' =
 
 ## Security
 
-By default, you Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
+By default, your Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
 
 
 ## Web UI:
@@ -352,15 +360,21 @@ mix test --trace --include failure_scenarios:true --no-start
 
 Justin McNally (j-mcnally) (structtv)
 
+zhongwencool (zhongwencool)
+
+Joe Webb (ImJoeWebb)
+
+Chelsea Robb (chelsea)
+
 Nick Sanders (nicksanders)
 
 Nick Gal (nickgal)
 
-zhongwencool (zhongwencool)
-
 Ben Wilson (benwilson512)
 
 Mike Lawlor (disbelief)
+
+colbyh (colbyh)
 
 Udo Kramer (optikfluffel)
 
@@ -376,14 +390,24 @@ Denis Tataurov (sineed)
 
 Joe Honzawa (Joe-noh)
 
+Aaron Jensen (aaronjensen)
+
 Andrew Vy (andrewvy)
 
 David Le (dl103)
 
 Roman Smirnov (romul)
 
-akki91 (Akshay)
+Anantha Kumaran (ananthakumaran)
+
+Thomas Athanas (typicalpixel)
+
+Wen Li (wli0503)
+
+Akshay (akki91)
 
 Rob Gilson (D1plo1d)
+
+edmz (edmz)
 
 Benjamin Tan Wei Hao (benjamintanweihao)

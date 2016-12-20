@@ -58,19 +58,21 @@ defmodule Exq.ConfigTest do
         scheduler_poll_timeout: 200,
         poll_timeout: 100,
         redis_timeout: 5000,
+        shutdown_timeout: 7000,
       ]
     ])
     {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :default])
     [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
       workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: name,
       scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency, middleware: middleware,
-      default_middleware: default_middleware, mode: mode]
+      default_middleware: default_middleware, mode: mode, shutdown_timeout: shutdown_timeout]
     = server_opts
     assert scheduler_enable == true
     assert namespace == "exq"
     assert scheduler_poll_timeout == 200
     assert workers_sup == Exq.Worker.Sup
     assert poll_timeout == 100
+    assert shutdown_timeout == 7000
     assert enqueuer == Exq.Enqueuer
     assert stats == Exq.Stats
     assert name == nil

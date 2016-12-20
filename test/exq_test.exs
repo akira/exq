@@ -1,6 +1,5 @@
 defmodule ExqTest do
   use ExUnit.Case
-  use Timex
   alias Exq.Redis.JobQueue
   import ExqTestUtil
 
@@ -20,6 +19,14 @@ defmodule ExqTest do
     def perform(time, message) do
       :timer.sleep(time)
       send :exqtest, {message}
+    end
+  end
+
+  defmodule SleepLastWorker do
+    def perform(time, message) do
+      Process.register(self, :sleep_last_worker )
+      send :exqtest, {message}
+      :timer.sleep(time)
     end
   end
 
@@ -103,7 +110,7 @@ defmodule ExqTest do
   test "enqueue_at and run a job" do
     Process.register(self, :exqtest)
     {:ok, sup} = Exq.start_link(scheduler_enable: true)
-    {:ok, _} = Exq.enqueue_at(Exq, "default", Time.now, ExqTest.PerformWorker, [])
+    {:ok, _} = Exq.enqueue_at(Exq, "default", DateTime.utc_now, ExqTest.PerformWorker, [])
     assert_receive {:worked}
     stop_process(sup)
   end
@@ -273,9 +280,49 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link(mode: :api)
 
     # Find the job in the processed queue
-    {:ok, _, _} = Exq.Api.find_failed(Exq.Api, jid)
+    {:ok, _} = Exq.Api.find_failed(Exq.Api, jid)
 
     wait_long
     stop_process(sup)
   end
+
+  test "configure worker shutdown time" do
+    Process.register(self, :exqtest)
+    {:ok, sup} = Exq.start_link([shutdown_timeout: 200])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [500, :long])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [100, :short])
+
+    wait
+    stop_process(sup)
+
+    refute_received {"long"}
+    assert_received {"short"}
+  end
+
+  test "handle supervisor tree shutdown properly with stats cleanup" do
+    Process.register(self, :exqtest)
+
+    {:ok, sup} = Exq.start_link
+
+    # call worker that sends message and sleeps for a bit
+    {:ok, _jid} = Exq.enqueue(Exq, "default", ExqTest.SleepLastWorker, [300, "worked"])
+
+    # wait until worker started
+    assert_receive {"worked"}, 100
+    stop_process(sup)
+
+    # Make sure everything is shut down properly
+    assert Process.alive?(sup) == false
+    assert Process.whereis(Exq.Manager.Server) == nil
+    assert Process.whereis(Exq.Stats.Server) == nil
+    assert Process.whereis(Exq.Scheduler.Server) == nil
+    assert Process.whereis(:sleep_last_worker) == nil
+
+    # Check that stats were cleaned up
+    {:ok, sup} = Exq.start_link
+    assert {:ok, []} == Exq.Api.processes(Exq.Api)
+
+    stop_process(sup)
+  end
+
 end

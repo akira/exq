@@ -103,7 +103,7 @@ defmodule TestRedis do
 
   def teardown do
     if !Process.whereis(:testredis) do
-      # For some reason at the end of test the link is down, before we acutally stop and unregister?
+      # For some reason at the end of test the link is down, before we actually stop and unregister?
       {:ok, redis} = Redix.start_link([host: redis_host, port: redis_port])
       Process.register(redis, :testredis)
     end
@@ -114,7 +114,7 @@ end
 
 # Don't run parallel tests to prevent redis issues
 # Exclude longer running failure condition tests by default
-ExUnit.configure(seed: 0, max_cases: 1, exclude: [failure_scenarios: true])
+ExUnit.configure(seed: 0, max_cases: 1, exclude: [failure_scenarios: true, pending: true])
 
 # Start logger
 :application.start(:logger)

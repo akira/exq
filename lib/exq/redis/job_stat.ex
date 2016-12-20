@@ -5,14 +5,11 @@ defmodule Exq.Redis.JobStat do
   """
 
   require Logger
-  use Timex
+  alias Exq.Support.{Binary, Process, Job, Time}
+  alias Exq.Redis.{Connection, JobQueue}
 
-  alias Exq.Support.Binary
-  alias Exq.Redis.Connection
-  alias Exq.Redis.JobQueue
-
-  def record_processed(redis, namespace, _job, current_date \\ Date.universal) do
-    {time, date} = format_current_date(current_date)
+  def record_processed(redis, namespace, _job, current_date \\ DateTime.utc_now) do
+    {time, date} = Time.format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis,[
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
@@ -23,8 +20,8 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, _error, _job, current_date \\ Date.universal) do
-    {time, date} = format_current_date(current_date)
+  def record_failure(redis, namespace, _error, _job, current_date \\ DateTime.utc_now) do
+    {time, date} = Time.format_current_date(current_date)
 
     {:ok, [count, _, _, _]} = Connection.qp(redis, [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
@@ -40,25 +37,26 @@ defmodule Exq.Redis.JobStat do
   end
 
   def processes(redis, namespace) do
-    Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
+    list = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || []
+    Enum.map(list, &Process.decode/1)
   end
 
   def add_process(redis, namespace, process_info) do
-    json = Exq.Support.Process.to_json(process_info)
-    Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), json)
+    serialized = Exq.Support.Process.encode(process_info)
+    Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), serialized)
     :ok
   end
 
   def remove_process(redis, namespace, process_info) do
-    json = Exq.Support.Process.to_json(process_info)
-    Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), json)
+    serialized = Exq.Support.Process.encode(process_info)
+    Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), serialized)
     :ok
   end
 
   def find_failed(redis, namespace, jid) do
     redis
     |> Connection.zrange!(JobQueue.full_key(namespace, "dead"), 0, -1)
-    |> JobQueue.find_job(jid)
+    |> JobQueue.search_jobs(jid)
   end
 
   def remove_queue(redis, namespace, queue) do
@@ -69,10 +67,10 @@ defmodule Exq.Redis.JobStat do
   end
 
   def remove_failed(redis, namespace, jid) do
-    {:ok, failure, _idx} = find_failed(redis, namespace, jid)
+    {:ok, failure} = find_failed(redis, namespace, jid)
     Connection.qp(redis, [
       ["DECR", JobQueue.full_key(namespace, "stat:failed")],
-      ["ZREM", JobQueue.full_key(namespace, "dead"), failure]
+      ["ZREM", JobQueue.full_key(namespace, "dead"), Job.encode(failure)]
     ])
   end
 
@@ -112,11 +110,17 @@ defmodule Exq.Redis.JobStat do
     end
   end
 
-  defp format_current_date(current_date) do
-    format_fn = fn(format) ->
-      DateFormat.format!(current_date, format, :strftime)
+  def get_count(redis, namespace, key) do
+    case Connection.get!(redis, JobQueue.full_key(namespace, "stat:#{key}")) do
+      :undefined ->
+        0
+      nil ->
+        0
+      count when is_integer(count) ->
+        count
+      count ->
+        {val, _} = Integer.parse(count)
+        val
     end
-
-    {format_fn.("%Y-%m-%d %T %z"), format_fn.("%Y-%m-%d")}
   end
 end

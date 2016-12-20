@@ -74,6 +74,11 @@ defmodule Exq.Redis.Connection do
     res
   end
 
+  def sismember!(redis, set, member) do
+    {:ok, res} = q(redis, ["SISMEMBER", set, member])
+    res
+  end
+
   def lrange!(redis, list, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = q(redis, ["LRANGE", list, range_start, range_end])
     items
@@ -116,6 +121,11 @@ defmodule Exq.Redis.Connection do
     count
   end
 
+  def zcount!(redis, set, min \\ "-inf", max \\ "+inf") do
+    {:ok, count} = q(redis, ["ZCOUNT", set, min, max])
+    count
+  end
+
   def zrangebyscore!(redis, set, min \\ "0", max \\ "+inf") do
     {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max])
     items
@@ -125,7 +135,6 @@ defmodule Exq.Redis.Connection do
     q(redis, ["ZRANGEBYSCORE", set, min, max])
   end
 
-  # TODO cleanup / tests
   def zrangebyscorewithscore!(redis, set, min \\ "0", max \\ "+inf") do
     {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
     items

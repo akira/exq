@@ -6,7 +6,7 @@ defmodule Exq.Support.Opts do
    Return top supervisor's name default is Exq.Sup
   """
   def top_supervisor(name) do
-    unless name, do: name = Config.get(:name)
+    name = name || Config.get(:name)
     "#{name}.Sup" |> String.to_atom
   end
 
@@ -38,7 +38,7 @@ defmodule Exq.Support.Opts do
   end
 
   def redis_client_name(name) do
-    unless name, do: name = Config.get(:name)
+    name = name || Config.get(:name)
     "#{name}.Redis.Client" |> String.to_atom
   end
 
@@ -47,6 +47,7 @@ defmodule Exq.Support.Opts do
     namespace = opts[:namespace] || Config.get(:namespace)
     scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout)
     poll_timeout = opts[:poll_timeout] || Config.get(:poll_timeout)
+    shutdown_timeout = opts[:shutdown_timeout] || Config.get(:shutdown_timeout)
 
     enqueuer = Exq.Enqueuer.Server.server_name(opts[:name])
     stats = Exq.Stats.Server.server_name(opts[:name])
@@ -62,9 +63,10 @@ defmodule Exq.Support.Opts do
 
     [scheduler_enable: scheduler_enable, namespace: namespace,
      scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,
-     poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: opts[:name],
-     scheduler: scheduler, queues: queues, redis: opts[:redis], concurrency: concurrency,
-     middleware: middleware, default_middleware: default_middleware, mode: :default]
+     poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name:
+     opts[:name], scheduler: scheduler, queues: queues, redis: opts[:redis],
+     concurrency: concurrency, middleware: middleware, default_middleware:
+     default_middleware, mode: :default, shutdown_timeout: shutdown_timeout]
   end
   defp server_opts(mode, opts) do
     namespace = opts[:namespace] || Config.get(:namespace)

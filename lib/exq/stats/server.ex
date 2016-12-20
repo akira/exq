@@ -9,9 +9,10 @@ defmodule Exq.Stats.Server do
   This includes job success/failure as well as in-progress jobs
   """
   use GenServer
-  use Timex
   alias Exq.Redis.JobStat
   alias Exq.Support.Process
+  alias Exq.Support.Time
+
   require Logger
 
   defmodule State do
@@ -21,8 +22,12 @@ defmodule Exq.Stats.Server do
   @doc """
   Add in progress worker process
   """
-  def add_process(stats, namespace, worker, host, job) do
-    process_info = %Process{pid: worker, host: host, job: job, started_at: DateFormat.format!(Date.universal, "{ISO}")}
+  def add_process(stats, namespace, worker, host, job_serialized) do
+    process_info = %Process{pid: worker,
+                            host: host,
+                            job: Exq.Support.Config.serializer.decode_job(job_serialized),
+                            started_at: Time.unix_seconds}
+
     GenServer.cast(stats, {:add_process, namespace, process_info})
     {:ok, process_info}
   end
@@ -52,7 +57,7 @@ defmodule Exq.Stats.Server do
   end
 
   def server_name(name) do
-    unless name, do: name = Exq.Support.Config.get(:name)
+    name = name || Exq.Support.Config.get(:name)
     "#{name}.Stats" |> String.to_atom
   end
 

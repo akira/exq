@@ -76,7 +76,7 @@ defmodule Exq.Manager.Server do
        a single MULT RPOPLPUSH command issued to Redis with the targeted queue.
 
        This command atomicaly pops an item off the queue and stores the item in a backup queue.
-       The backup queue is keyed off the queue and host name, so each host would
+       The backup queue is keyed off the queue and node id, so each node would
        have their own backup queue.
 
        Note that we cannot use a blocking pop since BRPOPLPUSH (unlike BRPOP) is more
@@ -118,7 +118,7 @@ defmodule Exq.Manager.Server do
   @backoff_mult 10
 
   defmodule State do
-    defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, host: nil, namespace: nil, work_table: nil,
+    defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, node_id: nil, namespace: nil, work_table: nil,
               queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil, workers_sup: nil,
               middleware: nil
   end
@@ -127,8 +127,8 @@ defmodule Exq.Manager.Server do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
-  def job_terminated(exq, namespace, queue, job_json) do
-    GenServer.cast(exq, {:job_terminated, namespace, queue, job_json})
+  def job_terminated(exq, namespace, queue, job_serialized) do
+    GenServer.cast(exq, {:job_terminated, namespace, queue, job_serialized})
     :ok
   end
 
@@ -137,8 +137,6 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 
   def init(opts) do
-    {:ok, localhost} = :inet.gethostname()
-
     work_table = setup_queues(opts)
 
     state = %State{work_table: work_table,
@@ -147,7 +145,7 @@ defmodule Exq.Manager.Server do
                    workers_sup: opts[:workers_sup],
                    enqueuer: opts[:enqueuer],
                    middleware: opts[:middleware],
-                   host:  to_string(localhost),
+                   node_id:  Config.node_identifier.node_id(),
                    namespace: opts[:namespace],
                    queues: opts[:queues],
                    pid: self(),
@@ -191,12 +189,12 @@ defmodule Exq.Manager.Server do
 
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
-      JobQueue.re_enqueue_backup(state.redis, state.namespace, state.host, queue)
+      JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)
     end)
     {:noreply, state, 0}
   end
 
-  def handle_cast({:job_terminated, _namespace, queue, _job_json}, state) do
+  def handle_cast({:job_terminated, _namespace, queue, _job_serialized}, state) do
     update_worker_count(state.work_table, queue, -1)
     {:noreply, state, 0}
   end
@@ -224,7 +222,7 @@ defmodule Exq.Manager.Server do
   def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
   def dequeue_and_dispatch(state, queues) do
     rescue_timeout({state, state.poll_timeout}, fn ->
-      jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.host, queues)
+      jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
 
       job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job(state, potential_job) end)
 
@@ -269,7 +267,7 @@ defmodule Exq.Manager.Server do
     {:ok, worker} = Exq.Worker.Supervisor.start_child(
       state.workers_sup,
       [job, state.pid, queue, state.work_table,
-       state.stats, state.namespace, state.host, state.redis, state.middleware])
+       state.stats, state.namespace, state.node_id, state.redis, state.middleware])
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
   end

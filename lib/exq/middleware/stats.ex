@@ -19,7 +19,7 @@ defmodule Exq.Middleware.Stats do
   end
 
   defp add_process(%Pipeline{assigns: assigns, worker_pid: worker_pid}) do
-    Stats.add_process(assigns.stats, assigns.namespace, worker_pid, assigns.host, assigns.job_json)
+    Stats.add_process(assigns.stats, assigns.namespace, worker_pid, assigns.host, assigns.job_serialized)
   end
 
   defp process_terminated(%Pipeline{assigns: assigns} = pipeline) do

@@ -1,6 +1,5 @@
 defmodule FailureScenariosTest do
   use ExUnit.Case
-  use Timex
   import ExqTestUtil
 
   @moduletag :failure_scenarios
@@ -65,7 +64,7 @@ defmodule FailureScenariosTest do
     enq_result = Exq.enqueue(Exq, "default", "FakeWorker", [])
     assert enq_result ==  {:error, :closed}
 
-    enq_result = Exq.enqueue_at(Exq, "default", Time.now, ExqTest.PerformWorker, [])
+    enq_result = Exq.enqueue_at(Exq, "default", DateTime.utc_now, ExqTest.PerformWorker, [])
     assert enq_result ==  {:error, :closed}
 
     # Starting Redis again and things should be back to normal
