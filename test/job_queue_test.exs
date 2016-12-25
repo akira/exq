@@ -152,17 +152,20 @@ defmodule JobQueueTest do
     [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
     job = Poison.decode!(job_str, as: %Exq.Support.Job{})
     assert job.jid == jid
+    assert job.retry == true
   end
 
   test "to_job_serialized using module atom" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], retry: true)
+    {_jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], retry: false)
     job = Job.decode(serialized)
     assert job.class == "MyWorker"
+    assert job.retry == false
   end
 
   test "to_job_serialized using module string" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", "MyWorker/perform", [], retry: true)
+    {_jid, serialized} = JobQueue.to_job_serialized("default", "MyWorker/perform", [], retry: 10)
     job = Job.decode(serialized)
     assert job.class == "MyWorker/perform"
+    assert job.retry == 10
   end
 end

@@ -177,7 +177,7 @@ To enqueue jobs:
 
 ## Setting per worker for deciding whether or not to retry a job default is true
 {:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], retry: false)
-## or retry time = 10
+## or retry time = 10, it will override :max_retries config
 {:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], retry: 10)
 
 ```

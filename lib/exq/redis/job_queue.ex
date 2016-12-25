@@ -366,7 +366,8 @@ defmodule Exq.Redis.JobQueue do
   end
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
     jid = UUID.uuid4
-    job = Enum.into([{:queue, queue}, {:retry, options[:retry]||true}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
+    retry = if options[:retry] in [nil, false] , do: false, else: options[:retry]
+    job = Enum.into([{:queue, queue}, {:retry, retry}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Config.serializer.encode!(job)}
   end
 end
