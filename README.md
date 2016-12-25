@@ -175,10 +175,10 @@ To enqueue jobs:
 
 {:ok, ack} = Exq.enqueue(Exq, "default", "MyWorker", ["arg1", "arg2"])
 
-## Setting per worker for deciding whether or not to retry a job default is true
-{:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], retry: false)
-## or retry time = 10, it will override :max_retries config
-{:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], retry: 10)
+## Don't retry job in per worker
+{:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], max_retries: 0)
+## max_retries = 10, it will override :max_retries in config
+{:ok, ack} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], max_retries: 10)
 
 ```
 In this example, `"arg1"` will get passed as the first argument to the `perform` method in your worker, `"arg2"` will be second argument, etc.

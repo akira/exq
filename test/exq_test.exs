@@ -83,7 +83,7 @@ defmodule ExqTest do
     Process.register(self, :exqtest)
 
     # enqueue and dequeue - this should now be in backup queue
-    JobQueue.enqueue(:testredis, "test", "queue", ExqTest.PerformWorker, [])
+    JobQueue.enqueue(:testredis, "test", "queue", ExqTest.PerformWorker, [], [])
     JobQueue.dequeue(:testredis, "test", host, ["queue"])
 
     # make sure jobs were requeued from backup queue

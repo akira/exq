@@ -19,7 +19,7 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Support.Randomize
   alias Exq.Support.Time
 
-  def enqueue(redis, namespace, queue, worker, args, options \\ [retry: true]) do
+  def enqueue(redis, namespace, queue, worker, args, options) do
     {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
     case enqueue(redis, namespace, queue, job_serialized) do
       :ok    -> {:ok, jid}
@@ -54,11 +54,11 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-  def enqueue_in(redis, namespace, queue, offset, worker, args, options \\ [retry: true]) when is_integer(offset) do
+  def enqueue_in(redis, namespace, queue, offset, worker, args, options) when is_integer(offset) do
     time = Time.offset_from_now(offset)
     enqueue_at(redis, namespace, queue, time, worker, args, options)
   end
-  def enqueue_at(redis, namespace, queue, time, worker, args, options \\ [retry: true]) do
+  def enqueue_at(redis, namespace, queue, time, worker, args, options) do
     {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
     enqueue_job_at(redis, namespace, job_serialized, jid, time, scheduled_queue_key(namespace))
   end
@@ -195,10 +195,7 @@ defmodule Exq.Redis.JobQueue do
     full_key(namespace, "dead")
   end
 
-  def retry_or_fail_job(redis, namespace, %{retry: true} = job, error) do
-    retry_or_fail_job(redis, namespace, job, error, Config.get(:max_retries))
-  end
-  def retry_or_fail_job(redis, namespace, %{retry: retry} = job, error) when is_integer(retry) do
+  def retry_or_fail_job(redis, namespace, %{retry: retry} = job, error) when is_integer(retry) and retry > 0 do
     retry_or_fail_job(redis, namespace, job, error, retry)
   end
   def retry_or_fail_job(redis, namespace, job, error) do
@@ -366,7 +363,7 @@ defmodule Exq.Redis.JobQueue do
   end
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
     jid = UUID.uuid4
-    retry = if options[:retry] in [nil, false] , do: false, else: options[:retry]
+    retry = Keyword.get_lazy(options, :max_retries, fn() -> Config.get(:max_retries) end)
     job = Enum.into([{:queue, queue}, {:retry, retry}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
     {jid, Config.serializer.encode!(job)}
   end
