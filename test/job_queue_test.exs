@@ -24,7 +24,7 @@ defmodule JobQueueTest do
   end
 
   test "enqueue/dequeue single queue" do
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
     [{:ok, {deq, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
     assert deq != :none
     [{:ok, {deq, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
@@ -32,15 +32,15 @@ defmodule JobQueueTest do
   end
 
   test "enqueue/dequeue multi queue" do
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
-    JobQueue.enqueue(:testredis, "test", "myqueue", MyWorker, [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
+    JobQueue.enqueue(:testredis, "test", "myqueue", MyWorker, [], [])
     assert_dequeue_job(["default", "myqueue"], 2)
     assert_dequeue_job(["default", "myqueue"], false)
   end
 
   test "backup queue" do
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], false)
@@ -51,8 +51,8 @@ defmodule JobQueueTest do
   end
 
   test "remove from backup queue" do
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
 
     [{:ok, {job, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
     assert_dequeue_job(["default"], true)
@@ -68,8 +68,8 @@ defmodule JobQueueTest do
   end
 
   test "scheduler_dequeue single queue" do
-    JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [])
-    JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [])
+    JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [], [])
+    JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [], [])
     assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], true)
@@ -77,16 +77,16 @@ defmodule JobQueueTest do
   end
 
   test "scheduler_dequeue multi queue" do
-    JobQueue.enqueue_in(:testredis, "test", "default", -1, MyWorker, [])
-    JobQueue.enqueue_in(:testredis, "test", "myqueue", -1, MyWorker, [])
+    JobQueue.enqueue_in(:testredis, "test", "default", -1, MyWorker, [], [])
+    JobQueue.enqueue_in(:testredis, "test", "myqueue", -1, MyWorker, [], [])
     assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default", "myqueue"], 2)
     assert_dequeue_job(["default", "myqueue"], false)
   end
 
   test "scheduler_dequeue enqueue_at" do
-    JobQueue.enqueue_at(:testredis, "test", "default", DateTime.utc_now, MyWorker, [])
-    {jid, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [])
+    JobQueue.enqueue_at(:testredis, "test", "default", DateTime.utc_now, MyWorker, [], [])
+    {jid, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [], retry: true)
     JobQueue.enqueue_job_at(:testredis, "test", job_serialized, jid, DateTime.utc_now, "test:retry")
     assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default"], true)
@@ -102,18 +102,18 @@ defmodule JobQueueTest do
       DateTime.from_unix!(base + offset, :microseconds)
     end
 
-    JobQueue.enqueue_in(:testredis, "test", "default", 300, MyWorker, [])
+    JobQueue.enqueue_in(:testredis, "test", "default", 300, MyWorker, [], [])
     now = DateTime.utc_now
     time1 = add_usecs.(now, 140_000_000)
-    JobQueue.enqueue_at(:testredis, "test", "default", time1, MyWorker, [])
+    JobQueue.enqueue_at(:testredis, "test", "default", time1, MyWorker, [], [])
     time2 = add_usecs.(now, 150_000_000)
-    JobQueue.enqueue_at(:testredis, "test", "default", time2, MyWorker, [])
+    JobQueue.enqueue_at(:testredis, "test", "default", time2, MyWorker, [], [])
     time2a = add_usecs.(now, 151_000_000)
     time2b = add_usecs.(now, 159_000_000)
     time3 = add_usecs.(now, 160_000_000)
-    JobQueue.enqueue_at(:testredis, "test", "default", time3, MyWorker, [])
+    JobQueue.enqueue_at(:testredis, "test", "default", time3, MyWorker, [], [])
     time4 = add_usecs.(now, 160_000_001)
-    JobQueue.enqueue_at(:testredis, "test", "default", time4, MyWorker, [])
+    JobQueue.enqueue_at(:testredis, "test", "default", time4, MyWorker, [], [])
     time5 = add_usecs.(now, 300_000_000)
 
     api_state = %Exq.Api.Server.State{redis: :testredis, namespace: "test"}
@@ -146,23 +146,26 @@ defmodule JobQueueTest do
   end
 
   test "creates and returns a jid" do
-    {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [])
+    {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
     assert jid != nil
 
     [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
     job = Poison.decode!(job_str, as: %Exq.Support.Job{})
     assert job.jid == jid
+    assert job.retry == Exq.Support.Config.get(:max_retries)
   end
 
   test "to_job_serialized using module atom" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [])
+    {_jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], max_retries: 0)
     job = Job.decode(serialized)
     assert job.class == "MyWorker"
+    assert job.retry == 0
   end
 
   test "to_job_serialized using module string" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", "MyWorker/perform", [])
+    {_jid, serialized} = JobQueue.to_job_serialized("default", "MyWorker/perform", [], max_retries: 10)
     job = Job.decode(serialized)
     assert job.class == "MyWorker/perform"
+    assert job.retry == 10
   end
 end
