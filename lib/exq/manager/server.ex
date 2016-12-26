@@ -157,18 +157,18 @@ defmodule Exq.Manager.Server do
     {:ok, state, 0}
   end
 
-  def handle_call({:enqueue, queue, worker, args}, from, state) do
-    Enqueuer.enqueue(state.enqueuer, from, queue, worker, args)
+  def handle_call({:enqueue, queue, worker, args, options}, from, state) do
+    Enqueuer.enqueue(state.enqueuer, from, queue, worker, args, options)
     {:noreply, state, 10}
   end
 
-  def handle_call({:enqueue_at, queue, time, worker, args}, from, state) do
-    Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args)
+  def handle_call({:enqueue_at, queue, time, worker, args, options}, from, state) do
+    Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args, options)
     {:noreply, state, 10}
   end
 
-  def handle_call({:enqueue_in, queue, offset, worker, args}, from, state) do
-    Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args)
+  def handle_call({:enqueue_in, queue, offset, worker, args, options}, from, state) do
+    Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args, options)
     {:noreply, state, 10}
   end
 

@@ -23,7 +23,7 @@ defmodule PerformanceTest do
   test "test to_job_serialized performance" do
     started = :os.timestamp
     max_timeout_ms = 1_000
-    for _ <- 1..1000, do: Exq.Redis.JobQueue.to_job_serialized("default", PerformanceTest.Worker, ["keep_on_trucking"])
+    for _ <- 1..1000, do: Exq.Redis.JobQueue.to_job_serialized("default", PerformanceTest.Worker, ["keep_on_trucking"], max_retries: 10)
     elapsed_ms = :timer.now_diff(:os.timestamp, started) / 1_000
     Logger.debug "to_job_serialized performance test took #{elapsed_ms / 1_000} secs"
     assert elapsed_ms < max_timeout_ms
