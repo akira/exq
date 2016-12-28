@@ -111,7 +111,7 @@ defmodule MiddlewareTest do
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args}, \"jid\": \"123\" }"
 
     work_table = :ets.new(:work_table, [:set, :public])
-    {:ok, stub_server} = GenServer.start_link(MiddlewareTest.StubServer, [])
+    {:ok, stub_server} = GenServer.start_link(StubServer, [])
 
     Worker.start_link(job, stub_server, "default", work_table, stub_server,
       "exq", "localhost", stub_server, middleware)
