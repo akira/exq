@@ -3,7 +3,7 @@ defmodule Exq.Mixfile do
 
   def project do
     [ app: :exq,
-      version: "0.8.1",
+      version: "0.8.2",
       elixir: "~> 1.3",
       elixirc_paths: ["lib"],
       package: [
