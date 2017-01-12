@@ -1,7 +1,7 @@
 defmodule Exq.Middleware.Uniqueness do
   @behaviour Exq.Middleware.Behaviour
   alias Exq.Middleware.Pipeline
-  import Exq.Enqueuer.Uniqueness, only: [remove_key: 2, hash_string: 1, combined_key: 1]
+  import Exq.Enqueuer.Uniqueness, only: [remove_key: 2, hash_string: 1, remove_locks: 1]
 
   def before_work(pipeline), do: pipeline
 
@@ -14,9 +14,7 @@ defmodule Exq.Middleware.Uniqueness do
   end
 
   defp remove_unique_lock(pipeline) do
-    key = combined_key(pipeline)
-    remove_key(pipeline.assigns[:redis], key)
-    pipeline
+    remove_locks(pipeline)
   end
 
   defp remove_unique_lock_unless_retry(pipeline) do

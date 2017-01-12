@@ -4,22 +4,43 @@ defmodule Exq.Enqueuer.Uniqueness do
   alias Exq.Redis.Connection, as: Redis
   alias Exp.Middleware.Pipeline
 
-  def with_unique_lock(callback, state, queue \\ "default", worker \\ "", args \\ []) do
-    redis = state.redis
-    args_key = Enum.join(args, ",")
-    key = combined_key(state.namespace, queue, Atom.to_string(worker), args_key)
+  # def with_unique_lock(callback, state, queue \\ "default", worker \\ "", args \\ []) do
+  #   with_unique_lock(callback, state, queue, worker, args, nil)
+  # end
 
-    if unique_key_exists?(redis, key) do
-      {:job_not_unique, key}
+  def with_unique_lock(callback, state, queue \\ "default", worker \\ "", args \\ [], uniquekey \\ nil) do
+    redis = state.redis
+    simple_key = uniquekey || Enum.join(args, ",")
+    enqueue_key = combined_key(state.namespace, queue, Atom.to_string(worker), simple_key)
+
+    if unique_key_exists?(redis, enqueue_key) do
+      {:job_not_unique, enqueue_key}
     else
-      set_key(redis, key)
-      response = callback.()
+      set_key(redis, enqueue_key)
+      {:reply, response, _pipeline} = callback.()
+      {:ok, job_id} = response
+      completion_key = generate_completion_key(state.namespace, job_id)
+      Redis.set!(state.redis, completion_key, enqueue_key)
       {:ok, response}
     end
   end
 
   def remove_key(redis, key), do: Redis.del!(redis, key)
   def hash_string(key), do: :crypto.hash(:md5, key) |> encode16 |> downcase
+  def generate_completion_key(namespace, job_id), do: "#{namespace}:uniqueness-clear-when-complete:#{job_id}"
+
+  def remove_locks(pipeline) do
+    job_id = pipeline.assigns[:job].jid
+    namespace = pipeline.assigns[:namespace]
+    redis = pipeline.assigns[:redis]
+
+    completion_key = generate_completion_key(namespace, job_id)
+    enqueue_key = Redis.get!(redis, completion_key)
+    remove_key(redis, enqueue_key)
+    remove_key(redis, completion_key)
+
+    pipeline
+  end
 
   def combined_key(pipeline, key \\ nil) do
     assigns = pipeline.assigns

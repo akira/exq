@@ -17,7 +17,7 @@ defmodule Exq.Enqueuer.Server do
 
   alias Exq.Support.Config
   alias Exq.Redis.JobQueue
-  import Exq.Enqueuer.Uniqueness, only: [with_unique_lock: 5]
+  import Exq.Enqueuer.Uniqueness, only: [with_unique_lock: 5, with_unique_lock: 6]
   use GenServer
 
   defmodule State do
@@ -64,6 +64,13 @@ defmodule Exq.Enqueuer.Server do
     response = with_unique_lock(perform, state, queue, worker, args)
     {:reply, response, state}
   end
+
+  def handle_call({:enqueue_unique, queue, worker, args, uniquekey}, from, state) do
+    perform = fn -> handle_call({:enqueue, queue, worker, args}, from, state) end
+    response = with_unique_lock(perform, state, queue, worker, args, uniquekey)
+    {:reply, response, state}
+  end
+
 
   def handle_call({:enqueue_at, queue, time, worker, args}, _from, state) do
     response = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args)
