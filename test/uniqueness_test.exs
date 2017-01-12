@@ -6,6 +6,7 @@ defmodule UniquenessAcceptanceTest do
 
   @namespace "exq"
   @queue "default"
+  @uniquekey "uniq"
   @main_pid :mainserver
   @runner_pid :exunittest
   @redis_pid :testredis
@@ -57,13 +58,37 @@ defmodule UniquenessAcceptanceTest do
     {:ok, %{work_table: work_table}}
   end
 
-  test "does not enqueue unique workers until they have completed", %{work_table: work_table} do
+  # test "does not enqueue unique workers until they have completed", %{work_table: work_table} do
+  #   step("The first job is queued")
+  #   queue_new_unique_worker
+  #   step("and there is a single job in the queue")
+  #   assert_queued_jobs(1)
+  #   step("then a second identical job is requested")
+  #   queue_new_unique_worker
+  #   step("but no additional job is added to the queue")
+  #   assert_queued_jobs(1)
+  #   step("when that a worker starts on the queue")
+  #   finish_all_jobs(work_table)
+  #   wait
+  #   step("the worker completes successfully")
+  #   assert_worker_completed
+  #   step("then there are no jobs on the queue")
+  #   assert_queued_jobs(0)
+  #   step("the job is requested again")
+  #   queue_new_unique_worker
+  #   step("and it is added to the queue")
+  #   wait_long
+  #   assert_queued_jobs(1)
+  # end
+
+  test "does not enqueue unique workers until completed when using a unique key", %{work_table: work_table} do
+    assert_queued_jobs(0)
     step("The first job is queued")
-    queue_new_unique_worker
+    queue_new_unique_worker_with_key
     step("and there is a single job in the queue")
     assert_queued_jobs(1)
     step("then a second identical job is requested")
-    queue_new_unique_worker
+    queue_new_unique_worker_with_key
     step("but no additional job is added to the queue")
     assert_queued_jobs(1)
     step("when that a worker starts on the queue")
@@ -74,7 +99,7 @@ defmodule UniquenessAcceptanceTest do
     step("then there are no jobs on the queue")
     assert_queued_jobs(0)
     step("the job is requested again")
-    queue_new_unique_worker
+    queue_new_unique_worker_with_key
     step("and it is added to the queue")
     wait_long
     assert_queued_jobs(1)
@@ -86,6 +111,11 @@ defmodule UniquenessAcceptanceTest do
 
   defp queue_new_unique_worker do
     GenServer.call(@enqueuer_pid, {:enqueue_unique, "default", UniqueWorker, [@runner_pid]})
+    wait
+  end
+
+  defp queue_new_unique_worker_with_key do
+    GenServer.call(@enqueuer_pid, {:enqueue_unique, "default", UniqueWorker, [@runner_pid, :rand.uniform(100)], @uniquekey})
     wait
   end
 
