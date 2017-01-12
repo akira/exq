@@ -6,21 +6,17 @@ defmodule Exq.Middleware.Uniqueness do
   def before_work(pipeline), do: pipeline
 
   def after_processed_work(pipeline) do
-    pipeline |> remove_unique_lock
+    pipeline |> remove_locks
   end
 
   def after_failed_work(pipeline) do
     pipeline |> remove_unique_lock_unless_retry
   end
 
-  defp remove_unique_lock(pipeline) do
-    remove_locks(pipeline)
-  end
-
   defp remove_unique_lock_unless_retry(pipeline) do
     case pipeline.retry do
       false -> pipeline
-      _     -> remove_unique_lock pipeline
+      _     -> remove_locks pipeline
     end
   end
 end
