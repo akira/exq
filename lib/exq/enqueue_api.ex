@@ -30,6 +30,15 @@ defmodule Exq.Enqueuer.EnqueueApi do
         GenServer.cast(pid, {:enqueue, from, queue, worker, args})
       end
 
+
+      def enqueue_unique(pid, queue, worker, args) do
+        GenServer.call(pid, {:enqueue_unique, queue, worker, args}, Config.get(:genserver_timeout))
+      end
+
+      def enqueue_unique(pid, queue, worker, args, key) do
+        GenServer.call(pid, {:enqueue_unique, queue, worker, args, key}, Config.get(:genserver_timeout))
+      end
+
       @doc """
       Schedule a job to be enqueued at a specific time in the future.
 
