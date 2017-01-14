@@ -162,7 +162,17 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 10}
   end
 
-  def handle_call({:enqueue_at, queue, time, worker, args}, from, state) do
+  def handle_call({:enqueue_unique, queue, worker, args}, from, state) do
+    Enqueuer.enqueue_unique(state.enqueuer, from, queue, worker, args)
+    {:noreply, state, 10}
+  end
+
+  def handle_call({:enqueue, queue, worker, args, uniquekey}, from, state) do
+    Enqueuer.enqueue_unique(state.enqueuer, from, queue, worker, args, uniquekey)
+    {:noreply, state, 10}
+  end
+
+  def handle_call({:enqueue_unique, queue, time, worker, args}, from, state) do
     Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args)
     {:noreply, state, 10}
   end
