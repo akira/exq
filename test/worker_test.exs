@@ -31,21 +31,11 @@ defmodule WorkerTest do
     end
   end
 
-  defmodule Server do
+  defmodule MockStatsServer do
     use GenServer
 
-    def handle_cast({:add_process, _, _}, state) do
+    def handle_cast({:add_process, _, _, _}, state) do
       send :workertest, :add_process
-      {:noreply, state}
-    end
-
-    def handle_cast({:process_terminated, _, _}, state) do
-      send :workertest, :process_terminated
-      {:noreply, state}
-    end
-
-    def handle_cast({:job_terminated, _, _, _}, state) do
-      send :workertest, :job_terminated
       {:noreply, state}
     end
 
@@ -59,6 +49,15 @@ defmodule WorkerTest do
       {:noreply, state}
     end
 
+    def handle_cast({:process_terminated, _, _, _}, state) do
+      send :workertest, :process_terminated
+      {:noreply, state}
+    end
+  end
+
+  defmodule MockServer do
+    use GenServer
+
     def handle_call({:commands, [["ZADD"|_]]}, _from, state) do
       send :workertest, :zadd_redis
       {:reply, {:ok, state}, state}
@@ -67,6 +66,11 @@ defmodule WorkerTest do
     def handle_call({:commands, [["LREM"|_]]}, _from, state) do
       send :workertest, :lrem_redis
       {:reply, {:ok, {}}, state}
+    end
+
+    def handle_cast({:job_terminated, _, _, _}, state) do
+      send :workertest, :job_terminated
+      {:noreply, state}
     end
   end
 
@@ -94,14 +98,15 @@ defmodule WorkerTest do
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args} }"
 
     work_table = :ets.new(:work_table, [:set, :public])
-    {:ok, stub_server} = GenServer.start_link(WorkerTest.Server, %{})
+    {:ok, stub_server} = GenServer.start_link(WorkerTest.MockServer, %{})
+    {:ok, mock_stats_server} = GenServer.start_link(WorkerTest.MockStatsServer, %{})
     {:ok, middleware} = GenServer.start_link(Exq.Middleware.Server, [])
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Stats)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Job)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Manager)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Logger)
 
-    Exq.Worker.Server.start_link(job, stub_server, "default", work_table, stub_server,
+    Exq.Worker.Server.start_link(job, stub_server, "default", work_table, mock_stats_server,
       "exq", "localhost", stub_server, middleware)
   end
 

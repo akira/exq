@@ -18,4 +18,6 @@ config :exq,
   genserver_timeout: 5000,
   test_with_local_redis: true,
   max_retries: 0,
+  stats_flush_interval: 5,
+  stats_batch_size: 1,
   middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager]

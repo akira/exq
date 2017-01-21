@@ -162,4 +162,8 @@ defmodule Exq.Redis.Connection do
     Redix.pipeline(redis, command, [timeout: Config.get(:redis_timeout)])
   end
 
+  def qp!(redis, command) do
+    Redix.pipeline!(redis, command, [timeout: Config.get(:redis_timeout)])
+  end
+
 end
