@@ -16,6 +16,8 @@ defmodule Exq.Support.Config do
     shutdown_timeout: 5000,
     reconnect_on_sleep: 100,
     max_retries: 25,
+    stats_flush_interval: 1000,
+    stats_batch_size: 2000,
     serializer: Exq.Serializers.JsonSerializer,
     node_identifier: Exq.NodeIdentifier.HostnameIdentifier,
     middleware: [

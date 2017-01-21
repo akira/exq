@@ -8,28 +8,54 @@ defmodule Exq.Redis.JobStat do
   alias Exq.Support.{Binary, Process, Job, Time}
   alias Exq.Redis.{Connection, JobQueue}
 
-  def record_processed(redis, namespace, _job, current_date \\ DateTime.utc_now) do
+  def record_processed_commands(namespace, _job, current_date \\ DateTime.utc_now) do
     {time, date} = Time.format_current_date(current_date)
-
-    {:ok, [count, _, _, _]} = Connection.qp(redis,[
+    [
       ["INCR", JobQueue.full_key(namespace, "stat:processed")],
       ["INCR", JobQueue.full_key(namespace, "stat:processed_rt:#{time}")],
       ["EXPIRE", JobQueue.full_key(namespace, "stat:processed_rt:#{time}"), 120],
       ["INCR", JobQueue.full_key(namespace, "stat:processed:#{date}")]
-    ])
+    ]
+  end
+  def record_processed(redis, namespace, job, current_date \\ DateTime.utc_now) do
+    instr = record_processed_commands(namespace, job, current_date)
+    {:ok, [count, _, _, _]} = Connection.qp(redis, instr)
     {:ok, count}
   end
 
-  def record_failure(redis, namespace, _error, _job, current_date \\ DateTime.utc_now) do
+  def record_failure_commands(namespace, _error, _job, current_date \\ DateTime.utc_now) do
     {time, date} = Time.format_current_date(current_date)
-
-    {:ok, [count, _, _, _]} = Connection.qp(redis, [
+    [
       ["INCR", JobQueue.full_key(namespace, "stat:failed")],
       ["INCR", JobQueue.full_key(namespace, "stat:failed_rt:#{time}")],
       ["EXPIRE", JobQueue.full_key(namespace, "stat:failed_rt:#{time}"), 120],
       ["INCR", JobQueue.full_key(namespace, "stat:failed:#{date}")]
-    ])
+    ]
+  end
+  def record_failure(redis, namespace, error, job, current_date \\ DateTime.utc_now) do
+    instr = record_failure_commands(namespace, error, job, current_date)
+    {:ok, [count, _, _, _]} = Connection.qp(redis, instr)
     {:ok, count}
+  end
+
+  def add_process_commands(namespace, process_info, serialized_process \\ nil) do
+    serialized = serialized_process || Exq.Support.Process.encode(process_info)
+    [["SADD", JobQueue.full_key(namespace, "processes"), serialized]]
+  end
+  def add_process(redis, namespace, process_info, serialized_process \\ nil) do
+    instr = add_process_commands(namespace, process_info, serialized_process)
+    Connection.qp!(redis, instr)
+    :ok
+  end
+
+  def remove_process_commands(namespace, process_info, serialized_process \\ nil) do
+    serialized = serialized_process || Exq.Support.Process.encode(process_info)
+    [["SREM", JobQueue.full_key(namespace, "processes"), serialized]]
+  end
+  def remove_process(redis, namespace, process_info, serialized_process \\ nil) do
+    instr = remove_process_commands(namespace, process_info, serialized_process)
+    Connection.qp!(redis, instr)
+    :ok
   end
 
   def busy(redis, namespace) do
@@ -39,18 +65,6 @@ defmodule Exq.Redis.JobStat do
   def processes(redis, namespace) do
     list = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || []
     Enum.map(list, &Process.decode/1)
-  end
-
-  def add_process(redis, namespace, process_info) do
-    serialized = Exq.Support.Process.encode(process_info)
-    Connection.sadd!(redis, JobQueue.full_key(namespace, "processes"), serialized)
-    :ok
-  end
-
-  def remove_process(redis, namespace, process_info) do
-    serialized = Exq.Support.Process.encode(process_info)
-    Connection.srem!(redis, JobQueue.full_key(namespace, "processes"), serialized)
-    :ok
   end
 
   def find_failed(redis, namespace, jid) do

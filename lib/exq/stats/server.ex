@@ -10,13 +10,15 @@ defmodule Exq.Stats.Server do
   """
   use GenServer
   alias Exq.Redis.JobStat
+  alias Exq.Support.Config
   alias Exq.Support.Process
   alias Exq.Support.Time
+  alias Exq.Redis.Connection
 
   require Logger
 
   defmodule State do
-    defstruct redis: nil
+    defstruct redis: nil, queue: :queue.new
   end
 
   @doc """
@@ -27,8 +29,8 @@ defmodule Exq.Stats.Server do
                             host: host,
                             job: Exq.Support.Config.serializer.decode_job(job_serialized),
                             started_at: Time.unix_seconds}
-
-    GenServer.cast(stats, {:add_process, namespace, process_info})
+    serialized = Exq.Support.Process.encode(process_info)
+    GenServer.cast(stats, {:add_process, namespace, process_info, serialized})
     {:ok, process_info}
   end
 
@@ -36,7 +38,8 @@ defmodule Exq.Stats.Server do
   Remove in progress worker process
   """
   def process_terminated(stats, namespace, process_info) do
-    GenServer.cast(stats, {:process_terminated, namespace, process_info})
+    serialized = Exq.Support.Process.encode(process_info)
+    GenServer.cast(stats, {:process_terminated, namespace, process_info, serialized})
     :ok
   end
 
@@ -61,6 +64,11 @@ defmodule Exq.Stats.Server do
     "#{name}.Stats" |> String.to_atom
   end
 
+  def force_flush(stats) do
+    GenServer.call(stats, :force_flush)
+  end
+
+
 ##===========================================================
 ## gen server callbacks
 ##===========================================================
@@ -69,33 +77,69 @@ defmodule Exq.Stats.Server do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
-  # These are the callbacks that GenServer.Behaviour will use
   def init(opts) do
+    Elixir.Process.flag(:trap_exit, true)
+    Elixir.Process.send_after(self(), :flush, Config.get(:stats_flush_interval))
     {:ok, %State{redis: opts[:redis]}}
   end
 
-  def handle_cast({:add_process, namespace, process_info}, state) do
-    JobStat.add_process(state.redis, namespace, process_info)
+  def handle_cast(msg, state) do
+    state = %{state | queue: :queue.in(msg, state.queue)}
     {:noreply, state}
   end
 
-  def handle_cast({:record_processed, namespace, job}, state) do
-    JobStat.record_processed(state.redis, namespace, job)
+  def handle_call(:force_flush, _from, state) do
+    queue = process_queue(state.queue, state, [])
+    state = %{state | queue: queue}
+    {:reply, :ok, state}
+  end
+
+  def handle_info(:flush, state) do
+    queue = process_queue(state.queue, state, [])
+    state = %{state | queue: queue}
+    Elixir.Process.send_after(self(), :flush, Config.get(:stats_flush_interval))
     {:noreply, state}
   end
 
-  def handle_cast({:record_failure, namespace, error, job}, state) do
-    JobStat.record_failure(state.redis, namespace, error, job)
-    {:noreply, state}
+  def terminate(_reason, state) do
+    # flush any pending stats
+    process_queue(state.queue, state, [])
+    :ok
   end
 
-  def handle_cast({:process_terminated, namespace, process}, state) do
-    :ok = JobStat.remove_process(state.redis, namespace, process)
-    {:noreply, state}
-  end
 
 ##===========================================================
 ## Methods
 ##===========================================================
+  def process_queue(queue, state, redis_batch, size \\ 0) do
+    case :queue.out(queue) do
+      {:empty, q}          ->
+        if size > 0 do
+          Connection.qp!(state.redis, redis_batch)
+        end
+        q
+      {{:value, msg}, q} ->
+        if size < Config.get(:stats_batch_size) do
+          redis_batch = redis_batch ++ generate_instructions(msg)
+          process_queue(q, state, redis_batch, size + 1)
+        else
+          Connection.qp!(state.redis, redis_batch)
+          redis_batch = [] ++ generate_instructions(msg)
+          process_queue(q, state, redis_batch, 1)
+        end
+    end
+  end
 
+  def generate_instructions({:add_process, namespace, process_info, serialized}) do
+    JobStat.add_process_commands(namespace, process_info, serialized)
+  end
+  def generate_instructions({:record_processed, namespace, job}) do
+    JobStat.record_processed_commands(namespace, job)
+  end
+  def generate_instructions({:record_failure, namespace, error, job}) do
+    JobStat.record_failure_commands(namespace, error, job)
+  end
+  def generate_instructions({:process_terminated, namespace, process, serialized}) do
+    JobStat.remove_process_commands(namespace, process, serialized)
+  end
 end
