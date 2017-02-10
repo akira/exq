@@ -43,7 +43,7 @@ defmodule Exq.Scheduler.Server do
     state = %State{redis: opts[:redis], namespace: opts[:namespace],
       queues: opts[:queues], scheduler_poll_timeout: opts[:scheduler_poll_timeout]}
 
-    start_timeout(self)
+    start_timeout(self())
 
     {:ok, state}
   end

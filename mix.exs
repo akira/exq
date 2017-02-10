@@ -16,7 +16,7 @@ defmodule Exq.Mixfile do
       description: """
       Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
       """,
-      deps: deps,
+      deps: deps(),
       test_coverage: [tool: ExCoveralls]
     ]
   end

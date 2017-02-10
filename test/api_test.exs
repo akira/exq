@@ -10,7 +10,7 @@ defmodule ApiTest do
     TestRedis.setup
     Exq.start_link
     on_exit fn ->
-      wait
+      wait()
       TestRedis.teardown
     end
     :ok
@@ -42,7 +42,7 @@ defmodule ApiTest do
 
   test "busy processes when processing" do
     Exq.enqueue(Exq, 'custom', Bogus, [])
-    JobStat.add_process(:testredis, "test", %Process{pid: self})
+    JobStat.add_process(:testredis, "test", %Process{pid: self()})
     assert {:ok, 1} = Exq.Api.busy(Exq.Api)
   end
 
@@ -65,9 +65,9 @@ defmodule ApiTest do
   end
 
   test "processes with data" do
-    JobStat.add_process(:testredis, "test", %Process{pid: self})
+    JobStat.add_process(:testredis, "test", %Process{pid: self()})
     assert {:ok, [processes]} = Exq.Api.processes(Exq.Api)
-    my_pid_str = to_string(:erlang.pid_to_list(self))
+    my_pid_str = to_string(:erlang.pid_to_list(self()))
     assert %Process{pid: ^my_pid_str} = processes
   end
 

@@ -54,7 +54,7 @@ defmodule PerformanceTest do
     assert count == 0
     assert elapsed_ms < max_timeout_ms
     # let stats finish
-    wait_long
+    wait_long()
     stop_process(sup)
   end
 

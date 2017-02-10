@@ -286,7 +286,7 @@ defmodule Exq.Manager.Server do
     work_table = :ets.new(:work_table, [:set, :public])
     Enum.each(opts[:concurrency], fn (queue_concurrency) ->
       :ets.insert(work_table, queue_concurrency)
-      GenServer.cast(self, {:re_enqueue_backup, elem(queue_concurrency, 0)})
+      GenServer.cast(self(), {:re_enqueue_backup, elem(queue_concurrency, 0)})
     end)
     work_table
   end
@@ -294,7 +294,7 @@ defmodule Exq.Manager.Server do
   defp add_queue(state, queue, concurrency \\ Config.get(:concurrency)) do
     queue_concurrency = {queue, concurrency, 0}
     :ets.insert(state.work_table, queue_concurrency)
-    GenServer.cast(self, {:re_enqueue_backup, queue})
+    GenServer.cast(self(), {:re_enqueue_backup, queue})
     updated_queues = [queue | state.queues]
     %{state | queues: updated_queues}
   end

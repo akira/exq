@@ -21,7 +21,7 @@ defmodule FlakyConnectionTest do
 
   test "redis_timeout allows for higher latency" do
     Application.start(:ranch)
-    conn = FlakyConnection.start(redis_host, redis_port)
+    conn = FlakyConnection.start(redis_host(), redis_port())
 
     #Needs to be x2 latency + ~10
     Mix.Config.persist([exq: [redis_timeout: 2010]])
@@ -39,7 +39,7 @@ defmodule FlakyConnectionTest do
 
   test "redis_timeout higher than 5000 without genserver_timeout" do
     Application.start(:ranch)
-    conn = FlakyConnection.start(redis_host, redis_port)
+    conn = FlakyConnection.start(redis_host(), redis_port())
 
     #Needs to be x2 latency + ~10
     Mix.Config.persist([exq: [redis_timeout: 11010]])
@@ -63,7 +63,7 @@ defmodule FlakyConnectionTest do
 
   test "redis_timeout higher than 5000 with genserver_timeout" do
     Application.start(:ranch)
-    conn = FlakyConnection.start(redis_host, redis_port)
+    conn = FlakyConnection.start(redis_host(), redis_port())
 
     #redis_timeout needs to be x2 latency + ~10
     #genserver_timeout needs to be x2 latency + ~30

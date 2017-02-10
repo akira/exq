@@ -24,7 +24,7 @@ defmodule ExqTest do
 
   defmodule SleepLastWorker do
     def perform(time, message) do
-      Process.register(self, :sleep_last_worker )
+      Process.register(self(), :sleep_last_worker )
       send :exqtest, {message}
       :timer.sleep(time)
     end
@@ -48,7 +48,7 @@ defmodule ExqTest do
   setup do
     TestRedis.setup
     on_exit fn ->
-      wait
+      wait()
       TestRedis.teardown
     end
     :ok
@@ -71,7 +71,7 @@ defmodule ExqTest do
   end
 
   test "enqueue and run job" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link
     {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.PerformWorker, [])
     assert_receive {:worked}
@@ -80,7 +80,7 @@ defmodule ExqTest do
 
   test "run jobs from backup queue on boot" do
     host = elem(:inet.gethostname(), 1)
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
 
     # enqueue and dequeue - this should now be in backup queue
     JobQueue.enqueue(:testredis, "test", "queue", ExqTest.PerformWorker, [], [])
@@ -88,19 +88,19 @@ defmodule ExqTest do
 
     # make sure jobs were requeued from backup queue
     {:ok, sup} = Exq.start_link(queues: ["default", "queue"])
-    wait_long
+    wait_long()
     assert_received {:worked}
 
     # make sure backup queue was cleared properly if job finished
     JobQueue.re_enqueue_backup(:testredis, "test", host, "queue")
-    wait_long
+    wait_long()
     refute_received {:worked}
 
     stop_process(sup)
   end
 
   test "enqueue_in and run a job" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(scheduler_enable: true)
     {:ok, _} = Exq.enqueue_in(Exq, "default", 0, ExqTest.PerformWorker, [])
     assert_receive {:worked}
@@ -108,7 +108,7 @@ defmodule ExqTest do
   end
 
   test "enqueue_at and run a job" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(scheduler_enable: true)
     {:ok, _} = Exq.enqueue_at(Exq, "default", DateTime.utc_now, ExqTest.PerformWorker, [])
     assert_receive {:worked}
@@ -116,7 +116,7 @@ defmodule ExqTest do
   end
 
   test "enqueue with separate enqueuer" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, exq_sup} = Exq.start_link
     {:ok, enq_sup} = Exq.start_link(mode: :enqueuer, name: ExqE)
     {:ok, _} = Exq.Enqueuer.enqueue(ExqE.Enqueuer, "default", ExqTest.PerformWorker, [])
@@ -126,7 +126,7 @@ defmodule ExqTest do
   end
 
   test "enqueue with separate enqueuer even if main Exq process is down" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, exq_sup} = Exq.start_link
     stop_process(exq_sup)
     {:ok, enq_sup} = Exq.start_link(mode: :enqueuer)
@@ -139,7 +139,7 @@ defmodule ExqTest do
   end
 
   test "run jobs on multiple queues" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(queues: ["q1", "q2"])
     {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.PerformArgWorker, [1])
     {:ok, _} = Exq.enqueue(Exq, "q2", ExqTest.PerformArgWorker, [2])
@@ -149,7 +149,7 @@ defmodule ExqTest do
   end
 
   test "register queue and run job" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(queues: ["q1"])
     :ok = Exq.subscribe(Exq, "q2", 10)
     {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.PerformArgWorker, [1])
@@ -161,7 +161,7 @@ defmodule ExqTest do
   end
 
   test "unregister queue and run job" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(queues: ["q1", "to_remove"])
     :ok = Exq.unsubscribe(Exq, "to_remove")
     {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.PerformArgWorker, [1])
@@ -172,7 +172,7 @@ defmodule ExqTest do
   end
 
   test "throttle workers per queue" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1", "q2"])
     {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [40, :worked])
     {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [40, :worked2])
@@ -191,7 +191,7 @@ defmodule ExqTest do
   end
 
   test "throttle workers different concurrency per queue" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(queues: [{"q1", 1}, {"q2", 20}])
     {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [40, :worked])
     {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [40, :worked2])
@@ -212,18 +212,18 @@ defmodule ExqTest do
   end
 
   test "record processes" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(name: ExqP)
     state = :sys.get_state(ExqP)
 
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.SleepWorker, [100, "finished"])
-    wait_long
+    wait_long()
 
     # Check that process has been recorded
     processes = Exq.Redis.JobStat.processes(state.redis, "test")
     assert Enum.count(processes) == 1
 
-    wait_long
+    wait_long()
     assert_received {"finished"}
 
     # Check that process has been cleared
@@ -231,7 +231,7 @@ defmodule ExqTest do
     assert Enum.count(processes) == 0
 
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.InvalidWorker, [100, "finished"])
-    wait_long
+    wait_long()
 
     # Check that process has been recorded
     processes = Exq.Redis.JobStat.processes(state.redis, "test")
@@ -245,12 +245,12 @@ defmodule ExqTest do
     state = :sys.get_state(ExqP)
 
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.EmptyMethodWorker, [])
-    wait_long
+    wait_long()
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "1"
 
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.EmptyMethodWorker, [])
-    wait_long
+    wait_long()
     {:ok, count} = TestStats.processed_count(state.redis, "test")
     assert count == "2"
 
@@ -261,12 +261,12 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link
     state = :sys.get_state(Exq)
     {:ok, _} = Exq.enqueue(Exq, "default", "ExqTest.MissingMethodWorker/fail", [])
-    wait_long
+    wait_long()
     {:ok, count} = TestStats.failed_count(state.redis, "test")
     assert count == "1"
 
     {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.MissingWorker, [])
-    wait_long
+    wait_long()
     {:ok, count} = TestStats.failed_count(state.redis, "test")
     assert count == "2"
 
@@ -274,7 +274,7 @@ defmodule ExqTest do
     {:ok, jid} = Exq.enqueue(Exq, "default", "ExqTest.FailWorker/failure_perform", [])
 
     # if we kill Exq too fast we dont record the failure because exq is gone
-    wait_long
+    wait_long()
     stop_process(sup)
 
     {:ok, sup} = Exq.start_link(mode: :api)
@@ -282,17 +282,17 @@ defmodule ExqTest do
     # Find the job in the processed queue
     {:ok, _} = Exq.Api.find_failed(Exq.Api, jid)
 
-    wait_long
+    wait_long()
     stop_process(sup)
   end
 
   test "configure worker shutdown time" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link([shutdown_timeout: 200])
     {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [500, :long])
     {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [100, :short])
 
-    wait
+    wait()
     stop_process(sup)
 
     refute_received {"long"}
@@ -300,7 +300,7 @@ defmodule ExqTest do
   end
 
   test "handle supervisor tree shutdown properly with stats cleanup" do
-    Process.register(self, :exqtest)
+    Process.register(self(), :exqtest)
 
     {:ok, sup} = Exq.start_link
 

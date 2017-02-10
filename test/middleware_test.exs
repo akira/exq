@@ -130,7 +130,7 @@ defmodule MiddlewareTest do
   end
 
   setup do
-    Process.register(self, :middlewaretest)
+    Process.register(self(), :middlewaretest)
     {:ok, middleware} = GenServer.start_link(Middleware, [])
     {:ok, middleware: middleware}
   end
@@ -217,7 +217,7 @@ defmodule MiddlewareTest do
 
     pid = Process.whereis(Middleware)
     Process.exit(pid, :kill)
-    wait
+    wait()
 
     assert Middleware.all(Middleware) == chain
   end
