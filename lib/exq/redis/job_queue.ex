@@ -364,7 +364,7 @@ defmodule Exq.Redis.JobQueue do
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
     jid = UUID.uuid4
     retry = Keyword.get_lazy(options, :max_retries, fn() -> Config.get(:max_retries) end)
-    job = Enum.into([{:queue, queue}, {:retry, retry}, {:class, worker}, {:args, args}, {:jid, jid}, {:enqueued_at, enqueued_at}], HashDict.new)
+    job = %{queue: queue, retry: retry, class: worker, args: args, jid: jid, enqueued_at: enqueued_at}
     {jid, Config.serializer.encode!(job)}
   end
 end

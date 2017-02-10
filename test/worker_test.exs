@@ -27,7 +27,7 @@ defmodule WorkerTest do
 
   defmodule SuicideWorker do
     def perform do
-      Process.exit(self, :kill)
+      Process.exit(self(), :kill)
     end
   end
 
@@ -94,7 +94,7 @@ defmodule WorkerTest do
   end
 
   def start_worker({class, args}) do
-    Process.register(self, :workertest)
+    Process.register(self(), :workertest)
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args} }"
 
     work_table = :ets.new(:work_table, [:set, :public])

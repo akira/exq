@@ -67,7 +67,7 @@ defmodule Exq.Worker.Server do
     case state |> Map.fetch!(:pipeline) |> Map.get(:terminated, false) do
       # case done to run the after hooks
       true -> nil
-      _ -> GenServer.cast(self, :dispatch)
+      _ -> GenServer.cast(self(), :dispatch)
     end
     {:noreply, state}
   end
@@ -114,7 +114,7 @@ defmodule Exq.Worker.Server do
   def dispatch_work(worker_module, args) do
     # trap exit so that link can still track dispatch without crashing
     Process.flag(:trap_exit, true)
-    worker = self
+    worker = self()
     pid = spawn_link fn ->
       result = apply(worker_module, :perform, args)
       GenServer.cast(worker, {:done, result})
@@ -123,19 +123,19 @@ defmodule Exq.Worker.Server do
   end
 
   defp before_work(state) do
-    %Pipeline{event: :before_work, worker_pid: self}
+    %Pipeline{event: :before_work, worker_pid: self()}
     |> Pipeline.assign_worker_state(state)
     |> Pipeline.chain(state.middleware_state)
   end
 
   defp after_processed_work(state, result) do
-    %Pipeline{event: :after_processed_work, worker_pid: self, assigns: state.pipeline.assigns}
+    %Pipeline{event: :after_processed_work, worker_pid: self(), assigns: state.pipeline.assigns}
     |> Pipeline.assign(:result, result)
     |> Pipeline.chain(state.middleware_state)
   end
 
   defp after_failed_work(state, error_message, error) do
-    %Pipeline{event: :after_failed_work, worker_pid: self, assigns: state.pipeline.assigns}
+    %Pipeline{event: :after_failed_work, worker_pid: self(), assigns: state.pipeline.assigns}
     |> Pipeline.assign(:error_message, error_message)
     |> Pipeline.assign(:error, error)
     |> Pipeline.chain(state.middleware_state)

@@ -20,18 +20,18 @@ defmodule Exq.Serializers.JsonSerializer do
   def decode_job(serialized) do
     deserialized = decode!(serialized)
     %Exq.Support.Job{
-      args: Dict.get(deserialized, "args"),
-      class: Dict.get(deserialized, "class"),
-      enqueued_at: Dict.get(deserialized, "enqueued_at"),
-      error_message: Dict.get(deserialized, "error_message"),
-      error_class: Dict.get(deserialized, "error_class"),
-      failed_at: Dict.get(deserialized, "failed_at"),
-      finished_at: Dict.get(deserialized, "finished_at"),
-      jid: Dict.get(deserialized, "jid"),
-      processor: Dict.get(deserialized, "processor"),
-      queue: Dict.get(deserialized, "queue"),
-      retry: Dict.get(deserialized, "retry"),
-      retry_count: Dict.get(deserialized, "retry_count")}
+      args: Map.get(deserialized, "args"),
+      class: Map.get(deserialized, "class"),
+      enqueued_at: Map.get(deserialized, "enqueued_at"),
+      error_message: Map.get(deserialized, "error_message"),
+      error_class: Map.get(deserialized, "error_class"),
+      failed_at: Map.get(deserialized, "failed_at"),
+      finished_at: Map.get(deserialized, "finished_at"),
+      jid: Map.get(deserialized, "jid"),
+      processor: Map.get(deserialized, "processor"),
+      queue: Map.get(deserialized, "queue"),
+      retry: Map.get(deserialized, "retry"),
+      retry_count: Map.get(deserialized, "retry_count")}
   end
 
   def encode_job(job) do
@@ -55,10 +55,10 @@ defmodule Exq.Serializers.JsonSerializer do
   def decode_process(serialized) do
     deserialized = decode!(serialized)
     %Exq.Support.Process{
-      pid: Dict.get(deserialized, "pid"),
-      host: Dict.get(deserialized, "host"),
-      job: Dict.get(deserialized, "job"),
-      started_at: Dict.get(deserialized, "started_at")
+      pid: Map.get(deserialized, "pid"),
+      host: Map.get(deserialized, "host"),
+      job: Map.get(deserialized, "job"),
+      started_at: Map.get(deserialized, "started_at")
     }
   end
 
@@ -68,7 +68,7 @@ defmodule Exq.Serializers.JsonSerializer do
       pid: formatted_pid,
       host: process.host,
       job: process.job,
-      started_at: process.started_at], HashDict.new)
+      started_at: process.started_at], Map.new)
 
     encode!(deserialized)
   end
