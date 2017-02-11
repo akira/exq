@@ -309,7 +309,23 @@ Side::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' =
 
 By default, your Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
 
+## Configuring node identifier if deployed on Heroku:
+In a dynamic environment where nodes come up and down, you may want to override node id to use an environment variable instead of hostname. This can be done by:
+```
+config :exq,
+   node_identifier: MyApp.CustomNodeIdentifier
+```
+And you can define the module like this:
+```
+defmodule MyApp.CustomNodeIdentifier do
+  @behaviour Exq.NodeIdentifier.Behaviour
 
+  def node_id do
+     # return node ID, perhaps from environment variable, etc
+     System.get_env("NODE_ID")
+  end
+end
+```
 ## Web UI:
 
 Exq has a separate repo, exq_ui which provides with a Web UI to monitor your workers:
