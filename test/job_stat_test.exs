@@ -4,6 +4,9 @@ defmodule JobStatTest do
   alias Exq.Redis.JobStat
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
+  alias Exq.Support.Process
+  alias Exq.Support.Job
+  alias Exq.Support.Time
 
   defmodule EmptyMethodWorker do
     def perform do
@@ -23,6 +26,15 @@ defmodule JobStatTest do
     JobQueue.fail_job(redis, "test", %Exq.Support.Job{jid: jid}, "forced error")
 
     {:ok, jid}
+  end
+
+  def create_process_info(host) do
+    process_info = %Process{pid: self(),
+                            host: host,
+                            job: %Job{},
+                            started_at: Time.unix_seconds}
+    serialized = Exq.Support.Process.encode(process_info)
+    {process_info, serialized}
   end
 
   setup do
@@ -86,4 +98,35 @@ defmodule JobStatTest do
     assert dead_jobs_count(:testredis) == 0
     assert Connection.get!(:testredis, "test:stat:failed") == "0"
   end
+
+  test "add and remove process" do
+    namespace = "test"
+    {process_info, serialized} = create_process_info("host123")
+    JobStat.add_process(:testredis, namespace, process_info, serialized)
+    assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 1
+
+    JobStat.remove_process(:testredis, namespace, process_info, serialized)
+    assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 0
+  end
+
+  test "remove processes on boot" do
+    namespace = "test"
+
+    # add processes for multiple hosts
+    {local_process, serialized1} = create_process_info("host123")
+    JobStat.add_process(:testredis, namespace, local_process, serialized1)
+
+    {remote_process, serialized2} = create_process_info("host456")
+    JobStat.add_process(:testredis, namespace, remote_process, serialized2)
+
+    assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 2
+
+    # Should cleanup only the host that is passed in
+    JobStat.cleanup_processes(:testredis, namespace, "host123")
+    processes = Exq.Redis.JobStat.processes(:testredis, namespace)
+    assert Enum.count(processes) == 1
+    assert Enum.find(processes, fn(process) -> process.host == "host456" end) != nil
+  end
+
+
 end

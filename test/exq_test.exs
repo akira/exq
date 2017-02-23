@@ -240,6 +240,30 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "clear processes on boot" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(name: ExqP)
+    state = :sys.get_state(ExqP)
+
+    {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.SleepLastWorker, [1000, "started"])
+    wait_long()
+    assert_received {"started"}
+
+    # Check that process has been recorded
+    processes = Exq.Redis.JobStat.processes(state.redis, "test")
+    assert Enum.count(processes) == 1
+
+    # Clear processes for this node
+    host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
+    Exq.Stats.Server.cleanup_host_stats(ExqP.Stats, "test", host)
+
+    # Check that process has been cleared
+    processes = Exq.Redis.JobStat.processes(state.redis, "test")
+    assert Enum.count(processes) == 0
+
+    stop_process(sup)
+  end
+
   test "record processed jobs" do
     {:ok, sup} = Exq.start_link(name: ExqP)
     state = :sys.get_state(ExqP)

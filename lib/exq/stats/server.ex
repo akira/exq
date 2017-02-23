@@ -59,6 +59,14 @@ defmodule Exq.Stats.Server do
     :ok
   end
 
+  @doc """
+  Cleanup stats on boot. This includes cleaning up busy workers.
+  """
+  def cleanup_host_stats(stats, namespace, host) do
+    GenServer.call(stats, {:cleanup_host_stats, namespace, host})
+    :ok
+  end
+
   def server_name(name) do
     name = name || Exq.Support.Config.get(:name)
     "#{name}.Stats" |> String.to_atom
@@ -91,6 +99,11 @@ defmodule Exq.Stats.Server do
   def handle_call(:force_flush, _from, state) do
     queue = process_queue(state.queue, state, [])
     state = %{state | queue: queue}
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:cleanup_host_stats, namespace, host}, _from, state) do
+    JobStat.cleanup_processes(state.redis, namespace, host)
     {:reply, :ok, state}
   end
 
