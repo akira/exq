@@ -58,6 +58,14 @@ defmodule Exq.Redis.JobStat do
     :ok
   end
 
+  def cleanup_processes(redis, namespace, host) do
+    Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
+    |> Enum.map(fn(serialized) -> {Process.decode(serialized), serialized} end)
+    |> Enum.filter(fn({process, _}) -> process.host == host end)
+    |> Enum.each(fn({process, serialized}) -> remove_process(redis, namespace, process, serialized) end)
+    :ok
+  end
+
   def busy(redis, namespace) do
     Connection.scard!(redis, JobQueue.full_key(namespace, "processes"))
   end
