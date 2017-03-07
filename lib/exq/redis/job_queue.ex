@@ -16,7 +16,6 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Redis.Connection
   alias Exq.Support.Job
   alias Exq.Support.Config
-  alias Exq.Support.Randomize
   alias Exq.Support.Time
 
   def enqueue(redis, namespace, queue, worker, args, options) do
@@ -219,8 +218,7 @@ defmodule Exq.Redis.JobQueue do
         error_message: error
       }
 
-      # Similar to Sidekiq strategy
-      offset = :math.pow(job.retry_count, 4) + 15 + (Randomize.random(30) * (job.retry_count + 1))
+      offset = Config.backoff.offset(job)
       time = Time.offset_from_now(offset)
       Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
       enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
