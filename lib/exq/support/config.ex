@@ -1,4 +1,5 @@
 defmodule Exq.Support.Config do
+
   @default_config %{
     name: Exq,
     mode: :default,
@@ -20,6 +21,7 @@ defmodule Exq.Support.Config do
     stats_batch_size: 2000,
     serializer: Exq.Serializers.JsonSerializer,
     node_identifier: Exq.NodeIdentifier.HostnameIdentifier,
+    backoff: Exq.Backoff.SidekiqDefault,
     middleware: [
       Exq.Middleware.Stats,
       Exq.Middleware.Job,
@@ -44,4 +46,7 @@ defmodule Exq.Support.Config do
     get(:node_identifier)
   end
 
+  def backoff() do
+    get(:backoff)
+  end
 end
