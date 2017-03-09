@@ -107,7 +107,11 @@ defmodule TestRedis do
       {:ok, redis} = Redix.start_link([host: redis_host(), port: redis_port()])
       Process.register(redis, :testredis)
     end
-    Process.unregister(:testredis)
+    try do
+      Process.unregister(:testredis)
+    catch
+      ArgumentError, e -> IO.puts(e)
+    end
     :ok
   end
 end
