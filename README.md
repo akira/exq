@@ -40,7 +40,19 @@ If you need a durable jobs, retries with exponential backoffs, dynamically sched
 
 ## Getting Started:
 
-This assumes you have an instance of [Redis](http://redis.io/) to use.
+## Pre-requisite:
+This assumes you have an instance of [Redis](http://redis.io/) to use.  The easiest way to install it on OSX is via brew:
+```
+> brew install redis
+```
+To start it:
+```
+> redis-server
+```
+
+### Screencast on elixircasts.io:
+If you prefer video instructions, check out the screencast on elixircasts.io which details how to install and use the Exq library:
+https://elixircasts.io/elixir-job-processing-with-exq
 
 ### Installation:
 Add exq to your mix.exs deps (replace version with the latest hex.pm package version):
