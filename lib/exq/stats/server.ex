@@ -103,7 +103,11 @@ defmodule Exq.Stats.Server do
   end
 
   def handle_call({:cleanup_host_stats, namespace, host}, _from, state) do
-    JobStat.cleanup_processes(state.redis, namespace, host)
+    try do
+      JobStat.cleanup_processes(state.redis, namespace, host)
+    rescue
+      e -> Logger.error("Error cleaning up processes -  #{Kernel.inspect e}")
+    end
     {:reply, :ok, state}
   end
 
