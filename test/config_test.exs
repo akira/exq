@@ -63,9 +63,9 @@ defmodule Exq.ConfigTest do
     ])
     {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :default])
     [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
-      workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name: name,
-      scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency, middleware: middleware,
-      default_middleware: default_middleware, mode: mode, shutdown_timeout: shutdown_timeout]
+     workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, metadata: metadata, stats: stats,
+     name: name, scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency, middleware: middleware,
+     default_middleware: default_middleware, mode: mode, shutdown_timeout: shutdown_timeout]
     = server_opts
     assert scheduler_enable == true
     assert namespace == "exq"
@@ -77,6 +77,7 @@ defmodule Exq.ConfigTest do
     assert stats == Exq.Stats
     assert name == nil
     assert scheduler == Exq.Scheduler
+    assert metadata == Exq.Worker.Metadata
     assert queues == ["default"]
     assert redis == Exq.Redis.Client
     assert concurrency == [{"default", 100, 0}]

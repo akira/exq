@@ -24,6 +24,7 @@ defmodule Exq.Support.Mode do
   end
   def children(:default, opts) do
     children = [
+      worker(Exq.Worker.Metadata, [opts]),
       worker(Exq.Middleware.Server, [opts]),
       worker(Exq.Stats.Server, [opts]),
       supervisor(Exq.Worker.Supervisor, [opts]),
