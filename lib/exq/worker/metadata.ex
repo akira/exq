@@ -36,7 +36,7 @@ defmodule Exq.Worker.Metadata do
   end
 
   def handle_info({:DOWN, ref, _type, pid, _reason}, table) do
-    [{^pid, ^ref, value}] = :ets.lookup(table, pid)
+    [{^pid, ^ref, _}] = :ets.lookup(table, pid)
     true = :ets.delete(table, pid)
     {:noreply, table}
   end
