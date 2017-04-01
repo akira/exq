@@ -129,4 +129,4 @@ System.at_exit fn(_status) ->
   TestRedis.stop
 end
 
-ExUnit.start
+ExUnit.start(capture_log: true)
