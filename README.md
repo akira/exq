@@ -250,6 +250,19 @@ defmodule MyWorker do
 end
 ```
 
+### Job data from worker
+
+If you'd like to get Job metadata information from a worker, you can call `worker_job` from within the worker:
+
+```elixir
+defmodule MyWorker do
+  def perform(arg1, arg2) do
+    # get job metadata
+    job = Exq.worker_job()
+  end
+end
+```
+
 ### Dynamic queue subscriptions:
 
 The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start_link.  However, we can also dynamically add and remove queue subscriptions after exq has started.
