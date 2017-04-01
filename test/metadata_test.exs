@@ -20,7 +20,7 @@ defmodule MetadataTest do
 
     assert Metadata.associate(metadata, pid, @job) == :ok
     assert Metadata.lookup(metadata, pid) == @job
-    assert Exq.worker_job(Exq, pid)
+    assert Exq.worker_job(Exq, pid) == @job
     send(pid, :fetch_and_quit)
     Process.sleep(50)
     assert_raise ArgumentError, fn ->
