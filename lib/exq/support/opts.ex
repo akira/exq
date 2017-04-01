@@ -54,6 +54,7 @@ defmodule Exq.Support.Opts do
     scheduler = Exq.Scheduler.Server.server_name(opts[:name])
     workers_sup = Exq.Worker.Supervisor.supervisor_name(opts[:name])
     middleware = Exq.Middleware.Server.server_name(opts[:name])
+    metadata = Exq.Worker.Metadata.server_name(opts[:name])
 
     queue_configs = opts[:queues] || Config.get(:queues)
     per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency)
@@ -63,10 +64,11 @@ defmodule Exq.Support.Opts do
 
     [scheduler_enable: scheduler_enable, namespace: namespace,
      scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,
-     poll_timeout: poll_timeout, enqueuer: enqueuer, stats: stats, name:
-     opts[:name], scheduler: scheduler, queues: queues, redis: opts[:redis],
-     concurrency: concurrency, middleware: middleware, default_middleware:
-     default_middleware, mode: :default, shutdown_timeout: shutdown_timeout]
+     poll_timeout: poll_timeout, enqueuer: enqueuer, metadata: metadata,
+     stats: stats, name: opts[:name], scheduler: scheduler, queues:
+     queues, redis: opts[:redis], concurrency: concurrency,
+     middleware: middleware, default_middleware: default_middleware,
+     mode: :default, shutdown_timeout: shutdown_timeout]
   end
   defp server_opts(mode, opts) do
     namespace = opts[:namespace] || Config.get(:namespace)

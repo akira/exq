@@ -20,15 +20,16 @@ defmodule Exq.Worker.Server do
 
   alias Exq.Middleware.Server, as: Middleware
   alias Exq.Middleware.Pipeline
+  alias Exq.Worker.Metadata
 
   defmodule State do
     defstruct job_serialized: nil, manager: nil, queue: nil, namespace: nil,
       work_table: nil, stats: nil, host: nil, redis: nil, middleware: nil, pipeline: nil,
-      middleware_state: nil
+      metadata: nil, middleware_state: nil
   end
 
-  def start_link(job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware) do
-    GenServer.start(__MODULE__, {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware}, [])
+  def start_link(job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata) do
+    GenServer.start(__MODULE__, {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata}, [])
   end
 
   @doc """
@@ -42,13 +43,13 @@ defmodule Exq.Worker.Server do
 ## gen server callbacks
 ##===========================================================
 
-  def init({job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware}) do
+  def init({job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata}) do
     {
       :ok,
       %State{
         job_serialized: job_serialized, manager: manager, queue: queue,
         work_table: work_table, stats: stats, namespace: namespace,
-        host: host, redis: redis, middleware: middleware
+        host: host, redis: redis, middleware: middleware, metadata: metadata
       }
     }
   end
@@ -77,7 +78,7 @@ defmodule Exq.Worker.Server do
   Dispatch work to the target module (call :perform method of target)
   """
   def handle_cast(:dispatch, state) do
-    dispatch_work(state.pipeline.assigns.worker_module, state.pipeline.assigns.job.args)
+    dispatch_work(state.pipeline.assigns.worker_module, state.pipeline.assigns.job, state.metadata)
     {:noreply, state }
   end
 
@@ -111,12 +112,13 @@ defmodule Exq.Worker.Server do
 ## Internal Functions
 ##===========================================================
 
-  def dispatch_work(worker_module, args) do
+  def dispatch_work(worker_module, job, metadata) do
     # trap exit so that link can still track dispatch without crashing
     Process.flag(:trap_exit, true)
     worker = self()
     pid = spawn_link fn ->
-      result = apply(worker_module, :perform, args)
+      :ok = Metadata.associate(metadata, self(), job)
+      result = apply(worker_module, :perform, job.args)
       GenServer.cast(worker, {:done, result})
     end
     Process.monitor(pid)

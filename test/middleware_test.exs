@@ -125,8 +125,9 @@ defmodule MiddlewareTest do
     work_table = :ets.new(:work_table, [:set, :public])
     {:ok, stub_server} = GenServer.start_link(MiddlewareTest.StubServer, [])
 
+    {:ok, metadata} = Exq.Worker.Metadata.start_link(%{})
     Worker.start_link(job, stub_server, "default", work_table, stub_server,
-      "exq", "localhost", stub_server, middleware)
+      "exq", "localhost", stub_server, middleware, metadata)
   end
 
   setup do

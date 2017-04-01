@@ -16,6 +16,13 @@ defmodule WorkerTest do
     end
   end
 
+  defmodule MetadataWorker do
+    def perform() do
+      %{class: "WorkerTest.MetadataWorker"} = Exq.worker_job()
+    end
+  end
+
+
   defmodule MissingMethodWorker do
   end
 
@@ -101,13 +108,14 @@ defmodule WorkerTest do
     {:ok, stub_server} = GenServer.start_link(WorkerTest.MockServer, %{})
     {:ok, mock_stats_server} = GenServer.start_link(WorkerTest.MockStatsServer, %{})
     {:ok, middleware} = GenServer.start_link(Exq.Middleware.Server, [])
+    {:ok, metadata} = Exq.Worker.Metadata.start_link(%{})
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Stats)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Job)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Manager)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Logger)
 
     Exq.Worker.Server.start_link(job, stub_server, "default", work_table, mock_stats_server,
-      "exq", "localhost", stub_server, middleware)
+      "exq", "localhost", stub_server, middleware, metadata)
   end
 
   test "execute valid job with perform" do
@@ -124,6 +132,12 @@ defmodule WorkerTest do
     {:ok, worker} = start_worker({"WorkerTest.ThreeArgWorker", "[1, 2, 3]"})
     assert_terminate(worker, true)
   end
+
+  test "provide access to job metadata" do
+    {:ok, worker} = start_worker({"WorkerTest.MetadataWorker", "[]"})
+    assert_terminate(worker, true)
+  end
+
 
   test "execute worker raising error" do
     {:ok, worker} = start_worker({"WorkerTest.RaiseWorker", "[]"})

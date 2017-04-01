@@ -3,6 +3,7 @@ defmodule Exq do
   use Application
 
   import Exq.Support.Opts, only: [top_supervisor: 1]
+  alias Exq.Worker.Metadata
 
   # Mixin Enqueue API
   use Exq.Enqueuer.EnqueueApi
@@ -55,4 +56,15 @@ defmodule Exq do
     GenServer.call(pid, {:unsubscribe, queue})
   end
 
+
+  @doc """
+  Get the job metadata
+    * `name` - registered name of Exq. Only necessary if the custom
+      name option is used when starting Exq. Defaults to Exq
+    * `pid` - pid of the worker. Defaults to self().
+  """
+  def worker_job(name \\ nil, pid \\ self()) do
+    metadata = Metadata.server_name(name)
+    Metadata.lookup(metadata, pid)
+  end
 end
