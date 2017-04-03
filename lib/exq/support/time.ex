@@ -20,7 +20,7 @@ defmodule Exq.Support.Time do
 
   def format_current_date(current_date) do
     date_time =
-      current_date
+      %{current_date | microsecond: {0, 0}}
       |> DateTime.to_string
 
     date =
