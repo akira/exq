@@ -86,12 +86,19 @@ defmodule Exq.Worker.Server do
   Worker done with normal termination message
   """
   def handle_cast({:done, result}, state) do
-    after_processed_work(state, result)
+    if !has_pipeline_after_work_ran?(state.pipeline) do
+      state = %{state | pipeline: pipeline_after_processed_work(state, result)}
+    end
     {:stop, :normal, state }
   end
 
   def handle_info({:DOWN, _, _, _, :normal}, state) do
-    {:noreply, state}
+    if !has_pipeline_after_work_ran?(state.pipeline) do
+      error = "Worker shutdown"
+      state = %{state | pipeline: pipeline_after_failed_work(state, error, error)}
+    end
+    {:stop, :normal, state}
+
   end
 
   def handle_info({:DOWN, _, :process, _, error}, state) do
@@ -100,7 +107,9 @@ defmodule Exq.Worker.Server do
     |> Inspect.Algebra.format(%Inspect.Opts{}.width)
     |> to_string
 
-    after_failed_work(state, error_message, error)
+    if !has_pipeline_after_work_ran?(state.pipeline) do
+      state = %{state | pipeline: pipeline_after_failed_work(state, error_message, error)}
+    end
     {:stop, :normal, state}
   end
 
@@ -130,16 +139,20 @@ defmodule Exq.Worker.Server do
     |> Pipeline.chain(state.middleware_state)
   end
 
-  defp after_processed_work(state, result) do
+  defp pipeline_after_processed_work(state, result) do
     %Pipeline{event: :after_processed_work, worker_pid: self(), assigns: state.pipeline.assigns}
     |> Pipeline.assign(:result, result)
     |> Pipeline.chain(state.middleware_state)
   end
 
-  defp after_failed_work(state, error_message, error) do
+  defp pipeline_after_failed_work(state, error_message, error) do
     %Pipeline{event: :after_failed_work, worker_pid: self(), assigns: state.pipeline.assigns}
     |> Pipeline.assign(:error_message, error_message)
     |> Pipeline.assign(:error, error)
     |> Pipeline.chain(state.middleware_state)
+  end
+
+  defp has_pipeline_after_work_ran?(pipeline) do
+    Map.has_key?(pipeline, :result) || Map.has_key?(pipeline, :error)
   end
 end

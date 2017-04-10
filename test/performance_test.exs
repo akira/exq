@@ -20,6 +20,21 @@ defmodule PerformanceTest do
     end
   end
 
+  defmodule FlakeyWorker do
+    def perform(instruction) do
+      case instruction do
+        "done" -> send(:tester, :done)
+        1 -> raise "error"
+        2 -> Process.exit(self(), :normal)
+        3 -> Process.exit(self(), :kill)
+        4 -> 1 / 0
+        5 -> 1 = 0
+        6 -> Exq.worker_job(Exq)
+      end
+    end
+  end
+
+
   test "test to_job_serialized performance" do
     started = :os.timestamp
     max_timeout_ms = 1_000
@@ -58,4 +73,27 @@ defmodule PerformanceTest do
     stop_process(sup)
   end
 
+  test "peformance for flakey workers" do
+    Process.register(self(), :tester)
+    max_timeout_ms = 2 * 1_000
+
+    {:ok, sup} = Exq.start_link(concurrency: 20)
+    for _ <- 1..200, do: Exq.enqueue(Exq, "default", PerformanceTest.FlakeyWorker, [Enum.random([1, 2, 3, 4, 5, 6])])
+    Exq.enqueue(Exq, "default", PerformanceTest.FlakeyWorker, [:done])
+
+    # Wait for last message
+    receive do
+      :done -> Logger.info("Received done")
+    after
+      # This won't count enqueue
+      max_timeout_ms  -> assert false, "Timeout of #{max_timeout_ms} reached for performance test"
+    end
+
+    count = Exq.Redis.Connection.llen!(:testredis, "test:queue:default")
+
+    assert count == 0
+    # let stats finish
+    wait_long()
+    stop_process(sup)
+  end
 end
