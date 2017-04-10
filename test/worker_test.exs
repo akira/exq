@@ -38,6 +38,34 @@ defmodule WorkerTest do
     end
   end
 
+  defmodule TerminateWorker do
+    def perform do
+      Process.exit(self(), :normal)
+    end
+  end
+
+  defmodule BadArithmaticWorker do
+    def perform do
+      1 / 0
+    end
+  end
+
+  defmodule BadMatchWorker do
+    def perform do
+      1 = 0
+    end
+  end
+
+  defmodule FunctionClauseWorker do
+    def perform do
+      hello("abc")
+    end
+
+    def hello(from) when is_pid(from) do
+      IO.puts("HELLO")
+    end
+  end
+
   defmodule MockStatsServer do
     use GenServer
 
@@ -138,7 +166,6 @@ defmodule WorkerTest do
     assert_terminate(worker, true)
   end
 
-
   test "execute worker raising error" do
     {:ok, worker} = start_worker({"WorkerTest.RaiseWorker", "[]"})
     assert_terminate(worker, false)
@@ -148,6 +175,8 @@ defmodule WorkerTest do
     {:ok, worker} = start_worker({"WorkerTest.CustomMethodWorker/custom_perform", "[]"})
     assert_terminate(worker, false)
   end
+
+  # Go through Exit reasons: http://erlang.org/doc/reference_manual/errors.html#exit_reasons
 
   test "execute invalid module perform" do
     {:ok, worker} = start_worker({"NonExistant", "[]"})
@@ -159,11 +188,30 @@ defmodule WorkerTest do
     assert_terminate(worker, false)
   end
 
+  test "worker normally terminated still sends stats" do
+    {:ok, worker} = start_worker({"WorkerTest.TerminateWorker", "[]"})
+    assert_terminate(worker, false)
+  end
+
+  test "worker with arithmatic error (badarith) still sends stats" do
+    {:ok, worker} = start_worker({"WorkerTest.BadArithmaticWorker", "[]"})
+    assert_terminate(worker, false)
+  end
+
+  test "worker with bad match (badmatch) still sends stats" do
+    {:ok, worker} = start_worker({"WorkerTest.BadMatchWorker", "[]"})
+    assert_terminate(worker, false)
+  end
+
+  test "worker with function clause error still sends stats" do
+    {:ok, worker} = start_worker({"WorkerTest.FunctionClauseWorker", "[]"})
+    assert_terminate(worker, false)
+  end
+
   test "execute invalid module function" do
     {:ok, worker} = start_worker({"WorkerTest.MissingMethodWorker/nonexist", "[]"})
     assert_terminate(worker, false)
   end
-
 
   test "adds process info struct to worker state" do
     {:ok, worker} = start_worker({"WorkerTest.NoArgWorker", "[]"})
