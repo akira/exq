@@ -18,11 +18,11 @@ defmodule Exq.ConfigTest do
   end
 
   test "redis_opts" do
-    Mix.Config.persist([exq: [host: '127.0.0.1', port: 6379, password: '', database: 0, reconnect_on_sleep: 100, redis_timeout: 5000]])
+    Mix.Config.persist([exq: [host: "127.0.0.1", port: 6379, password: '', database: 0, reconnect_on_sleep: 100, redis_timeout: 5000]])
     {[host: host, port: port, database: database, password: password],
       [backoff: reconnect_on_sleep, timeout: timeout, name: client_name]}
      = Exq.Support.Opts.redis_opts
-    assert host == '127.0.0.1'
+    assert host == "127.0.0.1"
     assert port == 6379
     assert password == ''
     assert database == 0

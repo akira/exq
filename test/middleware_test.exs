@@ -127,10 +127,16 @@ defmodule MiddlewareTest do
 
     {:ok, metadata} = Exq.Worker.Metadata.start_link(%{})
     Worker.start_link(job, stub_server, "default", work_table, stub_server,
-      "exq", "localhost", stub_server, middleware, metadata)
+      "exq", "localhost", :testredis, middleware, metadata)
   end
 
   setup do
+    TestRedis.setup
+    on_exit fn ->
+      wait()
+      TestRedis.teardown
+    end
+
     Process.register(self(), :middlewaretest)
     {:ok, middleware} = GenServer.start_link(Middleware, [])
     {:ok, middleware: middleware}
