@@ -109,8 +109,8 @@ defmodule TestRedis do
     end
     try do
       Process.unregister(:testredis)
-    catch
-      ArgumentError, e -> IO.puts(e)
+    rescue
+      ArgumentError -> true
     end
     :ok
   end

@@ -34,7 +34,7 @@ defmodule Exq.Mixfile do
   defp deps do
     [
       { :uuid, ">= 1.0.0" },
-      { :redix, ">= 0.3.4"},
+      { :redix, ">= 0.5.0"},
       { :poison, ">= 1.2.0 or ~> 2.0"},
       { :excoveralls, "~> 0.6.2", only: :test },
       { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},

@@ -93,14 +93,16 @@ defmodule WorkerTest do
   defmodule MockServer do
     use GenServer
 
-    def handle_call({:commands, [["ZADD"|_]]}, _from, state) do
+    # Same reply as Redix connection
+    def handle_call({:commands, [["ZADD"|_]], req_id}, _from, state) do
       send :workertest, :zadd_redis
-      {:reply, {:ok, state}, state}
+      {:reply, {req_id, {:ok, [1]}}, state}
     end
 
-    def handle_call({:commands, [["LREM"|_]]}, _from, state) do
+    # Same reply as Redix connection
+    def handle_call({:commands, [["LREM"|_]], req_id}, _from, state) do
       send :workertest, :lrem_redis
-      {:reply, {:ok, {}}, state}
+      {:reply, {req_id, {:ok, [1]}}, state}
     end
 
     def handle_cast({:job_terminated, _, _, _}, state) do
