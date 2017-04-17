@@ -86,19 +86,26 @@ defmodule Exq.Worker.Server do
   Worker done with normal termination message
   """
   def handle_cast({:done, result}, state) do
-    if !has_pipeline_after_work_ran?(state.pipeline) do
-      state = %{state | pipeline: pipeline_after_processed_work(state, result)}
-    end
+    state =
+      if !has_pipeline_after_work_ran?(state.pipeline) do
+        %{state | pipeline: pipeline_after_processed_work(state, result)}
+      else
+        state
+      end
+
     {:stop, :normal, state }
   end
 
   def handle_info({:DOWN, _, _, _, :normal}, state) do
-    if !has_pipeline_after_work_ran?(state.pipeline) do
-      error = "Worker shutdown"
-      state = %{state | pipeline: pipeline_after_failed_work(state, error, error)}
-    end
-    {:stop, :normal, state}
+    state =
+      if !has_pipeline_after_work_ran?(state.pipeline) do
+        error = "Worker shutdown"
+        %{state | pipeline: pipeline_after_failed_work(state, error, error)}
+      else
+        state
+      end
 
+    {:stop, :normal, state}
   end
 
   def handle_info({:DOWN, _, :process, _, error}, state) do
@@ -107,9 +114,13 @@ defmodule Exq.Worker.Server do
     |> Inspect.Algebra.format(%Inspect.Opts{}.width)
     |> to_string
 
-    if !has_pipeline_after_work_ran?(state.pipeline) do
-      state = %{state | pipeline: pipeline_after_failed_work(state, error_message, error)}
-    end
+    state =
+      if !has_pipeline_after_work_ran?(state.pipeline) do
+        %{state | pipeline: pipeline_after_failed_work(state, error_message, error)}
+      else
+        state
+      end
+
     {:stop, :normal, state}
   end
 
