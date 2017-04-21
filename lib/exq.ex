@@ -4,6 +4,7 @@ defmodule Exq do
 
   import Exq.Support.Opts, only: [top_supervisor: 1]
   alias Exq.Worker.Metadata
+  alias Exq.Support.Config
 
   # Mixin Enqueue API
   use Exq.Enqueuer.EnqueueApi
@@ -11,7 +12,12 @@ defmodule Exq do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    start_link()
+    if Config.get(:start_on_application) do
+      start_link()
+    else
+      # Don't start Exq
+      Supervisor.start_link([], strategy: :one_for_one)
+    end
   end
 
   # Exq methods

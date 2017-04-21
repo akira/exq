@@ -22,6 +22,7 @@ defmodule Exq.Support.Config do
     serializer: Exq.Serializers.JsonSerializer,
     node_identifier: Exq.NodeIdentifier.HostnameIdentifier,
     backoff: Exq.Backoff.SidekiqDefault,
+    start_on_application: true,
     middleware: [
       Exq.Middleware.Stats,
       Exq.Middleware.Job,
