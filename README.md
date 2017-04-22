@@ -80,6 +80,7 @@ Other options include:
 * The `queues` list specifies which queues Exq will listen to for new jobs.
 * The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
 * The `name` option allows you to customize Exq's registered name, similar to using `Exq.start_link([name: Name])`. The default is Exq.
+* If the option `start_on_application` is `false`, Exq won't be started automatically when booting up you Application. You can start it with `Exq.start_link/1`.
 
 ```elixir
 config :exq,
