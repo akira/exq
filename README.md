@@ -23,6 +23,7 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
   This means that if the system or worker is restarted while a job is in progress,
   the job will be re_enqueued when the node is restarted and not lost.
 * Exq provides an optional web UI that you can use to view several stats as well as rate of job processing.
+* There is no time limit to how long a job can run for.
 
 ### Do you need Exq?
 
@@ -335,13 +336,24 @@ Side::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' =
 
 By default, your Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
 
-## Configuring node identifier if deployed on Heroku:
-In a dynamic environment where nodes come up and down, you may want to override node id to use an environment variable instead of hostname. This can be done by:
+## Use When Deployed in a Deployment Environment
+
+Exq relies on unique node identifiers to correctly handle jobs currently in
+progress. Furthermore if a node crashes, leaving jobs marked as in progress
+but incomplete, is it the responsibility of a node with the same identifier
+to come online and requeue the failed jobs.
+
+By default Exq uses the machine's hostname as a node identifier, which works
+well when deployed to a server in the conventional style. In a dynamic
+environment such as Heroku or Kubenetes, where nodes come up and down, you may
+want to override node id to use an environment variable instead.
+
+This can be done using a custom `NodeIdentifier` module.
+
 ```
 config :exq,
    node_identifier: MyApp.CustomNodeIdentifier
 ```
-And you can define the module like this:
 ```
 defmodule MyApp.CustomNodeIdentifier do
   @behaviour Exq.NodeIdentifier.Behaviour
@@ -352,6 +364,7 @@ defmodule MyApp.CustomNodeIdentifier do
   end
 end
 ```
+
 ## Web UI:
 
 Exq has a separate repo, exq_ui which provides with a Web UI to monitor your workers:
