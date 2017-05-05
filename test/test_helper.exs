@@ -23,6 +23,12 @@ defmodule ExqTestUtil do
 
   def redis_port do
     Exq.Support.Config.get(:port)
+    |> case do
+      port when is_binary(port) ->
+        String.to_integer(port)
+      value ->
+        value
+    end
   end
 
   import ExUnit.Assertions

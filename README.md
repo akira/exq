@@ -74,8 +74,9 @@ For Elixir 1.2 or older, you will need to use Exq version 0.7.2 in hex, and you 
 
 ### Configuration:
 
-By default, Exq will use configuration from your config.exs file.  You can use this
-to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options).
+By default, Exq will use configuration from your config.exs file.  You can use this to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options).
+
+Configuration options may optionally be given in the `{:system, "VARNAME"}` format, which will resolve to the runtime environment value.
 
 Other options include:
 * The `queues` list specifies which queues Exq will listen to for new jobs.
