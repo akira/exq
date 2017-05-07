@@ -156,8 +156,25 @@ You can add Exq into your OTP application list, and it will start an instance of
 
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
 
-You can configure ```shutdown_timeout``` to allow more or less time to finish
-jobs when being shutdown.
+If you would like to control Exq startup, you can configure Exq to not start anything on application start. For example, if you are using Exq along with Phoenix, and your workers are accessing the database or other resources, it is recommended to disable Exq startup and manually add it to the supervision tree. 
+
+This can be done by setting `start_on_application` to false and adding it to your supervision tree:
+
+```elixir
+config :exq,
+   start_on_application: false
+```
+
+```elixir
+    # Define workers and child supervisors to be supervised
+    children = [
+      # Start the Ecto repository
+      supervisor(MyApp.Repo, []),
+      # Start the endpoint when the application starts
+      supervisor(MyApp.Endpoint, []),
+      supervisor(Exq, []),
+    ]
+```
 
 ## Using iex:
 If you'd like to try Exq out on the iex console, you can do this by typing
