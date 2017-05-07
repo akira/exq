@@ -29,7 +29,7 @@ defmodule Exq.Worker.Server do
   end
 
   def start_link(job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata) do
-    GenServer.start(__MODULE__, {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata}, [])
+    GenServer.start_link(__MODULE__, {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata}, [])
   end
 
   @doc """

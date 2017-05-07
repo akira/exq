@@ -310,6 +310,7 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  @tag :skip
   test "configure worker shutdown time" do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link([shutdown_timeout: 200])
@@ -323,6 +324,7 @@ defmodule ExqTest do
     assert_received {"short"}
   end
 
+  @tag :skip
   test "handle supervisor tree shutdown properly with stats cleanup" do
     Process.register(self(), :exqtest)
 
