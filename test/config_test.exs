@@ -8,7 +8,12 @@ defmodule Exq.ConfigTest do
   end
 
   setup do
-    on_exit fn -> ExqTestUtil.reset_config end
+    env = System.get_env
+
+    on_exit fn ->
+      ExqTestUtil.reset_env(env)
+      ExqTestUtil.reset_config
+    end
   end
 
   test "Mix.Config should change the host." do
@@ -48,6 +53,15 @@ defmodule Exq.ConfigTest do
     Mix.Config.persist([exq: [url: {:system, "REDIS_URL"}]])
     {redis_opts, _} = Exq.Support.Opts.redis_opts
     assert redis_opts == "redis_url"
+  end
+
+  test "Raises an ArgumentError when supplied with an invalid port" do
+    Mix.Config.persist([exq: [port: {:system, "REDIS_PORT"}]])
+    System.put_env("REDIS_PORT", "invalid integer")
+
+    assert_raise(ArgumentError, fn ->
+      Exq.Support.Opts.redis_opts
+    end)
   end
 
   test "redis_opts" do

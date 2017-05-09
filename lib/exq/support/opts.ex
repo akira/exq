@@ -1,5 +1,6 @@
 defmodule Exq.Support.Opts do
 
+  alias Exq.Support.Coercion
   alias Exq.Support.Config
 
   @doc """
@@ -27,8 +28,8 @@ defmodule Exq.Support.Opts do
       url
     else
       host = opts[:host] || Config.get(:host)
-      port = coerce_integer(opts[:port] || Config.get(:port))
-      database = coerce_integer(opts[:database] || Config.get(:database))
+      port = Coercion.to_integer(opts[:port] || Config.get(:port))
+      database = Coercion.to_integer(opts[:database] || Config.get(:database))
       password = opts[:password] || Config.get(:password)
       [host: host, port: port, database: database, password: password]
     end
@@ -40,21 +41,6 @@ defmodule Exq.Support.Opts do
   def redis_client_name(name) do
     name = name || Config.get(:name)
     "#{name}.Redis.Client" |> String.to_atom
-  end
-
-  defp coerce_integer(value) when is_integer(value) do
-    value
-  end
-
-  defp coerce_integer(binary) when is_binary(binary) do
-    case Integer.parse(binary) do
-      {integer, ""} -> integer
-      _ -> raise("Failed to parse #{inspect(binary)} into an integer.")
-    end
-  end
-
-  defp coerce_integer(value) do
-    raise("Failed to parse #{inspect(value)} into an integer.")
   end
 
   defp server_opts(:default, opts) do
