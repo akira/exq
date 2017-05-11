@@ -1,6 +1,8 @@
 defmodule TestStats do
   alias Exq.Redis.Connection
   alias Exq.Redis.JobQueue
+  alias Exq.Support.Coercion
+  alias Exq.Support.Config
 
   def processed_count(redis, namespace) do
     count = Connection.get!(redis, JobQueue.full_key(namespace, "stat:processed"))
@@ -17,12 +19,17 @@ defmodule ExqTestUtil do
   @timeout 20
   @long_timeout 100
 
+  alias Exq.Support.Coercion
+  alias Exq.Support.Config
+
   def redis_host do
-    Exq.Support.Config.get(:host)
+    Config.get(:host)
   end
 
   def redis_port do
-    Exq.Support.Config.get(:port)
+    :port
+    |> Config.get()
+    |> Coercion.to_integer()
   end
 
   import ExUnit.Assertions
@@ -30,6 +37,18 @@ defmodule ExqTestUtil do
   defmodule SendWorker do
     def perform(pid) do
       send String.to_atom(pid), {:worked}
+    end
+  end
+
+  def reset_env(previous_env) do
+    # Restore all previous values
+    System.put_env(previous_env)
+
+    # Remove any newly added keys
+    for {key, _} <- System.get_env do
+      unless Map.has_key?(previous_env, key) do
+        System.delete_env(key)
+      end
     end
   end
 
@@ -71,17 +90,18 @@ end
 defmodule TestRedis do
   import ExqTestUtil
   alias Exq.Redis.Connection
+  alias Exq.Support.Config
 
   #TODO: Automate config
   def start do
-    unless Exq.Support.Config.get(:test_with_local_redis) == false do
+    unless Config.get(:test_with_local_redis) == false do
       [] = :os.cmd('redis-server test/test-redis.conf')
       :timer.sleep(100)
     end
   end
 
   def stop do
-    unless Exq.Support.Config.get(:test_with_local_redis) == false do
+    unless Config.get(:test_with_local_redis) == false do
       [] = :os.cmd('redis-cli -p 6555 shutdown')
     end
   end

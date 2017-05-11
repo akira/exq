@@ -36,7 +36,10 @@ defmodule Exq.Support.Config do
   end
 
   def get(key, fallback) do
-    Application.get_env(:exq, key, fallback)
+    case Application.get_env(:exq, key, fallback) do
+      {:system, varname} -> System.get_env(varname)
+      value -> value
+    end
   end
 
   def serializer do

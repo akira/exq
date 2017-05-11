@@ -8,13 +8,60 @@ defmodule Exq.ConfigTest do
   end
 
   setup do
-    on_exit fn -> ExqTestUtil.reset_config end
+    env = System.get_env
+
+    on_exit fn ->
+      ExqTestUtil.reset_env(env)
+      ExqTestUtil.reset_config
+    end
   end
 
   test "Mix.Config should change the host." do
     assert Exq.Support.Config.get(:host) != "127.1.1.1"
     Mix.Config.persist([exq: [host: "127.1.1.1"]])
     assert Exq.Support.Config.get(:host) == "127.1.1.1"
+  end
+
+  test "redis_opts from runtime environment" do
+    System.put_env("REDIS_HOST", "127.0.0.1")
+    System.put_env("REDIS_PORT", "6379")
+    System.put_env("REDIS_DATABASE", "1")
+    System.put_env("REDIS_PASSWORD", "password")
+
+    Mix.Config.persist([
+      exq: [
+        host: {:system, "REDIS_HOST"},
+        port: {:system, "REDIS_PORT"},
+        database: {:system, "REDIS_DATABASE"},
+        password: {:system, "REDIS_PASSWORD"}
+      ]
+    ])
+
+    {[
+      host: host,
+      port: port,
+      database: database,
+      password: password
+    ], _} = Exq.Support.Opts.redis_opts
+
+    assert host == "127.0.0.1"
+    assert port == 6379
+    assert database == 1
+    assert password == "password"
+
+    System.put_env("REDIS_URL", "redis_url")
+    Mix.Config.persist([exq: [url: {:system, "REDIS_URL"}]])
+    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    assert redis_opts == "redis_url"
+  end
+
+  test "Raises an ArgumentError when supplied with an invalid port" do
+    Mix.Config.persist([exq: [port: {:system, "REDIS_PORT"}]])
+    System.put_env("REDIS_PORT", "invalid integer")
+
+    assert_raise(ArgumentError, fn ->
+      Exq.Support.Opts.redis_opts
+    end)
   end
 
   test "redis_opts" do

@@ -1,5 +1,6 @@
 defmodule Exq.Support.Opts do
 
+  alias Exq.Support.Coercion
   alias Exq.Support.Config
 
   @doc """
@@ -27,8 +28,8 @@ defmodule Exq.Support.Opts do
       url
     else
       host = opts[:host] || Config.get(:host)
-      port = opts[:port] || Config.get(:port)
-      database = opts[:database] || Config.get(:database)
+      port = Coercion.to_integer(opts[:port] || Config.get(:port))
+      database = Coercion.to_integer(opts[:database] || Config.get(:database))
       password = opts[:password] || Config.get(:password)
       [host: host, port: port, database: database, password: password]
     end
