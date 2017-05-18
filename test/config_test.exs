@@ -55,6 +55,13 @@ defmodule Exq.ConfigTest do
     assert redis_opts == "redis_url"
   end
 
+  test "redis_opts from runtime with defaults" do
+    Mix.Config.persist([exq: [url: {:system, "REDIS_URL", "default_redis_url"}]])
+
+    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    assert redis_opts == "default_redis_url"
+  end
+
   test "Raises an ArgumentError when supplied with an invalid port" do
     Mix.Config.persist([exq: [port: {:system, "REDIS_PORT"}]])
     System.put_env("REDIS_PORT", "invalid integer")
