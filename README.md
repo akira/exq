@@ -62,7 +62,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.8.6"}
+      {:exq, "~> 0.8.7"}
     ]
   end
 ```
@@ -157,7 +157,7 @@ You can add Exq into your OTP application list, and it will start an instance of
 
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
 
-If you would like to control Exq startup, you can configure Exq to not start anything on application start. For example, if you are using Exq along with Phoenix, and your workers are accessing the database or other resources, it is recommended to disable Exq startup and manually add it to the supervision tree. 
+If you would like to control Exq startup, you can configure Exq to not start anything on application start. For example, if you are using Exq along with Phoenix, and your workers are accessing the database or other resources, it is recommended to disable Exq startup and manually add it to the supervision tree.
 
 This can be done by setting `start_on_application` to false and adding it to your supervision tree:
 
