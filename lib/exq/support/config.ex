@@ -38,6 +38,7 @@ defmodule Exq.Support.Config do
   def get(key, fallback) do
     case Application.get_env(:exq, key, fallback) do
       {:system, varname} -> System.get_env(varname)
+      {:system, varname, default} -> System.get_env(varname) || default
       value -> value
     end
   end
