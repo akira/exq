@@ -22,4 +22,8 @@ defmodule Exq.Worker.Supervisor do
   def start_child(sup, args) do
     Supervisor.start_child(sup, args)
   end
+
+  def workers(sup) do
+    Supervisor.which_children(sup)
+  end
 end

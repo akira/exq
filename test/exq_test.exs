@@ -321,7 +321,19 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
-  @tag :skip
+  test "waiting for workers to finish" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link([])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [100, :one])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [100, :two])
+
+    wait()
+    stop_process(sup)
+
+    assert_received {"one"}
+    assert_received {"two"}
+  end
+
   test "configure worker shutdown time" do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link([shutdown_timeout: 200])
@@ -335,7 +347,6 @@ defmodule ExqTest do
     assert_received {"short"}
   end
 
-  @tag :skip
   test "handle supervisor tree shutdown properly with stats cleanup" do
     Process.register(self(), :exqtest)
 

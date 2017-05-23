@@ -132,6 +132,10 @@ defmodule Exq.Manager.Server do
     :ok
   end
 
+  def server_name(nil), do: Config.get(:name)
+  def server_name(name), do: name
+
+
 ##===========================================================
 ## gen server callbacks
 ##===========================================================
@@ -331,8 +335,11 @@ defmodule Exq.Manager.Server do
     %{state | queues: []}
   end
 
-  def update_worker_count(work_table, queue, delta) do
+  defp update_worker_count(work_table, queue, delta) do
     :ets.update_counter(work_table, queue, {3, delta})
+  rescue
+    # The queue has been unsubscribed
+    _error in ArgumentError -> :ok
   end
 
   @doc """
@@ -372,8 +379,5 @@ defmodule Exq.Manager.Server do
         """
     end
   end
-
-  defp server_name(nil), do: Config.get(:name)
-  defp server_name(name), do: name
 
 end

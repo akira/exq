@@ -23,6 +23,8 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
   This means that if the system or worker is restarted while a job is in progress,
   the job will be re_enqueued when the node is restarted and not lost.
 * Exq provides an optional web UI that you can use to view several stats as well as rate of job processing.
+* When shutting down Exq will attempt to let workers terminate gracefully,
+  with a configurable timeout.
 * There is no time limit to how long a job can run for.
 
 ### Do you need Exq?
@@ -83,6 +85,9 @@ Other options include:
 * The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
 * The `name` option allows you to customize Exq's registered name, similar to using `Exq.start_link([name: Name])`. The default is Exq.
 * If the option `start_on_application` is `false`, Exq won't be started automatically when booting up you Application. You can start it with `Exq.start_link/1`.
+* The `shutdown_timeout` is the number of milliseconds to wait for workers to
+  finish processing jobs when the application is shutting down. It defaults to
+  5000 ms.
 
 ```elixir
 config :exq,
