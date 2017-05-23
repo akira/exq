@@ -1,6 +1,4 @@
 defmodule Exq.Serializers.Behaviour do
-  use Behaviour
-
   @callback decode(any) :: any
   @callback decode!(any) :: any
   @callback encode(any) :: any
