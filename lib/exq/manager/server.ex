@@ -180,17 +180,22 @@ defmodule Exq.Manager.Server do
 
   def handle_call({:subscribe, queue}, _from, state) do
     updated_state = add_queue(state, queue)
-    {:reply, :ok, updated_state,0}
+    {:reply, :ok, updated_state, 0}
   end
 
   def handle_call({:subscribe, queue, concurrency}, _from, state) do
     updated_state = add_queue(state, queue, concurrency)
-    {:reply, :ok, updated_state,0}
+    {:reply, :ok, updated_state, 0}
   end
 
   def handle_call({:unsubscribe, queue}, _from, state) do
     updated_state = remove_queue(state, queue)
-    {:reply, :ok, updated_state,0}
+    {:reply, :ok, updated_state, 0}
+  end
+
+  def handle_call(:unsubscribe_all, _from, state) do
+    updated_state = remove_all_queues(state)
+    {:reply, :ok, updated_state, 0}
   end
 
   def handle_cast({:re_enqueue_backup, queue}, state) do
@@ -319,6 +324,11 @@ defmodule Exq.Manager.Server do
     :ets.delete(state.work_table, queue)
     updated_queues = List.delete(state.queues, queue)
     %{state | queues: updated_queues}
+  end
+
+  defp remove_all_queues(state) do
+    true = :ets.delete_all_objects(state.work_table)
+    %{state | queues: []}
   end
 
   def update_worker_count(work_table, queue, delta) do

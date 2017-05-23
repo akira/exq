@@ -157,7 +157,7 @@ You can add Exq into your OTP application list, and it will start an instance of
 
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
 
-If you would like to control Exq startup, you can configure Exq to not start anything on application start. For example, if you are using Exq along with Phoenix, and your workers are accessing the database or other resources, it is recommended to disable Exq startup and manually add it to the supervision tree. 
+If you would like to control Exq startup, you can configure Exq to not start anything on application start. For example, if you are using Exq along with Phoenix, and your workers are accessing the database or other resources, it is recommended to disable Exq startup and manually add it to the supervision tree.
 
 This can be done by setting `start_on_application` to false and adding it to your supervision tree:
 
@@ -296,6 +296,11 @@ To subscribe to a new queue:
 To unsubscribe from a queue:
 ```elixir
 :ok = Exq.unsubscribe(Exq, "queue_to_unsubscribe")
+```
+
+To unsubscribe from all queues:
+```elixir
+:ok = Exq.unsubscribe_all(Exq)
 ```
 
 ## Middleware Support

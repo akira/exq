@@ -171,6 +171,17 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "unregister all queues and run jobs" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(queues: ["q1", "q2"])
+    :ok = Exq.unsubscribe_all(Exq)
+    {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.PerformArgWorker, [1])
+    {:ok, _} = Exq.enqueue(Exq, "q2", ExqTest.PerformArgWorker, [2])
+    refute_receive {:worked, 1}
+    refute_receive {:worked, 2}
+    stop_process(sup)
+  end
+
   test "throttle workers per queue" do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1", "q2"])

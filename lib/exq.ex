@@ -62,6 +62,14 @@ defmodule Exq do
     GenServer.call(pid, {:unsubscribe, queue})
   end
 
+  @doc """
+  Unsubscribe from all queues - ie. stop listening for jobs
+    * `pid` - PID for Exq Manager or Enqueuer to handle this
+  """
+  def unsubscribe_all(pid) do
+    GenServer.call(pid, :unsubscribe_all)
+  end
+
 
   @doc """
   Get the job metadata
