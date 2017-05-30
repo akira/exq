@@ -132,6 +132,10 @@ defmodule Exq.Manager.Server do
     :ok
   end
 
+  def server_name(nil), do: Config.get(:name)
+  def server_name(name), do: name
+
+
 ##===========================================================
 ## gen server callbacks
 ##===========================================================
@@ -180,17 +184,22 @@ defmodule Exq.Manager.Server do
 
   def handle_call({:subscribe, queue}, _from, state) do
     updated_state = add_queue(state, queue)
-    {:reply, :ok, updated_state,0}
+    {:reply, :ok, updated_state, 0}
   end
 
   def handle_call({:subscribe, queue, concurrency}, _from, state) do
     updated_state = add_queue(state, queue, concurrency)
-    {:reply, :ok, updated_state,0}
+    {:reply, :ok, updated_state, 0}
   end
 
   def handle_call({:unsubscribe, queue}, _from, state) do
     updated_state = remove_queue(state, queue)
-    {:reply, :ok, updated_state,0}
+    {:reply, :ok, updated_state, 0}
+  end
+
+  def handle_call(:unsubscribe_all, _from, state) do
+    updated_state = remove_all_queues(state)
+    {:reply, :ok, updated_state, 0}
   end
 
   def handle_cast({:re_enqueue_backup, queue}, state) do
@@ -321,8 +330,16 @@ defmodule Exq.Manager.Server do
     %{state | queues: updated_queues}
   end
 
-  def update_worker_count(work_table, queue, delta) do
+  defp remove_all_queues(state) do
+    true = :ets.delete_all_objects(state.work_table)
+    %{state | queues: []}
+  end
+
+  defp update_worker_count(work_table, queue, delta) do
     :ets.update_counter(work_table, queue, {3, delta})
+  rescue
+    # The queue has been unsubscribed
+    _error in ArgumentError -> :ok
   end
 
   @doc """
@@ -362,8 +379,5 @@ defmodule Exq.Manager.Server do
         """
     end
   end
-
-  defp server_name(nil), do: Config.get(:name)
-  defp server_name(name), do: name
 
 end

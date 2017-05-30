@@ -23,6 +23,8 @@ Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir
   This means that if the system or worker is restarted while a job is in progress,
   the job will be re_enqueued when the node is restarted and not lost.
 * Exq provides an optional web UI that you can use to view several stats as well as rate of job processing.
+* When shutting down Exq will attempt to let workers terminate gracefully,
+  with a configurable timeout.
 * There is no time limit to how long a job can run for.
 
 ### Do you need Exq?
@@ -83,6 +85,9 @@ Other options include:
 * The `concurrency` setting will let you configure the amount of concurrent workers that will be allowed, or :infinite to disable any throttling.
 * The `name` option allows you to customize Exq's registered name, similar to using `Exq.start_link([name: Name])`. The default is Exq.
 * If the option `start_on_application` is `false`, Exq won't be started automatically when booting up you Application. You can start it with `Exq.start_link/1`.
+* The `shutdown_timeout` is the number of milliseconds to wait for workers to
+  finish processing jobs when the application is shutting down. It defaults to
+  5000 ms.
 
 ```elixir
 config :exq,
@@ -157,7 +162,7 @@ You can add Exq into your OTP application list, and it will start an instance of
 
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
 
-If you would like to control Exq startup, you can configure Exq to not start anything on application start. For example, if you are using Exq along with Phoenix, and your workers are accessing the database or other resources, it is recommended to disable Exq startup and manually add it to the supervision tree. 
+If you would like to control Exq startup, you can configure Exq to not start anything on application start. For example, if you are using Exq along with Phoenix, and your workers are accessing the database or other resources, it is recommended to disable Exq startup and manually add it to the supervision tree.
 
 This can be done by setting `start_on_application` to false and adding it to your supervision tree:
 
@@ -296,6 +301,11 @@ To subscribe to a new queue:
 To unsubscribe from a queue:
 ```elixir
 :ok = Exq.unsubscribe(Exq, "queue_to_unsubscribe")
+```
+
+To unsubscribe from all queues:
+```elixir
+:ok = Exq.unsubscribe_all(Exq)
 ```
 
 ## Middleware Support
