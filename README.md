@@ -64,7 +64,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.8.6"}
+      {:exq, "~> 0.9.0"}
     ]
   end
 ```
