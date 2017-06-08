@@ -354,7 +354,7 @@ defmodule Exq.Redis.JobQueue do
     to_job_serialized(queue, worker, args, options, Time.unix_seconds)
   end
   def to_job_serialized(queue, worker, args, options, enqueued_at) when is_atom(worker) do
-    to_job_serialized(queue, to_string(worker), args, options, enqueued_at)
+    to_job_serialized(queue, :erlang.float_to_binary(worker), args, options, enqueued_at)
   end
   def to_job_serialized(queue, "Elixir." <> worker, args, options, enqueued_at) do
     to_job_serialized(queue, worker, args, options, enqueued_at)
