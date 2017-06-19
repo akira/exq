@@ -8,6 +8,7 @@ otp_release:
   - 19.0
 before_script:
   - MIX_ENV=test mix do deps.get
+  - MIX_ENV=test mix compile --warnings-as-errors
 script:
   - MIX_ENV=test mix test --no-start
 after_script:

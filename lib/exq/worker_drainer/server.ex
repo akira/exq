@@ -61,7 +61,7 @@ defmodule Exq.WorkerDrainer.Server do
 ##===========================================================
 
   defp drain_workers(state) do
-    timer_ref = :erlang.start_timer(state.shutdown_timeout, self,
+    timer_ref = :erlang.start_timer(state.shutdown_timeout, self(),
                                     :end_of_grace_period)
     :ok =
       state.name
