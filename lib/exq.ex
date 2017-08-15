@@ -34,10 +34,15 @@ defmodule Exq do
   def stop(nil), do: :ok
   def stop(pid) when is_pid(pid), do: Process.exit(pid, :shutdown)
   def stop(name) do
-      name
-      |> top_supervisor
-      |> Process.whereis
-      |> stop
+    name
+    |> whereis
+    |> stop
+  end
+
+  def whereis(name) do
+    name
+    |> top_supervisor
+    |> Process.whereis
   end
 
   @doc """
