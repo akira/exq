@@ -37,12 +37,12 @@ defmodule Exq.ConfigTest do
       ]
     ])
 
-    {[
+    [
       host: host,
       port: port,
       database: database,
       password: password
-    ], _} = Exq.Support.Opts.redis_opts
+    ] = Exq.Support.Opts.redis_opts
 
     assert host == "127.0.0.1"
     assert port == 6379
@@ -51,14 +51,14 @@ defmodule Exq.ConfigTest do
 
     System.put_env("REDIS_URL", "redis_url")
     Mix.Config.persist([exq: [url: {:system, "REDIS_URL"}]])
-    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    redis_opts = Exq.Support.Opts.redis_opts
     assert redis_opts == "redis_url"
   end
 
   test "redis_opts from runtime with defaults" do
     Mix.Config.persist([exq: [url: {:system, "REDIS_URL", "default_redis_url"}]])
 
-    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    redis_opts = Exq.Support.Opts.redis_opts
     assert redis_opts == "default_redis_url"
   end
 
@@ -72,34 +72,39 @@ defmodule Exq.ConfigTest do
   end
 
   test "redis_opts" do
-    Mix.Config.persist([exq: [host: "127.0.0.1", port: 6379, password: '', database: 0, reconnect_on_sleep: 100, redis_timeout: 5000]])
-    {[host: host, port: port, database: database, password: password],
-      [backoff: reconnect_on_sleep, timeout: timeout, name: client_name]}
-     = Exq.Support.Opts.redis_opts
+    Mix.Config.persist([exq: [host: "127.0.0.1", port: 6379, password: '', database: 0]])
+    [host: host, port: port, database: database, password: password] = Exq.Support.Opts.redis_opts
+
     assert host == "127.0.0.1"
     assert port == 6379
     assert password == ''
     assert database == 0
-    assert reconnect_on_sleep == 100
-    assert timeout == 5000
-    assert client_name == nil
 
     Mix.Config.persist([exq: [host: '127.1.1.1', password: 'password']])
-    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    redis_opts = Exq.Support.Opts.redis_opts
     assert redis_opts[:host] == '127.1.1.1'
     assert redis_opts[:password] == 'password'
 
     Mix.Config.persist([exq: [password: "binary_password"]])
-    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    redis_opts = Exq.Support.Opts.redis_opts
     assert redis_opts[:password] == "binary_password"
 
     Mix.Config.persist([exq: [password: nil]])
-    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    redis_opts = Exq.Support.Opts.redis_opts
     assert redis_opts[:password] == nil
 
     Mix.Config.persist([exq: [url: "redis_url"]])
-    {redis_opts, _} = Exq.Support.Opts.redis_opts
+    redis_opts = Exq.Support.Opts.redis_opts
     assert redis_opts == "redis_url"
+  end
+
+  test "connection_opts" do
+    Mix.Config.persist([exq: [reconnect_on_sleep: 100, redis_timeout: 5000]])
+    [backoff: reconnect_on_sleep, timeout: timeout, name: client_name, socket_opts: []] = Exq.Support.Opts.connection_opts
+
+    assert reconnect_on_sleep == 100
+    assert timeout == 5000
+    assert client_name == nil
   end
 
   test "default conform_opts" do

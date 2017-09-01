@@ -18,13 +18,20 @@ defmodule Exq.Support.Opts do
     mode = opts[:mode] || Config.get(:mode)
     redis = redis_client_name(opts[:name])
     opts = [{:redis, redis}|opts]
-    {redis_opts, connection_opts} = redis_opts(opts)
+
+    redis_opts = redis_opts(opts)
+    connection_opts = connection_opts(opts)
     server_opts = server_opts(mode, opts)
     {redis_opts, connection_opts, server_opts}
   end
 
+  def redis_client_name(name) do
+    name = name || Config.get(:name)
+    "#{name}.Redis.Client" |> String.to_atom
+  end
+
   def redis_opts(opts \\ []) do
-    redis_opts = if url = opts[:url] || Config.get(:url) do
+    if url = opts[:url] || Config.get(:url) do
       url
     else
       host = opts[:host] || Config.get(:host)
@@ -33,14 +40,14 @@ defmodule Exq.Support.Opts do
       password = opts[:password] || Config.get(:password)
       [host: host, port: port, database: database, password: password]
     end
-    reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep)
-    timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
-    {redis_opts, [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis]]}
   end
 
-  def redis_client_name(name) do
-    name = name || Config.get(:name)
-    "#{name}.Redis.Client" |> String.to_atom
+  def connection_opts(opts \\ []) do
+    reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep)
+    timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
+    socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
+
+    [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis], socket_opts: socket_opts]
   end
 
   defp server_opts(:default, opts) do
