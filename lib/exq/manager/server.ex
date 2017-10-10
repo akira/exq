@@ -113,14 +113,16 @@ defmodule Exq.Manager.Server do
   use GenServer
   alias Exq.Enqueuer
   alias Exq.Support.Config
+  alias Exq.Support.Time
   alias Exq.Redis.JobQueue
+  alias Exq.Redis.Connection
 
   @backoff_mult 10
 
   defmodule State do
     defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, node_id: nil, namespace: nil, work_table: nil,
               queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil, workers_sup: nil,
-              middleware: nil, metadata: nil
+              middleware: nil, metadata: nil, started_at: nil
   end
 
   def start_link(opts\\[]) do
@@ -134,7 +136,6 @@ defmodule Exq.Manager.Server do
 
   def server_name(nil), do: Config.get(:name)
   def server_name(name), do: name
-
 
 ##===========================================================
 ## gen server callbacks
@@ -160,11 +161,35 @@ defmodule Exq.Manager.Server do
                    queues: opts[:queues],
                    pid: self(),
                    poll_timeout: opts[:poll_timeout],
-                   scheduler_poll_timeout: opts[:scheduler_poll_timeout]
+                   scheduler_poll_timeout: opts[:scheduler_poll_timeout],
+                   started_at: Time.unix_seconds,
                    }
 
     check_redis_connection(opts)
+
+    name = redis_worker_name(state)
+    worker_init = [
+      ["DEL", "#{name}:workers"], # remove old working processes
+      ["SADD", JobQueue.full_key(state.namespace, "processes"), name],
+      ["HSET", name, "quiet", "false"],
+      ["HSET", name, "info", Poison.encode!(%{ hostname: state.node_id, started_at: state.started_at, pid: "#{:erlang.pid_to_list(state.pid)}", concurrency: cocurency_count(state), queues: state.queues})],
+      ["HSET", name, "beat", Time.unix_seconds],
+      ["EXPIRE", name, (state.poll_timeout / 1000 + 5)],
+    ]
+    Connection.qp!(state.redis, worker_init)
+
     {:ok, state, 0}
+  end
+
+  def cocurency_count(state) do
+    Enum.map(state.queues, fn(q) ->
+      [{_, concurrency, _}] = :ets.lookup(state.work_table, q)
+      cond do
+        concurrency == :infinite -> 1000000
+        true -> concurrency
+      end
+    end)
+    |> Enum.sum
   end
 
   def handle_call({:enqueue, queue, worker, args, options}, from, state) do
@@ -214,7 +239,7 @@ defmodule Exq.Manager.Server do
   """
   def handle_cast(:cleanup_host_stats, state) do
     rescue_timeout(fn ->
-      Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id)
+      Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id, state.pid)
     end)
     {:noreply, state, 0}
   end
@@ -240,6 +265,11 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 ## Internal Functions
 ##===========================================================
+
+  defp redis_worker_name(state) do
+    JobQueue.full_key(state.namespace, "#{state.node_id}:elixir")
+  end
+
   @doc """
   Dequeue jobs and dispatch to workers
   """
@@ -250,6 +280,17 @@ defmodule Exq.Manager.Server do
       jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
 
       job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job(state, potential_job) end)
+
+      # Update worker info in redis that it is alive
+      name = redis_worker_name(state)
+      worker_init = [
+        ["SADD", JobQueue.full_key(state.namespace, "processes"), name],
+        ["HSET", name, "quiet", "false"],
+        ["HSET", name, "info", Poison.encode!(%{ hostname: state.node_id, started_at: state.started_at, pid: "#{:erlang.pid_to_list(state.pid)}", concurrency: cocurency_count(state), queues: state.queues})],
+        ["HSET", name, "beat", Time.unix_seconds],
+        ["EXPIRE", name, (state.poll_timeout / 1000 + 5)], # expire information about live worker in poll_interval + 5s
+      ]
+      Connection.qp!(state.redis, worker_init)
 
       cond do
         Enum.any?(job_results, fn(status) -> elem(status, 1) == :dispatch end) ->
@@ -296,7 +337,6 @@ defmodule Exq.Manager.Server do
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
   end
-
 
   # Setup queues from options / configs.
 

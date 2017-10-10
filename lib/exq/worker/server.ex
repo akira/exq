@@ -73,7 +73,6 @@ defmodule Exq.Worker.Server do
     {:noreply, state}
   end
 
-
   @doc """
   Dispatch work to the target module (call :perform method of target)
   """

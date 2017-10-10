@@ -281,7 +281,7 @@ defmodule ExqTest do
 
     # Clear processes for this node
     host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
-    Exq.Stats.Server.cleanup_host_stats(ExqP.Stats, "test", host)
+    Exq.Stats.Server.cleanup_host_stats(ExqP.Stats, "test", host, self())
 
     # Check that process has been cleared
     processes = Exq.Redis.JobStat.processes(state.redis, "test")
@@ -319,7 +319,6 @@ defmodule ExqTest do
     wait_long()
     {:ok, count} = TestStats.failed_count(state.redis, "test")
     assert count == "2"
-
 
     {:ok, jid} = Exq.enqueue(Exq, "default", "ExqTest.FailWorker/failure_perform", [])
 

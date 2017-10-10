@@ -2,7 +2,7 @@ defmodule Exq.Support.Process do
   @moduledoc """
   Struct for in progress worker
   """
-  defstruct pid: nil, host: nil, job: nil, started_at: nil
+  defstruct pid: nil, hostname: nil, job: nil, started_at: nil, concurrency: nil, job: nil, queues: nil
 
   alias Exq.Support.Config
 

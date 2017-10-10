@@ -67,8 +67,8 @@ defmodule ApiTest do
   test "processes with data" do
     JobStat.add_process(:testredis, "test", %Process{pid: self()})
     assert {:ok, [processes]} = Exq.Api.processes(Exq.Api)
-    my_pid_str = to_string(:erlang.pid_to_list(self()))
-    assert %Process{pid: ^my_pid_str} = processes
+    pid = to_string(:erlang.pid_to_list(self()))
+    assert pid = processes.pid
   end
 
   test "jobs when empty" do

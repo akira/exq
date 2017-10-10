@@ -28,9 +28,9 @@ defmodule JobStatTest do
     {:ok, jid}
   end
 
-  def create_process_info(host) do
+  def create_process_info(hostname) do
     process_info = %Process{pid: self(),
-                            host: host,
+                            hostname: hostname,
                             job: %Job{},
                             started_at: Time.unix_seconds}
     serialized = Exq.Support.Process.encode(process_info)
@@ -122,11 +122,10 @@ defmodule JobStatTest do
     assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 2
 
     # Should cleanup only the host that is passed in
-    JobStat.cleanup_processes(:testredis, namespace, "host123")
+    JobStat.cleanup_processes(:testredis, namespace, "host123", self())
     processes = Exq.Redis.JobStat.processes(:testredis, namespace)
     assert Enum.count(processes) == 1
-    assert Enum.find(processes, fn(process) -> process.host == "host456" end) != nil
+    assert Enum.find(processes, fn(process) -> process.hostname == "host456" end) != nil
   end
-
 
 end

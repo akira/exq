@@ -28,6 +28,21 @@ defmodule Exq.Redis.Connection do
     val
   end
 
+  def hget!(redis, key, field) do
+    {:ok, val} = q(redis, ["HGET", key, field])
+    val
+  end
+
+  def hvals!(redis, key) do
+    {:ok, val} = q(redis, ["HVALS", key])
+    val
+  end
+
+  def hlen!(redis, key) do
+    {:ok, val} = q(redis, ["HLEN", key])
+    val
+  end
+
   def set!(redis, key, val \\ 0) do
     q(redis, ["SET", key, val])
   end

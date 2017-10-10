@@ -38,9 +38,20 @@ defmodule Exq.Redis.JobStat do
     {:ok, count}
   end
 
-  def add_process_commands(namespace, process_info, serialized_process \\ nil) do
-    serialized = serialized_process || Exq.Support.Process.encode(process_info)
-    [["SADD", JobQueue.full_key(namespace, "processes"), serialized]]
+  def add_process_commands(namespace, process_info, _) do
+    name = supervisor_worker_name(namespace, process_info)
+    string_pid = :erlang.pid_to_list(process_info.pid)
+    [
+      ["SADD", JobQueue.full_key(namespace, "processes"), name], # ensure supervisor worker is added to list
+      ["HINCRBY", name, "busy", "1"],
+      ["HSET", "#{name}:workers", string_pid, Poison.encode!(%{
+        run_at: process_info.started_at,
+        pid: string_pid,
+        payload: serialize_processing_payload(process_info.job),
+        hostname: process_info.hostname,
+        queue: process_info.job && process_info.job.queue
+      })]
+    ]
   end
   def add_process(redis, namespace, process_info, serialized_process \\ nil) do
     instr = add_process_commands(namespace, process_info, serialized_process)
@@ -48,9 +59,26 @@ defmodule Exq.Redis.JobStat do
     :ok
   end
 
-  def remove_process_commands(namespace, process_info, serialized_process \\ nil) do
-    serialized = serialized_process || Exq.Support.Process.encode(process_info)
-    [["SREM", JobQueue.full_key(namespace, "processes"), serialized]]
+  defp serialize_processing_payload(nil) do
+    %{}
+  end
+  defp serialize_processing_payload(job) do
+    %{
+      queue: job.queue,
+      class: job.class,
+      args: job.args,
+      jid: job.jid,
+      created_at: job.enqueued_at,
+      enqueued_at: job.enqueued_at
+    }
+  end
+
+  def remove_process_commands(namespace, process_info, _) do
+    name = supervisor_worker_name(namespace, process_info)
+    [
+      ["HINCRBY", name, "busy", "-1"],
+      ["HDEL", "#{name}:workers", :erlang.pid_to_list(process_info.pid)],
+    ]
   end
   def remove_process(redis, namespace, process_info, serialized_process \\ nil) do
     instr = remove_process_commands(namespace, process_info, serialized_process)
@@ -58,21 +86,30 @@ defmodule Exq.Redis.JobStat do
     :ok
   end
 
-  def cleanup_processes(redis, namespace, host) do
-    Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
-    |> Enum.map(fn(serialized) -> {Process.decode(serialized), serialized} end)
-    |> Enum.filter(fn({process, _}) -> process.host == host end)
-    |> Enum.each(fn({process, serialized}) -> remove_process(redis, namespace, process, serialized) end)
+  def cleanup_processes(redis, namespace, hostname, master_pid) do
+    processes = JobQueue.full_key(namespace, "processes")
+    master_pid_string = "#{:erlang.pid_to_list(master_pid)}"
+    instr = Connection.smembers!(redis, processes)
+    |> Enum.filter(fn(key) -> key =~ "#{hostname}:" end)
+    |> Enum.filter(fn(key) -> ((Connection.hget!(redis, key, "info") || '{}') |> Poison.decode!)["pid"]  != master_pid_string end)
+    |> Enum.flat_map(fn(key) -> [["SREM", processes, key], ["DEL", "#{processes}:workers"]] end)
+
+    if Enum.count(instr) > 0 do
+      Connection.qp!(redis, instr)
+    end
     :ok
   end
 
   def busy(redis, namespace) do
-    Connection.scard!(redis, JobQueue.full_key(namespace, "processes"))
+    (Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || [])
+    |> Enum.map(fn(key) -> Connection.hlen!(redis, "#{key}:workers") end)
+    |> Enum.sum
   end
 
   def processes(redis, namespace) do
-    list = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || []
-    Enum.map(list, &Process.decode/1)
+    (Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || [])
+    |> Enum.flat_map(fn(key) -> Connection.hvals!(redis, "#{key}:workers") end)
+    |> Enum.map(&Process.decode(&1))
   end
 
   def find_failed(redis, namespace, jid) do
@@ -118,6 +155,10 @@ defmodule Exq.Redis.JobStat do
     successes = formatter.(success_keys, "stat:processed_rt:")
 
     {:ok, failures, successes}
+  end
+
+  defp supervisor_worker_name(namespace, process_info) do
+    JobQueue.full_key(namespace, "#{process_info.hostname}:elixir")
   end
 
   defp realtime_stats_formatter(redis, namespace) do
