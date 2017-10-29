@@ -64,7 +64,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.9.0"}
+      {:exq, "~> 0.9.1"}
     ]
   end
 ```
@@ -424,11 +424,18 @@ By default, Exq will register itself under the ```Elixir.Exq``` atom.  You can c
 {:ok, exq} = Exq.start_link(name: Exq.Custom)
 ```
 
+## Donation
+
+To donate, send to:
+
+Bitcoin (BTC): `17j52Veb8qRmVKVvTDijVtmRXvTUpsAWHv`
+Ethereum (ETH): `0xA0add27EBdB4394E15b7d1F84D4173aDE1b5fBB3`
+
+
 ## Questions?  Issues?
 
 For issues, please submit a Github issue with steps on how to reproduce the problem.
 
-For questions, stop in at the [#elixir-lang Slack group](https://elixir-slackin.herokuapp.com/)
 
 ## Contributions
 
