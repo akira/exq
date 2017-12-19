@@ -1,6 +1,7 @@
 defmodule Exq.ConfigTest do
   use ExUnit.Case
   require Mix.Config
+  import ExqTestUtil
 
   setup_all do
     ExqTestUtil.reset_config
@@ -107,7 +108,7 @@ defmodule Exq.ConfigTest do
     assert client_name == nil
   end
 
-  test "default conform_opts" do
+  test "default redis_worker_opts" do
     Mix.Config.persist([
       exq: [
         queues: ["default"],
@@ -120,7 +121,7 @@ defmodule Exq.ConfigTest do
         shutdown_timeout: 7000,
       ]
     ])
-    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :default])
+    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
     [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
      workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, metadata: metadata, stats: stats,
      name: name, scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency, middleware: middleware,
@@ -145,18 +146,26 @@ defmodule Exq.ConfigTest do
     assert mode == :default
 
     Mix.Config.persist([exq: [queues: [{"default", 1000}, {"test1", 2000}]]])
-    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :default])
+    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
     assert server_opts[:queues] == ["default", "test1"]
     assert server_opts[:concurrency] == [{"default", 1000, 0}, {"test1", 2000, 0}]
   end
 
-  test "api conform_opts" do
+  test "api redis_worker_opts" do
     Mix.Config.persist([exq: []])
-    {_redis_opts, _connection_opts, server_opts} = Exq.Support.Opts.conform_opts([mode: :api])
+    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :api])
     [name: name, namespace: namespace, redis: redis, mode: mode] = server_opts
     assert namespace == "test"
     assert name == nil
     assert redis == Exq.Redis.Client
     assert mode == :api
+  end
+
+  test "custom redis module" do
+    with_application_env(:exq, :redis_worker, {RedisWorker, [1, 2]}, fn ->
+      {module, args, server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
+      assert module == RedisWorker
+      assert args == [1, 2]
+    end)
   end
 end

@@ -11,10 +11,7 @@ defmodule Exq.Support.Opts do
     "#{name}.Sup" |> String.to_atom
   end
 
-  @doc """
-   Return {redis_options, redis_connection_opts, gen_server_opts}
-  """
-  def conform_opts(opts \\ []) do
+  defp conform_opts(opts) do
     mode = opts[:mode] || Config.get(:mode)
     redis = redis_client_name(opts[:name])
     opts = [{:redis, redis}|opts]
@@ -39,6 +36,24 @@ defmodule Exq.Support.Opts do
       database = Coercion.to_integer(opts[:database] || Config.get(:database))
       password = opts[:password] || Config.get(:password)
       [host: host, port: port, database: database, password: password]
+    end
+  end
+
+  @doc """
+   Return {redis_module, redis_args, gen_server_opts}
+  """
+  def redis_worker_opts(opts) do
+    {redis_opts, connection_opts, opts} = conform_opts(opts)
+    case Config.get(:redis_worker) do
+      {module, args} -> {module, args, opts}
+      _ -> {Redix, [redis_opts, connection_opts], opts}
+    end
+  end
+
+  def redis_worker_module() do
+    case Config.get(:redis_worker) do
+      {module, _args} -> module
+      _ -> Redix
     end
   end
 

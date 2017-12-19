@@ -85,6 +85,16 @@ defmodule ExqTestUtil do
     config = Mix.Config.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
     Mix.Config.persist(config)
   end
+
+  def with_application_env(app, key, new, context) do
+    old = Application.get_env(app, key)
+    Application.put_env(app, key, new)
+    try do
+      context.()
+    after
+      Application.put_env(app, key, old)
+    end
+  end
 end
 
 defmodule TestRedis do
@@ -96,13 +106,15 @@ defmodule TestRedis do
   def start do
     unless Config.get(:test_with_local_redis) == false do
       [] = :os.cmd('redis-server test/test-redis.conf')
-      :timer.sleep(100)
+      [] = :os.cmd('redis-server test/test-sentinel.conf --sentinel')
+      :timer.sleep(500)
     end
   end
 
   def stop do
     unless Config.get(:test_with_local_redis) == false do
       [] = :os.cmd('redis-cli -p 6555 shutdown')
+      [] = :os.cmd('redis-cli -p 6666 shutdown')
     end
   end
 
