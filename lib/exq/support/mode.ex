@@ -11,14 +11,13 @@ defmodule Exq.Support.Mode do
   Returns child list for the main Exq supervisor
   """
 
-  import Exq.Support.Opts, only: [conform_opts: 1]
+  import Exq.Support.Opts, only: [redis_worker_opts: 1]
   import Supervisor.Spec
 
   def children(opts) do
-    {redis_opts, connection_opts, opts} = conform_opts(opts)
-
+    {module, args, opts} = redis_worker_opts(opts)
     # make sure redis always first(start in order)
-    children = [worker(Redix, [redis_opts, connection_opts])]
+    children = [worker(module, args)]
     children = children ++ children(opts[:mode], opts)
     children
   end
