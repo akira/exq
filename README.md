@@ -182,6 +182,25 @@ config :exq,
     ]
 ```
 
+### Sentinel:
+
+Exq by default uses [Redix](https://github.com/whatyouhide/redix)
+which doesn't support Redis Sentinel. To use Sentinel, add
+[RedixSentinel](https://github.com/ananthakumaran/redix_sentinel) to
+the list of dependencies. Configure `:redis_worker ({module, start_link_args})` appropriately.
+
+
+```elixir
+config :exq
+  redis_worker: {RedixSentinel, [
+      [role: "master", group: "exq", sentinels: [[host: "127.0.0.1", port: 6666]]],
+      [database: 0, password: nil],
+      [backoff: 100, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]
+    ]}
+  ...
+```
+
+
 ## Using iex:
 If you'd like to try Exq out on the iex console, you can do this by typing
 ```
