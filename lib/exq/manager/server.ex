@@ -141,10 +141,6 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 
   def init(opts) do
-
-    # Cleanup stale stats
-    GenServer.cast(self(), :cleanup_host_stats)
-
     # Setup queues
     work_table = setup_queues(opts)
 
@@ -165,6 +161,11 @@ defmodule Exq.Manager.Server do
                    }
 
     check_redis_connection(opts)
+
+    # Cleanup stale stats
+    rescue_timeout(fn ->
+      Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id, state.pid)
+    end)
 
     HeartbeatServer.start_link(state)
     {:ok, state, 0}
@@ -212,16 +213,6 @@ defmodule Exq.Manager.Server do
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)
-    end)
-    {:noreply, state, 0}
-  end
-
-  @doc """
-  Cleanup host stats on boot
-  """
-  def handle_cast(:cleanup_host_stats, state) do
-    rescue_timeout(fn ->
-      Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id, state.pid)
     end)
     {:noreply, state, 0}
   end
