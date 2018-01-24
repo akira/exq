@@ -115,7 +115,6 @@ defmodule Exq.Manager.Server do
   alias Exq.Support.Config
   alias Exq.Support.Time
   alias Exq.Redis.JobQueue
-  alias Exq.Redis.Connection
 
   @backoff_mult 10
 
@@ -167,29 +166,12 @@ defmodule Exq.Manager.Server do
 
     check_redis_connection(opts)
 
-    name = redis_worker_name(state)
-    worker_init = [
-      ["DEL", "#{name}:workers"], # remove old working processes
-      ["SADD", JobQueue.full_key(state.namespace, "processes"), name],
-      ["HSET", name, "quiet", "false"],
-      ["HSET", name, "info", Poison.encode!(%{ hostname: state.node_id, started_at: state.started_at, pid: "#{:erlang.pid_to_list(state.pid)}", concurrency: cocurency_count(state), queues: state.queues})],
-      ["HSET", name, "beat", Time.unix_seconds],
-      ["EXPIRE", name, (state.poll_timeout / 1000 + 5)],
-    ]
-    Connection.qp!(state.redis, worker_init)
-
+    HeartbeatServer.start_link(state)
     {:ok, state, 0}
   end
 
-  def cocurency_count(state) do
-    Enum.map(state.queues, fn(q) ->
-      [{_, concurrency, _}] = :ets.lookup(state.work_table, q)
-      cond do
-        concurrency == :infinite -> 1000000
-        true -> concurrency
-      end
-    end)
-    |> Enum.sum
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state}
   end
 
   def handle_call({:enqueue, queue, worker, args, options}, from, state) do
@@ -266,9 +248,7 @@ defmodule Exq.Manager.Server do
 ## Internal Functions
 ##===========================================================
 
-  defp redis_worker_name(state) do
-    JobQueue.full_key(state.namespace, "#{state.node_id}:elixir")
-  end
+
 
   @doc """
   Dequeue jobs and dispatch to workers
@@ -280,17 +260,6 @@ defmodule Exq.Manager.Server do
       jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
 
       job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job(state, potential_job) end)
-
-      # Update worker info in redis that it is alive
-      name = redis_worker_name(state)
-      worker_init = [
-        ["SADD", JobQueue.full_key(state.namespace, "processes"), name],
-        ["HSET", name, "quiet", "false"],
-        ["HSET", name, "info", Poison.encode!(%{ hostname: state.node_id, started_at: state.started_at, pid: "#{:erlang.pid_to_list(state.pid)}", concurrency: cocurency_count(state), queues: state.queues})],
-        ["HSET", name, "beat", Time.unix_seconds],
-        ["EXPIRE", name, (state.poll_timeout / 1000 + 5)], # expire information about live worker in poll_interval + 5s
-      ]
-      Connection.qp!(state.redis, worker_init)
 
       cond do
         Enum.any?(job_results, fn(status) -> elem(status, 1) == :dispatch end) ->
