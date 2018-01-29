@@ -13,6 +13,30 @@ defmodule Exq.Redis.Connection do
     res
   end
 
+  def prepare_script(script_source) do
+    script_hash = :crypto.hash(:sha, script_source)
+    |> Base.encode16(case: :lower)
+
+    {:lua_script, script_hash, script_source}
+  end
+
+  def eval!(redis, {:lua_script, script_hash, script_source}, keys, other_args \\ []) when is_list(keys) and is_list(other_args) do
+    {:ok, res} = try do
+      q(redis, ["EVALSHA", script_hash, length(keys)] ++ keys ++ other_args)
+    rescue e in Redix.Error ->
+      stacktrace = System.stacktrace
+
+      case String.split(e.message, " ", parts: 2) do
+        ["NOSCRIPT", _] ->
+          q(redis, ["EVAL", script_source, length(keys)] ++ keys ++ other_args)
+        _ ->
+          reraise e, stacktrace
+      end
+    end
+
+    res
+  end
+
   def decr!(redis, key) do
     {:ok, count} = q(redis, ["DECR", key])
     count

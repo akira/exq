@@ -106,17 +106,31 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
+  @reload_backup_queue_script Connection.prepare_script """
+    local jobs_to_reload = redis.call('LLEN', KEYS[1])
+    local backup_queue_reversed_key = KEYS[1] .. "::reversed"
+
+    while redis.call('LLEN', KEYS[1]) > 0 do
+      redis.call('LPUSH', backup_queue_reversed_key, redis.call('LPOP', KEYS[1]))
+    end
+
+    while redis.call('LLEN', backup_queue_reversed_key) > 0 do
+      redis.call('RPUSH', KEYS[2], redis.call('LPOP', backup_queue_reversed_key))
+    end
+
+    redis.call('DEL', backup_queue_reversed_key)
+
+    return jobs_to_reload
+  """
+
   def re_enqueue_backup(redis, namespace, node_id, queue) do
-    resp = redis |> Connection.rpoplpush(
+    reloaded_count = Connection.eval!(redis, @reload_backup_queue_script, [
       backup_queue_key(namespace, node_id, queue),
-      queue_key(namespace, queue))
-    case resp do
-      {:ok, job} ->
-        if String.valid?(job) do
-          Logger.info("Re-enqueueing job from backup for node_id [#{node_id}] and queue [#{queue}]")
-          re_enqueue_backup(redis, namespace, node_id, queue)
-        end
-      _ -> nil
+      queue_key(namespace, queue)
+    ])
+
+    if reloaded_count > 0 do
+      Logger.info("Re-enqueued #{reloaded_count} job(s) from backup for node_id [#{node_id}] and queue [#{queue}]")
     end
   end
 
