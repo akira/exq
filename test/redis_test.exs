@@ -96,4 +96,26 @@ defmodule Exq.RedisTest do
     Connection.flushdb! :testredis
     assert Connection.smembers!(:testredis, "theset") == []
   end
+
+  test "prepare_script" do
+    assert Connection.prepare_script("return 0") == {:lua_script, "06d3d9b2060dd51343d5f19f0e531f15c507e3d1", "return 0"}
+  end
+
+  test "eval!" do
+    script_with_arity_0 = Connection.prepare_script("return 0")
+    assert Connection.eval!(:testredis, script_with_arity_0, []) == 0
+    assert Connection.eval!(:testredis, script_with_arity_0, ["any", "args"]) == 0
+
+    script_with_arity_1 = Connection.prepare_script("return KEYS[1]")
+    assert Connection.eval!(:testredis, script_with_arity_1, []) == nil
+    assert Connection.eval!(:testredis, script_with_arity_1, ["any", "args"]) == "any"
+
+    multiple_return_script = Connection.prepare_script("return {1, 2}")
+    assert Connection.eval!(:testredis, multiple_return_script, []) == [1, 2]
+
+    crashing_script = Connection.prepare_script("invalid")
+    assert_raise Redix.Error, ~r/^ERR Error compiling script/, fn ->
+      Connection.eval!(:testredis, crashing_script, [])
+    end
+  end
 end
