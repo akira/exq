@@ -197,6 +197,9 @@ defmodule Exq.Redis.JobQueue do
   def retry_or_fail_job(redis, namespace, %{retry: retry} = job, error) when is_integer(retry) and retry > 0 do
     retry_or_fail_job(redis, namespace, job, error, retry)
   end
+  def retry_or_fail_job(redis, namespace, %{retry: true} = job, error) do
+    retry_or_fail_job(redis, namespace, job, error, Config.get(:max_retries))
+  end
   def retry_or_fail_job(redis, namespace, job, error) do
     fail_job(redis, namespace, job, error)
   end
