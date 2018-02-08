@@ -96,6 +96,30 @@ defmodule JobQueueTest do
     assert_dequeue_job(["retry"], false)
   end
 
+  test "retry job" do
+    JobQueue.retry_or_fail_job(
+      :testredis,
+      "test",
+      %{
+        retry_count: 0,
+        retry: true,
+        queue: "default",
+        class: "MyWorker",
+        jid: UUID.uuid4,
+        error_class: nil,
+        error_message: "failed",
+        failed_at: Time.unix_seconds,
+        enqueued_at: Time.unix_seconds,
+        finished_at: nil,
+        processor: nil,
+        args: []
+      },
+      %RuntimeError{}
+    )
+
+    assert JobQueue.queue_size(:testredis, "test", :retry) == 1
+  end
+
   test "scheduler_dequeue max_score" do
     add_usecs = fn(time, offset) ->
       base = time |> DateTime.to_unix(:microseconds)
