@@ -4,6 +4,8 @@ defmodule JobQueueTest do
   alias Exq.Support.Job
   alias Exq.Support.Time
 
+  import ExqTestUtil
+
   @host 'host-name'
 
   setup do
@@ -94,6 +96,32 @@ defmodule JobQueueTest do
 
     assert_dequeue_job(["retry"], true)
     assert_dequeue_job(["retry"], false)
+  end
+
+  test "retry job" do
+    with_application_env(:exq, :max_retries, 1, fn ->
+      JobQueue.retry_or_fail_job(
+        :testredis,
+        "test",
+        %{
+          retry_count: 0,
+          retry: true,
+          queue: "default",
+          class: "MyWorker",
+          jid: UUID.uuid4,
+          error_class: nil,
+          error_message: "failed",
+          failed_at: Time.unix_seconds,
+          enqueued_at: Time.unix_seconds,
+          finished_at: nil,
+          processor: nil,
+          args: []
+        },
+        %RuntimeError{}
+      )
+
+      assert JobQueue.queue_size(:testredis, "test", :retry) == 1
+    end)
   end
 
   test "scheduler_dequeue max_score" do
