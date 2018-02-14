@@ -157,7 +157,7 @@ defmodule Exq.Manager.Server do
                    pid: self(),
                    poll_timeout: opts[:poll_timeout],
                    scheduler_poll_timeout: opts[:scheduler_poll_timeout],
-                   started_at: Time.unix_seconds,
+                   started_at: Time.unix_seconds
                    }
 
     check_redis_connection(opts)
@@ -167,12 +167,12 @@ defmodule Exq.Manager.Server do
       Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id, state.pid)
     end)
 
-    HeartbeatServer.start_link(state)
     {:ok, state, 0}
   end
 
-  def handle_call(:get_state, _from, state) do
-    {:reply, state, state}
+  def handle_info({:get_state, pid}, state) do
+    GenServer.cast(pid, {:heartbeat, state})
+    {:noreply, state}
   end
 
   def handle_call({:enqueue, queue, worker, args, options}, from, state) do

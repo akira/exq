@@ -1,61 +1,55 @@
-defmodule HeartbeatServer do
+defmodule Exq.Heartbeat.Server do
   use GenServer
   alias Exq.Redis.JobQueue
   alias Exq.Redis.Connection
+  alias Exq.Support.Config
   alias Exq.Support.Time
+  alias Exq.Redis.JobStat
 
-  def start_link(master_state) do
-    GenServer.start_link(__MODULE__, master_state)
+  defmodule State do
+    defstruct name: nil, node_id: nil, namespace: nil, started_at: nil, pid: nil, queues: nil, poll_timeout: nil, work_table: nil, redis: nil
   end
 
-  def init(master_state) do
-    worker_init = [ ["DEL", "#{redis_worker_name(master_state)}:workers"] ]
-      ++ getRedisCommands(master_state)
-    Connection.qp!(master_state.redis, worker_init)
-
-    schedule_work()
-
-    {:ok, master_state}
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts)
   end
 
-  def handle_info(:heartbeat, master_state) do
-    schedule_work()
+  def init(opts) do
+    state = %State{
+      name: Exq.Manager.Server.server_name(opts[:name]),
+      redis: opts[:redis],
+      node_id:  Config.node_identifier.node_id(),
+      namespace: opts[:namespace],
+      queues: opts[:queues],
+      poll_timeout: opts[:poll_timeout]
+    }
+    schedule_work(state)
+    {:ok, state}
+  end
 
-    current_state = GenServer.call(Map.get(master_state, :pid), :get_state)
-    Connection.qp!(current_state.redis, getRedisCommands(current_state))
-
+  def handle_cast({:heartbeat, master_state}, state) do
+    schedule_work(state)
+    current_state = struct(State, Map.from_struct(master_state))
+    Connection.qp!(
+      current_state.redis,
+      JobStat.get_redis_commands(
+        current_state.namespace,
+        current_state.node_id,
+        current_state.started_at,
+        current_state.pid,
+        current_state.queues,
+        current_state.work_table,
+        current_state.poll_timeout
+        )
+      )
     {:noreply, current_state}
   end
 
-  defp schedule_work() do
-    Process.send_after(self(), :heartbeat, 1000)
+  defp schedule_work(state) do
+    Process.send_after(state.name, {:get_state, self()}, 1000)
   end
 
   defp redis_worker_name(state) do
     JobQueue.full_key(state.namespace, "#{state.node_id}:elixir")
   end
-
-  defp getRedisCommands(state) do
-    name = redis_worker_name(state)
-    [
-      ["SADD", JobQueue.full_key(state.namespace, "processes"), name],
-      ["HSET", name, "quiet", "false"],
-      ["HSET", name, "info", Poison.encode!(%{ hostname: state.node_id, started_at: state.started_at, pid: "#{:erlang.pid_to_list(state.pid)}", concurrency: cocurency_count(state), queues: state.queues})],
-      ["HSET", name, "beat", Time.unix_seconds],
-      ["EXPIRE", name, (state.poll_timeout / 1000 + 5)], # expire information about live worker in poll_interval + 5s
-    ]
-  end
-
-
-  defp cocurency_count(state) do
-    Enum.map(state.queues, fn(q) ->
-      [{_, concurrency, _}] = :ets.lookup(state.work_table, q)
-      cond do
-        concurrency == :infinite -> 1000000
-        true -> concurrency
-      end
-    end)
-    |> Enum.sum
-  end
-
 end
