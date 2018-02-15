@@ -170,11 +170,6 @@ defmodule Exq.Manager.Server do
     {:ok, state, 0}
   end
 
-  def handle_info({:get_state, pid}, state) do
-    GenServer.cast(pid, {:heartbeat, state})
-    {:noreply, state}
-  end
-
   def handle_call({:enqueue, queue, worker, args, options}, from, state) do
     Enqueuer.enqueue(state.enqueuer, from, queue, worker, args, options)
     {:noreply, state, 10}
@@ -225,6 +220,11 @@ defmodule Exq.Manager.Server do
   def handle_info(:timeout, state) do
     {updated_state, timeout} = dequeue_and_dispatch(state)
     {:noreply, updated_state, timeout}
+  end
+
+  def handle_info({:get_state, pid, status}, state) do
+    GenServer.cast(pid, {:heartbeat, state, status})
+    {:noreply, state}
   end
 
   def handle_info(_info, state) do

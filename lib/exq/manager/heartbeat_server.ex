@@ -1,9 +1,7 @@
 defmodule Exq.Heartbeat.Server do
   use GenServer
-  alias Exq.Redis.JobQueue
   alias Exq.Redis.Connection
   alias Exq.Support.Config
-  alias Exq.Support.Time
   alias Exq.Redis.JobStat
 
   defmodule State do
@@ -23,33 +21,32 @@ defmodule Exq.Heartbeat.Server do
       queues: opts[:queues],
       poll_timeout: opts[:poll_timeout]
     }
-    schedule_work(state)
+    schedule_work(state, true)
     {:ok, state}
   end
 
-  def handle_cast({:heartbeat, master_state}, state) do
+  def handle_cast({:heartbeat, master_state, status}, state) do
     schedule_work(state)
-    current_state = struct(State, Map.from_struct(master_state))
+    master_data = Map.from_struct(master_state)
+    current_state = %{struct(State, master_data) | name: state.name}
+    init_data = if status, do: [["DEL", "#{current_state.name}:workers"]], else: []
+    data = init_data ++ JobStat.get_redis_commands(
+      current_state.namespace,
+      current_state.node_id,
+      current_state.started_at,
+      current_state.pid,
+      current_state.queues,
+      current_state.work_table,
+      current_state.poll_timeout
+    )
     Connection.qp!(
       current_state.redis,
-      JobStat.get_redis_commands(
-        current_state.namespace,
-        current_state.node_id,
-        current_state.started_at,
-        current_state.pid,
-        current_state.queues,
-        current_state.work_table,
-        current_state.poll_timeout
-        )
-      )
+      data
+    )
     {:noreply, current_state}
   end
 
-  defp schedule_work(state) do
-    Process.send_after(state.name, {:get_state, self()}, 1000)
-  end
-
-  defp redis_worker_name(state) do
-    JobQueue.full_key(state.namespace, "#{state.node_id}:elixir")
+  defp schedule_work(state, status \\ false) do
+    Process.send_after(state.name, {:get_state, self(), status}, 1000)
   end
 end

@@ -190,7 +190,6 @@ defmodule Exq.Redis.JobStat do
   def get_redis_commands(namespace, node_id, started_at, master_pid, queues, work_table, poll_timeout) do
     name = redis_worker_name(namespace, node_id)
     [
-      ["DEL", "#{name}:workers"],
       ["SADD", JobQueue.full_key(namespace, "processes"), name],
       ["HSET", name, "quiet", "false"],
       ["HSET", name, "info", Poison.encode!(%{ hostname: node_id, started_at: started_at, pid: "#{:erlang.pid_to_list(master_pid)}", concurrency: cocurency_count(queues, work_table), queues: queues})],
