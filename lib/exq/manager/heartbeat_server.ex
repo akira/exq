@@ -21,7 +21,7 @@ defmodule Exq.Heartbeat.Server do
       queues: opts[:queues],
       poll_timeout: opts[:poll_timeout]
     }
-    schedule_work(state, true)
+    schedule_work(state, true, 0)
     {:ok, state}
   end
 
@@ -46,7 +46,7 @@ defmodule Exq.Heartbeat.Server do
     {:noreply, current_state}
   end
 
-  defp schedule_work(state, status \\ false) do
+  defp schedule_work(state, status \\ false, timeout \\ 1000) do
     Process.send_after(state.name, {:get_state, self(), status}, 1000)
   end
 end

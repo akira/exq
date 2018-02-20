@@ -28,10 +28,10 @@ defmodule Exq.Support.Mode do
       worker(Exq.Stats.Server, [opts]),
       supervisor(Exq.Worker.Supervisor, [opts]),
       worker(Exq.Manager.Server, [opts]),
-      worker(Exq.Heartbeat.Server, [opts]),
       worker(Exq.WorkerDrainer.Server, [opts]),
       worker(Exq.Enqueuer.Server, [opts]),
-      worker(Exq.Api.Server, [opts])
+      worker(Exq.Api.Server, [opts]),
+      worker(Exq.Heartbeat.Server, [opts])
     ]
 
     if opts[:scheduler_enable] do

@@ -118,7 +118,9 @@ defmodule ExqTest do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(scheduler_enable: true)
     {:ok, _} = Exq.enqueue_in(Exq, "default", 0, ExqTest.PerformWorker, [])
+    :erlang.process_info(sup, :messages) |> IO.inspect
     assert_receive {:worked}
+
     stop_process(sup)
   end
 
