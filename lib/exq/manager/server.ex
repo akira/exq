@@ -238,9 +238,6 @@ defmodule Exq.Manager.Server do
 ##===========================================================
 ## Internal Functions
 ##===========================================================
-
-
-
   @doc """
   Dequeue jobs and dispatch to workers
   """

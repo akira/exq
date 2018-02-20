@@ -187,12 +187,12 @@ defmodule Exq.Redis.JobStat do
     end
   end
 
-  def get_redis_commands(namespace, node_id, started_at, master_pid, queues, work_table, poll_timeout) do
+  def status_process_commands(namespace, node_id, started_at, master_pid, queues, work_table, poll_timeout) do
     name = redis_worker_name(namespace, node_id)
     [
       ["SADD", JobQueue.full_key(namespace, "processes"), name],
       ["HSET", name, "quiet", "false"],
-      ["HSET", name, "info", Poison.encode!(%{ hostname: node_id, started_at: started_at, pid: "#{:erlang.pid_to_list(master_pid)}", concurrency: cocurency_count(queues, work_table), queues: queues})],
+      ["HSET", name, "info", Poison.encode!(%{ hostname: node_id, started_at: started_at, pid: "#{:erlang.pid_to_list(master_pid)}", concurrency: concurrency_count(queues, work_table), queues: queues})],
       ["HSET", name, "beat", Time.unix_seconds],
       ["EXPIRE", name, (poll_timeout / 1000 + 5)]
     ]
@@ -202,7 +202,7 @@ defmodule Exq.Redis.JobStat do
     JobQueue.full_key(namespace, "#{node_id}:elixir")
   end
 
-  defp cocurency_count(queues, work_table) do
+  defp concurrency_count(queues, work_table) do
     Enum.map(queues, fn(q) ->
       [{_, concurrency, _}] = :ets.lookup(work_table, q)
       cond do

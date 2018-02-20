@@ -21,7 +21,7 @@ defmodule Exq.Heartbeat.Server do
       queues: opts[:queues],
       poll_timeout: opts[:poll_timeout]
     }
-    schedule_work(state, true, 0)
+    schedule_work(state, true)
     {:ok, state}
   end
 
@@ -30,7 +30,7 @@ defmodule Exq.Heartbeat.Server do
     master_data = Map.from_struct(master_state)
     current_state = %{struct(State, master_data) | name: state.name}
     init_data = if status, do: [["DEL", "#{current_state.name}:workers"]], else: []
-    data = init_data ++ JobStat.get_redis_commands(
+    data = init_data ++ JobStat.status_process_commands(
       current_state.namespace,
       current_state.node_id,
       current_state.started_at,
@@ -46,7 +46,7 @@ defmodule Exq.Heartbeat.Server do
     {:noreply, current_state}
   end
 
-  defp schedule_work(state, status \\ false, timeout \\ 1000) do
+  defp schedule_work(state, status \\ false) do
     Process.send_after(state.name, {:get_state, self(), status}, 1000)
   end
 end
