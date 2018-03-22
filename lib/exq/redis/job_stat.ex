@@ -194,7 +194,7 @@ defmodule Exq.Redis.JobStat do
       ["HSET", name, "quiet", "false"],
       ["HSET", name, "info", Poison.encode!(%{ hostname: node_id, started_at: started_at, pid: "#{:erlang.pid_to_list(master_pid)}", concurrency: concurrency_count(queues, work_table), queues: queues})],
       ["HSET", name, "beat", Time.unix_seconds],
-      ["EXPIRE", name, (poll_timeout / 1000 + 5)]
+      ["EXPIRE", name, (round(poll_timeout / 1000) + 5)]
     ]
   end
 
