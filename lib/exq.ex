@@ -46,6 +46,14 @@ defmodule Exq do
   end
 
   @doc """
+  List all subscriptions(active queues)
+    * `pid` - PID for Exq Manager or Enqueuer to handle this
+  """
+  def subscriptions(pid) do
+    GenServer.call(pid, :subscriptions)
+  end
+
+  @doc """
   Subscribe to a queue - ie. listen to queue for jobs
     * `pid` - PID for Exq Manager or Enqueuer to handle this
     * `queue` - Name of queue
