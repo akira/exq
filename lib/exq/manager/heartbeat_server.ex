@@ -4,49 +4,35 @@ defmodule Exq.Heartbeat.Server do
   alias Exq.Support.Config
   alias Exq.Redis.JobStat
 
-  defmodule State do
-    defstruct name: nil, node_id: nil, namespace: nil, started_at: nil, pid: nil, queues: nil, poll_timeout: nil, work_table: nil, redis: nil
-  end
-
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
   end
 
   def init(opts) do
-    state = %State{
-      name: Exq.Manager.Server.server_name(opts[:name]),
-      redis: opts[:redis],
-      node_id:  Config.node_identifier.node_id(),
-      namespace: opts[:namespace],
-      queues: opts[:queues],
-      poll_timeout: opts[:poll_timeout]
-    }
-    schedule_work(state, true)
-    {:ok, state}
+    schedule_work(Exq.Manager.Server.server_name(opts[:name]), true)
+    {:ok, nil}
   end
 
-  def handle_cast({:heartbeat, master_state, status}, state) do
-    schedule_work(state)
-    master_data = Map.from_struct(master_state)
-    current_state = %{struct(State, master_data) | name: state.name}
-    init_data = if status, do: [["DEL", "#{current_state.name}:workers"]], else: []
+  def handle_cast({:heartbeat, master_state, name, status}, _state) do
+    schedule_work(master_state.pid)
+    init_data = if status, do: [["DEL", "#{name}:workers"]], else: []
     data = init_data ++ JobStat.status_process_commands(
-      current_state.namespace,
-      current_state.node_id,
-      current_state.started_at,
-      current_state.pid,
-      current_state.queues,
-      current_state.work_table,
-      current_state.poll_timeout
+      master_state.namespace,
+      master_state.node_id,
+      master_state.started_at,
+      master_state.pid,
+      master_state.queues,
+      master_state.work_table,
+      master_state.poll_timeout
     )
     Connection.qp!(
-      current_state.redis,
+      master_state.redis,
       data
     )
-    {:noreply, current_state}
+    {:noreply, nil}
   end
 
-  defp schedule_work(state, status \\ false) do
-    Process.send_after(state.name, {:get_state, self(), status}, 1000)
+  defp schedule_work(name, status \\ false) do
+    Process.send_after(name, {:get_state, self(), name, status}, 1000)
   end
 end
