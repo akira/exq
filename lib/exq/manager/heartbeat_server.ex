@@ -1,52 +1,38 @@
 defmodule Exq.Heartbeat.Server do
   use GenServer
   alias Exq.Redis.Connection
-  alias Exq.Support.Config
   alias Exq.Redis.JobStat
-
-  defmodule State do
-    defstruct name: nil, node_id: nil, namespace: nil, started_at: nil, pid: nil, queues: nil, poll_timeout: nil, work_table: nil, redis: nil
-  end
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
   end
 
   def init(opts) do
-    state = %State{
-      name: Exq.Manager.Server.server_name(opts[:name]),
-      redis: opts[:redis],
-      node_id:  Config.node_identifier.node_id(),
-      namespace: opts[:namespace],
-      queues: opts[:queues],
-      poll_timeout: opts[:poll_timeout]
-    }
-    schedule_work(state, true)
-    {:ok, state}
+    schedule_new_work(Exq.Manager.Server.server_name(opts[:name]))
+    {:ok}
   end
 
-  def handle_cast({:heartbeat, master_state, status}, state) do
-    schedule_work(state)
-    master_data = Map.from_struct(master_state)
-    current_state = %{struct(State, master_data) | name: state.name}
-    init_data = if status, do: [["DEL", "#{current_state.name}:workers"]], else: []
+  def heartbeat(name, status) do
+    master_state = GenServer.call(name, :get_state)
+    init_data = if status, do: [["DEL", "#{master_state.name}:workers"]], else: []
     data = init_data ++ JobStat.status_process_commands(
-      current_state.namespace,
-      current_state.node_id,
-      current_state.started_at,
-      current_state.pid,
-      current_state.queues,
-      current_state.work_table,
-      current_state.poll_timeout
+      master_state.namespace,
+      master_state.node_id,
+      master_state.started_at,
+      master_state.pid,
+      master_state.queues,
+      master_state.work_table,
+      master_state.poll_timeout
     )
     Connection.qp!(
-      current_state.redis,
+      master_state.redis,
       data
     )
-    {:noreply, current_state}
   end
 
-  defp schedule_work(state, status \\ false) do
-    Process.send_after(state.name, {:get_state, self(), status}, 1000)
+  defp schedule_new_work(name, status \\ false) do
+   :timer.sleep(1000)
+   heartbeat(name, status)
+   schedule_new_work(name)
   end
 end

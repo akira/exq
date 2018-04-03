@@ -144,7 +144,8 @@ defmodule Exq.Manager.Server do
     # Setup queues
     work_table = setup_queues(opts)
 
-    state = %State{work_table: work_table,
+    state = %State{
+                   work_table: work_table,
                    redis: opts[:redis],
                    stats: opts[:stats],
                    workers_sup: opts[:workers_sup],
@@ -205,6 +206,10 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state, 0}
   end
 
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state, state.poll_timeout}
+  end
+
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)
@@ -220,11 +225,6 @@ defmodule Exq.Manager.Server do
   def handle_info(:timeout, state) do
     {updated_state, timeout} = dequeue_and_dispatch(state)
     {:noreply, updated_state, timeout}
-  end
-
-  def handle_info({:get_state, pid, status}, state) do
-    GenServer.cast(pid, {:heartbeat, state, status})
-    {:noreply, state}
   end
 
   def handle_info(_info, state) do
@@ -246,7 +246,6 @@ defmodule Exq.Manager.Server do
   def dequeue_and_dispatch(state, queues) do
     rescue_timeout({state, state.poll_timeout}, fn ->
       jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
-
       job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job(state, potential_job) end)
 
       cond do
