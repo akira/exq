@@ -206,10 +206,6 @@ defmodule Exq.Manager.Server do
     {:reply, :ok, updated_state, 0}
   end
 
-  def handle_call(:get_state, _from, state) do
-    {:reply, state, state, state.poll_timeout}
-  end
-
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)

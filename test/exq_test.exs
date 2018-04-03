@@ -1,6 +1,7 @@
 defmodule ExqTest do
   use ExUnit.Case
   alias Exq.Redis.JobQueue
+  alias Exq.Redis.Connection
   import ExqTestUtil
 
   defmodule PerformWorker do
@@ -387,4 +388,21 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "Heartbeat set namespace:key data to redis" do
+    {:ok, sup} = Exq.start_link([])
+    :timer.sleep(1100)
+    [head | tail] = Connection.smembers!(:testredis, "test:processes")
+    assert head =~ "test"
+    stop_process(sup)
+  end
+
+  test "Simple stop" do
+    {:ok, sup} = Exq.start_link([])
+    Exq.stop(sup)
+  end
+
+  test "Stop by name" do
+    {:ok, _sup} = Exq.start_link([name: CustomManager])
+    Exq.stop(CustomManager)
+  end
 end
