@@ -8,13 +8,13 @@ defmodule Exq.Heartbeat.Server do
   end
 
   def init(opts) do
-    schedule_new_work(Exq.Manager.Server.server_name(opts[:name]))
-    {:ok}
+    schedule_work(Exq.Manager.Server.server_name(opts[:name]), true)
+    {:ok, nil}
   end
 
-  def heartbeat(name, status) do
-    master_state = GenServer.call(name, :get_state)
-    init_data = if status, do: [["DEL", "#{master_state.name}:workers"]], else: []
+  def handle_cast({:heartbeat, master_state, name, status}, _state) do
+    schedule_work(master_state.pid)
+    init_data = if status, do: [["DEL", "#{name}:workers"]], else: []
     data = init_data ++ JobStat.status_process_commands(
       master_state.namespace,
       master_state.node_id,
@@ -28,11 +28,10 @@ defmodule Exq.Heartbeat.Server do
       master_state.redis,
       data
     )
+    {:noreply, nil}
   end
 
-  defp schedule_new_work(name, status \\ false) do
-   :timer.sleep(1000)
-   heartbeat(name, status)
-   schedule_new_work(name)
+  defp schedule_work(name, status \\ false) do
+    Process.send_after(name, {:get_state, self(), name, status}, 1000)
   end
 end

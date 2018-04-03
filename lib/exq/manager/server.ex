@@ -227,6 +227,11 @@ defmodule Exq.Manager.Server do
     {:noreply, updated_state, timeout}
   end
 
+  def handle_info({:get_state, pid, name, status}, state) do
+    GenServer.cast(pid, {:heartbeat, state, name, status})
+    {:noreply, state, 0}
+  end
+
   def handle_info(_info, state) do
     {:noreply, state, state.poll_timeout}
   end
