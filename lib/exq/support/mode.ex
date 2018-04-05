@@ -22,13 +22,15 @@ defmodule Exq.Support.Mode do
     children
   end
   def children(:default, opts) do
+    shutdown_timeout = Keyword.get(opts, :shutdown_timeout)
+
     children = [
       worker(Exq.Worker.Metadata, [opts]),
       worker(Exq.Middleware.Server, [opts]),
       worker(Exq.Stats.Server, [opts]),
       supervisor(Exq.Worker.Supervisor, [opts]),
       worker(Exq.Manager.Server, [opts]),
-      worker(Exq.WorkerDrainer.Server, [opts]),
+      worker(Exq.WorkerDrainer.Server, [opts], shutdown: shutdown_timeout),
       worker(Exq.Enqueuer.Server, [opts]),
       worker(Exq.Api.Server, [opts])
     ]

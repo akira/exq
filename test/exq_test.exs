@@ -362,6 +362,20 @@ defmodule ExqTest do
     assert_received {"short"}
   end
 
+  @tag :slow
+  test "configure worker shutdown time greater than 5000ms" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link([shutdown_timeout: 6500])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [7000, :long])
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [6000, :short])
+
+    wait()
+    stop_process(sup)
+
+    refute_received {"long"}
+    assert_received {"short"}
+  end
+
   test "handle supervisor tree shutdown properly with stats cleanup" do
     Process.register(self(), :exqtest)
 
