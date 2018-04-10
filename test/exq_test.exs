@@ -197,6 +197,40 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "subscriptions when empty" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(queues: [])
+
+    assert {:ok, []} = Exq.subscriptions(Exq)
+    stop_process(sup)
+  end
+
+  test "subscriptions when present" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(queues: ["q1", "q2"])
+
+    assert {:ok, ["q1", "q2"]} = Exq.subscriptions(Exq)
+    stop_process(sup)
+  end
+
+  test "subscriptions after a new registration" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(queues: ["q1"])
+    :ok = Exq.subscribe(Exq, "q2")
+
+    assert {:ok, ["q1", "q2"]} = Exq.subscriptions(Exq)
+    stop_process(sup)
+  end
+
+  test "subscriptions after an unregistration" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(queues: ["q1", "to_unsubscribe"])
+    :ok = Exq.unsubscribe(Exq, "to_unsubscribe")
+
+    assert {:ok, ["q1"]} = Exq.subscriptions(Exq)
+    stop_process(sup)
+  end
+
   test "throttle workers per queue" do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1", "q2"])
