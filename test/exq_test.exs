@@ -218,7 +218,7 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link(queues: ["q1"])
     :ok = Exq.subscribe(Exq, "q2")
 
-    assert {:ok, ["q1", "q2"]} = Exq.subscriptions(Exq)
+    assert {:ok, ["q2", "q1"]} = Exq.subscriptions(Exq)
     stop_process(sup)
   end
 
