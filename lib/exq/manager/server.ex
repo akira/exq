@@ -182,6 +182,10 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 10}
   end
 
+  def handle_call(:subscriptions, _from, state) do
+    {:reply, {:ok, state.queues}, state, 0}
+  end
+
   def handle_call({:subscribe, queue}, _from, state) do
     updated_state = add_queue(state, queue)
     {:reply, :ok, updated_state, 0}
