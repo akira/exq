@@ -392,7 +392,7 @@ to come online and requeue the failed jobs.
 
 By default Exq uses the machine's hostname as a node identifier, which works
 well when deployed to a server in the conventional style. In a dynamic
-environment such as Heroku or Kubenetes, where nodes come up and down, you may
+environment such as Heroku or Kubernetes, where nodes come up and down, you may
 want to override node id to use an environment variable instead.
 
 This can be done using a custom `NodeIdentifier` module.
