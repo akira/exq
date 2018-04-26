@@ -148,12 +148,13 @@ defmodule JobQueueTest do
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 0
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, :scheduled) == 5
 
-    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time2a)) == 2
-    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time2b)) == 0
-    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time3)) == 1
-    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time3)) == 0
-    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time4)) == 1
-    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time5)) == 1
+    page_size = 5
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time2a), page_size) == 2
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time2b), page_size) == 0
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time3), page_size) == 1
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time3), page_size) == 0
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time4), page_size) == 1
+    assert JobQueue.scheduler_dequeue(:testredis, "test", Time.time_to_score(time5), page_size) == 1
 
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 5
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, :scheduled) == 0
