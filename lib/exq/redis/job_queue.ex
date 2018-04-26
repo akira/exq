@@ -125,11 +125,11 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def scheduler_dequeue(redis, namespace) do
-    scheduler_dequeue(redis, namespace, Time.time_to_score)
+    scheduler_dequeue(redis, namespace, Time.time_to_score, Config.get(:scheduler_page_size))
   end
-  def scheduler_dequeue(redis, namespace, max_score) do
+  def scheduler_dequeue(redis, namespace, max_score, page_size) do
     queues = schedule_queues(namespace)
-    commands = Enum.map(queues, &(["ZRANGEBYSCORE", &1, 0, max_score]))
+    commands = Enum.map(queues, &(["ZRANGEBYSCORE", &1, 0, max_score, "LIMIT", 0, page_size]))
     resp = Connection.qp(redis, commands)
     case resp do
       {:error, reason} -> [{:error, reason}]
