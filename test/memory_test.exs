@@ -42,7 +42,7 @@ defmodule MemoryTest do
     count = Exq.Redis.Connection.zcard!(:testredis, "test:schedule")
 
     assert count == 0
-    assert memory_used < 10 * (1_024 * 1_024) # 10mb
+    assert memory_used < 50 * (1_024 * 1_024) # 50mb
     # let stats finish
     stop_process(sup)
   end
