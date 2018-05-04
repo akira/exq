@@ -459,7 +459,6 @@ defmodule ExqTest do
 
       :timer.sleep(1000)
       enqueue_fail_job(1)
-      assert JobQueue.failed_size(:testredis, "test") == 1
     end)
 
     assert JobQueue.failed_size(:testredis, "test") == 1
