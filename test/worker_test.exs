@@ -94,9 +94,9 @@ defmodule WorkerTest do
     use GenServer
 
     # Same reply as Redix connection
-    def handle_call({:commands, [["ZADD"|_]], req_id}, _from, state) do
+    def handle_call({:commands, [["ZADD"|_], ["ZREMRANGEBYSCORE"|_], ["ZREMRANGEBYRANK"|_]], req_id}, _from, state) do
       send :workertest, :zadd_redis
-      {:reply, {req_id, {:ok, [1]}}, state}
+      {:reply, {req_id, {:ok, [1, 0, 0]}}, state}
     end
 
     # Same reply as Redix connection

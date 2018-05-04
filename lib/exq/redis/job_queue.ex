@@ -235,7 +235,16 @@ defmodule Exq.Redis.JobQueue do
     job = %{job | failed_at: Time.unix_seconds, retry_count: job.retry_count || 0,
       error_class: "ExqGenericError", error_message: error}
     job_serialized = Job.encode(job)
-    Connection.zadd!(redis, full_key(namespace, "dead"), Time.time_to_score, job_serialized)
+    key = failed_queue_key(namespace)
+
+    now = Time.unix_seconds()
+    commands = [
+      ["ZADD", key, Time.time_to_score(), job_serialized],
+      ["ZREMRANGEBYSCORE", key, "-inf", now - Config.get(:dead_timeout_in_seconds)],
+      ["ZREMRANGEBYRANK", key, 0, -Config.get(:dead_max_jobs) - 1]
+    ]
+
+    Connection.qp!(redis, commands)
   end
 
   def queue_size(redis, namespace) do

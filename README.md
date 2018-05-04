@@ -148,6 +148,19 @@ config :exq,
 
 Note that ```scheduler_enable``` has to be set to ```true``` and ```max_retries``` should be greater than ```0```.
 
+### Dead Jobs:
+
+Any job that has failed more than ```max_retries``` times will be
+moved to dead jobs queue. Dead jobs could be manually re-enqueued via
+Sidekiq UI. Max size and timeout of dead jobs queue can be configured via
+these settings:
+
+```elixir
+config :exq,
+  dead_max_jobs: 10_000,
+  dead_timeout_in_seconds: 180 * 24 * 60 * 60, # 6 months
+```
+
 
 ### OTP Application:
 

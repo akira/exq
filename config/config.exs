@@ -17,6 +17,8 @@ config :exq,
   redis_timeout: 5000,
   genserver_timeout: 5000,
   reconnect_on_sleep: 100,
+  dead_max_jobs: 10_000,
+  dead_timeout_in_seconds: 180 * 24 * 60 * 60, # 6 months
   max_retries: 25,
   middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
     Exq.Middleware.Logger]

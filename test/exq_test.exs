@@ -422,4 +422,54 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "move to dead queue" do
+    {:ok, sup} = Exq.start_link
+    enqueue_fail_job(10)
+    assert JobQueue.failed_size(:testredis, "test") == 10
+    stop_process(sup)
+  end
+
+  test "trim dead queue by size" do
+    {:ok, sup} = Exq.start_link
+    with_application_env(:exq, :dead_max_jobs, 5, fn ->
+      enqueue_fail_job(10)
+    end)
+
+    assert JobQueue.failed_size(:testredis, "test") == 5
+    stop_process(sup)
+  end
+
+  test "dead queue can be disabled" do
+    {:ok, sup} = Exq.start_link
+
+    with_application_env(:exq, :dead_max_jobs, 0, fn ->
+      enqueue_fail_job(10)
+    end)
+
+    assert JobQueue.failed_size(:testredis, "test") == 0
+    stop_process(sup)
+  end
+
+  test "trim dead queue by timeout" do
+    {:ok, sup} = Exq.start_link
+
+    with_application_env(:exq, :dead_timeout_in_seconds, 1, fn ->
+      enqueue_fail_job(10)
+      assert JobQueue.failed_size(:testredis, "test") == 10
+
+      :timer.sleep(1000)
+      enqueue_fail_job(1)
+      assert JobQueue.failed_size(:testredis, "test") == 1
+    end)
+
+    assert JobQueue.failed_size(:testredis, "test") == 1
+    stop_process(sup)
+  end
+
+  defp enqueue_fail_job(count) do
+    for _ <- 0..(count - 1) do
+      {:ok, _} = Exq.enqueue(Exq, "default", "ExqTest.MissingMethodWorker/fail", [], max_retries: 0)
+    end
+    wait_long()
+  end
 end
