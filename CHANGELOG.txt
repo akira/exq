@@ -1,0 +1,29 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+
+## [Unreleased]
+
+## [0.11.0] - 2018-05-12
+
+### Added
+- Trim dead jobs queue after certain size by @ananthakumaran.
+- Add an api to list all subscriptions (active queues) by @robobakery.
+- Have top supervisor wait for worker drainer to gracefully terminate @frahugo.
+
+## [0.10.1] - 2018-02-11
+
+### Fixed
+- Fix retry for Sidekiq job format using retry => true by @deepfryed.
+
+## [0.10.0] - 2018-02-11
+
+### Fixed
+- Remove Password logging by @akira.
+
+### Added
+- Redis Sentinel support by @ananthakumaran.
+- Make redis module name and start_link args configurable @ananthakumaran.
+
+
