@@ -128,7 +128,7 @@ defmodule Exq.Redis.JobQueue do
   end
   def scheduler_dequeue(redis, namespace, max_score) do
     Enum.reduce(schedule_queues(namespace), 0, fn(queue, acc) ->
-      count = Script.eval!(redis, :schedule_dequeue, [queue, full_key(namespace, "queues")], [max_score])
+      count = Script.eval!(redis, :schedule_dequeue, [queue, full_key(namespace, "queues")], [max_score, Config.get(:scheduler_page_size)])
       count + acc
     end)
   end

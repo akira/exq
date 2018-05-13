@@ -78,6 +78,19 @@ defmodule JobQueueTest do
     assert_dequeue_job(["default"], false)
   end
 
+  test "scheduler_dequeue paging" do
+    default_page_size = Exq.Support.Config.get(:scheduler_page_size)
+    Mix.Config.persist([exq: [scheduler_page_size: 1]])
+
+    JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [], [])
+    JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [], [])
+    assert JobQueue.scheduler_dequeue(:testredis, "test") == 1
+    assert JobQueue.scheduler_dequeue(:testredis, "test") == 1
+    assert JobQueue.scheduler_dequeue(:testredis, "test") == 0
+
+    Mix.Config.persist([exq: [scheduler_page_size: default_page_size]])
+  end
+
   test "scheduler_dequeue multi queue" do
     JobQueue.enqueue_in(:testredis, "test", "default", -1, MyWorker, [], [])
     JobQueue.enqueue_in(:testredis, "test", "myqueue", -1, MyWorker, [], [])

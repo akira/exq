@@ -21,10 +21,10 @@ defmodule Exq.Redis.Script do
       """),
     schedule_dequeue: Prepare.script("""
       local schedule_queue_key, queues_key = KEYS[1], KEYS[2]
-      local score = ARGV[1]
+      local score, page_size = ARGV[1], ARGV[2]
 
       local dequeue_count = 0
-      for i, jid in ipairs(redis.call('ZRANGEBYSCORE', schedule_queue_key, 0, score)) do
+      for i, jid in ipairs(redis.call('ZRANGEBYSCORE', schedule_queue_key, 0, score, 'LIMIT', 0, page_size)) do
         local job_serialized = redis.call('HGET', schedule_queue_key .. ':job', jid)
         local job_queue_key = redis.call('HGET', schedule_queue_key .. ':job_queue', jid)
 
