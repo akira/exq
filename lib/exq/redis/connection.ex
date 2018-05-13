@@ -36,6 +36,15 @@ defmodule Exq.Redis.Connection do
     q(redis, ["DEL", key])
   end
 
+  def hvals!(redis, key) do
+    {:ok, val} = q(redis, ["HVALS", key])
+    val
+  end
+
+  def hdel!(redis, key, val) do
+    q(redis, ["HDEL", key, val])
+  end
+
   def expire!(redis, key, time \\ 10) do
     q(redis, ["EXPIRE", key, time])
   end

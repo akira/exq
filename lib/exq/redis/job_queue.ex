@@ -14,6 +14,7 @@ defmodule Exq.Redis.JobQueue do
   require Logger
 
   alias Exq.Redis.Connection
+  alias Exq.Redis.Script
   alias Exq.Support.Job
   alias Exq.Support.Config
   alias Exq.Support.Time
@@ -59,16 +60,14 @@ defmodule Exq.Redis.JobQueue do
   end
   def enqueue_at(redis, namespace, queue, time, worker, args, options) do
     {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
-    enqueue_job_at(redis, namespace, job_serialized, jid, time, scheduled_queue_key(namespace))
+    enqueue_job_at(redis, namespace, job_serialized, jid, queue, time, scheduled_queue_key(namespace))
   end
 
-  def enqueue_job_at(redis, _namespace, job_serialized, jid, time, scheduled_queue) do
+  def enqueue_job_at(redis, namespace, job_serialized, jid, queue, time, scheduled_queue) do
     score = Time.time_to_score(time)
     try do
-      case Connection.zadd(redis, scheduled_queue, score, job_serialized) do
-        {:ok, _} -> {:ok, jid}
-        other    -> other
-      end
+      Script.eval!(redis, :schedule, [scheduled_queue, queue_key(namespace, queue)], [jid, score, job_serialized])
+      {:ok, jid}
     catch
       :exit, e ->
         Logger.info("Error enqueueing -  #{Kernel.inspect e}")
@@ -128,40 +127,10 @@ defmodule Exq.Redis.JobQueue do
     scheduler_dequeue(redis, namespace, Time.time_to_score)
   end
   def scheduler_dequeue(redis, namespace, max_score) do
-    queues = schedule_queues(namespace)
-    commands = Enum.map(queues, &(["ZRANGEBYSCORE", &1, 0, max_score]))
-    resp = Connection.qp(redis, commands)
-    case resp do
-      {:error, reason} -> [{:error, reason}]
-      {:ok, responses} ->
-        queues
-        |> Enum.zip(responses)
-        |> Enum.reduce(0, fn({queue, response}, acc) ->
-          case response do
-            jobs when is_list(jobs) ->
-              deq_count = scheduler_dequeue_requeue(jobs, redis, namespace, queue, 0)
-              deq_count + acc
-            %Redix.Error{} = reason ->
-             Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
-             acc
-          end
-        end)
-    end
-  end
-
-  def scheduler_dequeue_requeue([], _redis, _namespace, _schedule_queue, count), do: count
-  def scheduler_dequeue_requeue([job_serialized|t], redis, namespace, schedule_queue, count) do
-    resp = Connection.zrem(redis, schedule_queue, job_serialized)
-    count = case resp do
-      {:ok, 1} ->
-        enqueue(redis, namespace, job_serialized)
-        count + 1
-      {:ok, _} -> count
-      {:error, reason} ->
-        Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
-        count
-    end
-    scheduler_dequeue_requeue(t, redis, namespace, schedule_queue, count)
+    Enum.reduce(schedule_queues(namespace), 0, fn(queue, acc) ->
+      count = Script.eval!(redis, :schedule_dequeue, [queue, full_key(namespace, "queues")], [max_score])
+      count + acc
+    end)
   end
 
   def full_key("", key), do: key
@@ -224,7 +193,7 @@ defmodule Exq.Redis.JobQueue do
       offset = Config.backoff.offset(job)
       time = Time.offset_from_now(offset)
       Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
-      enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
+      enqueue_job_at(redis, namespace, Job.encode(job), job.jid, job.queue, time, retry_queue_key(namespace))
   end
   def retry_job(redis, namespace, job) do
     remove_retry(redis, namespace, job.jid)
@@ -267,12 +236,12 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def scheduled_jobs(redis, namespace, queue) do
-    Connection.zrangebyscore!(redis, full_key(namespace, queue))
+    Connection.hvals!(redis, full_key(namespace, queue) <> ":job")
     |> Enum.map(&Job.decode/1)
   end
 
   def scheduled_jobs_with_scores(redis, namespace, queue) do
-    Connection.zrangebyscorewithscore!(redis, full_key(namespace, queue))
+    Script.eval!(redis, :schedule_jobs_with_scores, [full_key(namespace, queue)], [])
     |> Enum.chunk(2)
     |> Enum.map( fn([job, score]) -> {Job.decode(job), score} end)
   end
@@ -300,13 +269,15 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def remove_retry(redis, namespace, jid) do
-    {:ok, job} = find_job(redis, namespace, jid, :retry, false)
-    Connection.zrem!(redis, retry_queue_key(namespace), job)
+    Connection.zrem!(redis, retry_queue_key(namespace), jid)
+    Connection.hdel!(redis, retry_queue_key(namespace) <> ":job", jid)
+    Connection.hdel!(redis, retry_queue_key(namespace) <> ":job_queue", jid)
   end
 
   def remove_scheduled(redis, namespace, jid) do
-    {:ok, job} = find_job(redis, namespace, jid, :scheduled, false)
-    Connection.zrem!(redis, scheduled_queue_key(namespace), job)
+    Connection.zrem!(redis, scheduled_queue_key(namespace), jid)
+    Connection.hdel!(redis, scheduled_queue_key(namespace) <> ":job", jid)
+    Connection.hdel!(redis, scheduled_queue_key(namespace) <> ":job_queue", jid)
   end
 
   def list_queues(redis, namespace) do
@@ -321,12 +292,12 @@ defmodule Exq.Redis.JobQueue do
   end
   def find_job(redis, namespace, jid, :scheduled, convert) do
     redis
-    |> Connection.zrangebyscore!(scheduled_queue_key(namespace))
+    |> Connection.hvals!(scheduled_queue_key(namespace) <> ":job")
     |> search_jobs(jid, convert)
   end
   def find_job(redis, namespace, jid, :retry, convert) do
     redis
-    |> Connection.zrangebyscore!(retry_queue_key(namespace))
+    |> Connection.hvals!(retry_queue_key(namespace) <> ":job")
     |> search_jobs(jid, convert)
   end
   def find_job(redis, namespace, jid, queue, convert) do
@@ -365,7 +336,6 @@ defmodule Exq.Redis.JobQueue do
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
     jid = Keyword.get_lazy(options, :uniquely, fn() -> UUID.uuid4 end)
     retry = Keyword.get_lazy(options, :max_retries, fn() -> Config.get(:max_retries) end)
-    enqueued_at = Keyword.get_lazy(options, :uniquely_at, fn() -> enqueued_at end)
 
     job = %{queue: queue, retry: retry, class: worker, args: args, jid: jid, enqueued_at: enqueued_at}
     {jid, Config.serializer.encode!(job)}

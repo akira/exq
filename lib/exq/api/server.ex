@@ -160,11 +160,15 @@ defmodule Exq.Api.Server do
 
   def handle_call(:clear_scheduled, _from, state) do
     JobQueue.delete_queue(state.redis, state.namespace, "schedule")
+    JobQueue.delete_queue(state.redis, state.namespace, "schedule:job")
+    JobQueue.delete_queue(state.redis, state.namespace, "schedule:queue")
     {:reply, :ok, state}
   end
 
   def handle_call(:clear_retries, _from, state) do
     JobQueue.delete_queue(state.redis, state.namespace, "retry")
+    JobQueue.delete_queue(state.redis, state.namespace, "retry:job")
+    JobQueue.delete_queue(state.redis, state.namespace, "retry:queue")
     {:reply, :ok, state}
   end
 

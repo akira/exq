@@ -89,7 +89,7 @@ defmodule JobQueueTest do
   test "scheduler_dequeue enqueue_at" do
     JobQueue.enqueue_at(:testredis, "test", "default", DateTime.utc_now, MyWorker, [], [])
     {jid, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [], retry: true)
-    JobQueue.enqueue_job_at(:testredis, "test", job_serialized, jid, DateTime.utc_now, "test:retry")
+    JobQueue.enqueue_job_at(:testredis, "test", job_serialized, jid, "retry", DateTime.utc_now, "test:retry")
     assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], false)

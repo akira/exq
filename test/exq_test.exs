@@ -133,9 +133,8 @@ defmodule ExqTest do
   test "enqueue_at uniquely and run a job" do
     Process.register(self(), :exqtest)
     {:ok, enq_sup} = Exq.start_link(mode: :enqueuer)
-    uniquely_at = Exq.Support.Time.unix_seconds
-    {:ok, _} = Exq.enqueue_at(Exq.Enqueuer, "default", DateTime.utc_now, ExqTest.PerformWorker, [], uniquely: "idempotency_key", uniquely_at: uniquely_at)
-    {:ok, _} = Exq.enqueue_at(Exq.Enqueuer, "default", DateTime.utc_now, ExqTest.PerformWorker, [], uniquely: "idempotency_key", uniquely_at: uniquely_at)
+    {:ok, _} = Exq.enqueue_at(Exq.Enqueuer, "default", DateTime.utc_now, ExqTest.PerformWorker, [], uniquely: "idempotency_key")
+    {:ok, _} = Exq.enqueue_at(Exq.Enqueuer, "default", DateTime.utc_now, ExqTest.PerformWorker, [], uniquely: "idempotency_key")
 
     {:ok, sup} = Exq.start_link(scheduler_enable: true, name: ExqS)
     assert_receive {:worked}
