@@ -34,7 +34,7 @@ defmodule Exq.Mixfile do
   # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
   defp deps do
     [
-      { :elixir_uuid, ">= 1.2"},
+      { :elixir_uuid, ">= 1.2.0"},
       { :redix, ">= 0.5.0"},
       { :poison, ">= 1.2.0 or ~> 2.0"},
       { :excoveralls, "~> 0.6", only: :test },
