@@ -26,7 +26,7 @@ defmodule Exq.Mixfile do
   def application do
     [
       mod: { Exq, [] },
-      applications: [:logger, :redix, :uuid]
+      applications: [:logger, :redix, :elixir_uuid]
     ]
   end
 
