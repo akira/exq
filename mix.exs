@@ -3,11 +3,11 @@ defmodule Exq.Mixfile do
 
   def project do
     [ app: :exq,
-      version: "0.12.0",
+      version: "0.12.1",
       elixir: "~> 1.3",
       elixirc_paths: ["lib"],
       package: [
-        maintainers: ["Alex Kira", "zhongwencool", "Denis Tataurov", "Justin McNally"],
+        maintainers: ["Alex Kira", "zhongwencool", "Denis Tataurov", "Justin McNally", "Anantha Kumaran"],
         links: %{"GitHub" => "https://github.com/akira/exq"},
         licenses: ["Apache2.0"],
         files: ~w(lib test) ++

@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2018-07-13
+
+### Fixed
+- Cleanup packaging for `elixir_uuid` change.
+
 ## [0.12.0] - 2018-07-12
 
 ### Fixed
