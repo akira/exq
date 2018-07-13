@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2018-07-12
+
+### Fixed
+- Change `uuid` to `elixir_uuid` which has been renamed. This will prevent future namespace clashes by @tzilist.
+
 ## [0.11.0] - 2018-05-12
 
 ### Added
