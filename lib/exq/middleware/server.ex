@@ -89,6 +89,10 @@ defmodule Exq.Middleware.Server do
     {:reply, state, state}
   end
 
+  def init(args) do
+    {:ok, args}
+  end
+
 ##===========================================================
 ## Internal Functions
 ##===========================================================
