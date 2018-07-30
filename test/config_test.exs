@@ -161,6 +161,49 @@ defmodule Exq.ConfigTest do
     assert mode == :api
   end
 
+  test "redis_worker_opts from runtime environment" do
+    System.put_env("EXQ_NAMESPACE", "test")
+    System.put_env("EXQ_CONCURRENCY", "333")
+    System.put_env("EXQ_POLL_TIMEOUT", "17")
+    System.put_env("EXQ_SCHEDULER_POLL_TIMEOUT", "123")
+    System.put_env("EXQ_SCHEDULER_ENABLE", "True")
+    System.put_env("EXQ_SHUTDOWN_TIMEOUT", "1234")
+
+    Mix.Config.persist([
+      exq: [
+        namespace: {:system, "EXQ_NAMESPACE"},
+        concurrency: {:system, "EXQ_CONCURRENCY"},
+        poll_timeout: {:system, "EXQ_POLL_TIMEOUT"},
+        scheduler_poll_timeout: {:system, "EXQ_SCHEDULER_POLL_TIMEOUT"},
+        scheduler_enable: {:system, "EXQ_SCHEDULER_ENABLE"},
+        shutdown_timeout: {:system, "EXQ_SHUTDOWN_TIMEOUT"}
+      ]
+    ])
+
+    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
+
+    assert server_opts[:namespace] == "test"
+    assert server_opts[:concurrency] == [{"default", 333, 0}]
+    assert server_opts[:poll_timeout] == 17
+    assert server_opts[:scheduler_poll_timeout] == 123
+    assert server_opts[:scheduler_enable] == true
+    assert server_opts[:shutdown_timeout] == 1234
+  end
+
+  test "redis_worker_opts from runtime environment - concurrency :infinity" do
+    System.put_env("EXQ_CONCURRENCY", "infinity")
+
+    Mix.Config.persist([
+      exq: [
+        concurrency: {:system, "EXQ_CONCURRENCY"},
+      ]
+    ])
+
+    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
+
+    assert server_opts[:concurrency] == [{"default", :infinity, 0}]
+  end
+
   test "custom redis module" do
     with_application_env(:exq, :redis_worker, {RedisWorker, [1, 2]}, fn ->
       {module, args, server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
