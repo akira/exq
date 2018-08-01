@@ -196,4 +196,18 @@ defmodule JobQueueTest do
     assert job.class == "MyWorker/perform"
     assert job.retry == 10
   end
+
+  test "max_retries from runtime environment" do
+    System.put_env("EXQ_MAX_RETRIES", "3")
+
+    Mix.Config.persist([exq: [max_retries: {:system, "EXQ_MAX_RETRIES"}]])
+
+    {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
+    assert jid != nil
+
+    [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
+    job = Poison.decode!(job_str, as: %Exq.Support.Job{})
+    assert job.jid == jid
+    assert job.retry == 3
+  end
 end

@@ -206,7 +206,7 @@ defmodule Exq.ConfigTest do
 
   test "custom redis module" do
     with_application_env(:exq, :redis_worker, {RedisWorker, [1, 2]}, fn ->
-      {module, args, server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
+      {module, args, _server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
       assert module == RedisWorker
       assert args == [1, 2]
     end)
