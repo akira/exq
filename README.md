@@ -412,11 +412,11 @@ want to override node id to use an environment variable instead.
 
 This can be done using a custom `NodeIdentifier` module.
 
-```
+```elixir
 config :exq,
    node_identifier: MyApp.CustomNodeIdentifier
 ```
-```
+```elixir
 defmodule MyApp.CustomNodeIdentifier do
   @behaviour Exq.NodeIdentifier.Behaviour
 
