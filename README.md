@@ -34,7 +34,7 @@ While you may reach for Sidekiq / Resque / Celery by default when writing apps i
 Some OTP related documentation to look at:
 
 * GenServer: http://elixir-lang.org/getting-started/mix-otp/genserver.html
-* Task: http://elixir-lang.org/docs/v1.1/elixir/Task.html
+* Task: https://hexdocs.pm/elixir/Task.html
 * GenStage: https://hexdocs.pm/gen_stage/Experimental.GenStage.html
 * Supervisor: http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html
 * OTP: http://erlang.org/doc/
