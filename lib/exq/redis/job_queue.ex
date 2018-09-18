@@ -282,7 +282,7 @@ defmodule Exq.Redis.JobQueue do
 
   def scheduled_jobs_with_scores(redis, namespace, queue) do
     Connection.zrangebyscorewithscore!(redis, full_key(namespace, queue))
-    |> Enum.chunk(2)
+    |> chunk(2)
     |> Enum.map( fn([job, score]) -> {Job.decode(job), score} end)
   end
 
@@ -376,5 +376,12 @@ defmodule Exq.Redis.JobQueue do
     retry = Keyword.get_lazy(options, :max_retries, fn() -> Config.get(:max_retries) end)
     job = %{queue: queue, retry: retry, class: worker, args: args, jid: jid, enqueued_at: enqueued_at}
     {jid, Config.serializer.encode!(job)}
+  end
+
+  # TODO: Remove once we depend on Elixir ~> 1.5.
+  defp chunk(enum, count) do
+    Code.ensure_loaded(Enum)
+    chunk = if function_exported?(Enum, :chunk_every, 2), do: :chunk_every, else: :chunk
+    apply(Enum, chunk, [enum, count])
   end
 end
