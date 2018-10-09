@@ -47,4 +47,11 @@ defmodule Exq.Support.Mode do
   def children(:api, opts) do
     [worker(Exq.Api.Server, [opts])]
   end
+  def children([:enqueuer, :api], opts) do
+    [
+      worker(Exq.Enqueuer.Server, [opts]),
+      worker(Exq.Api.Server, [opts])
+    ]
+  end
+  def children([:api, :enqueuer], opts), do: children([:enqueuer, :api], opts)
 end
