@@ -58,11 +58,13 @@ defmodule Exq.Support.Opts do
   end
 
   def connection_opts(opts \\ []) do
-    reconnect_on_sleep = Coercion.to_integer(opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep))
-    timeout = Coercion.to_integer(opts[:redis_timeout] || Config.get(:redis_timeout))
+    redis_options = opts[:redis_options] || Config.get(:redis_options)
     socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
 
-    [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis], socket_opts: socket_opts]
+    Keyword.merge(
+      [name: opts[:redis], socket_opts: socket_opts],
+      redis_options
+    )
   end
 
   defp server_opts(:default, opts) do
