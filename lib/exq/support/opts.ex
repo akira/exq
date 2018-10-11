@@ -58,11 +58,12 @@ defmodule Exq.Support.Opts do
   end
 
   def connection_opts(opts \\ []) do
-    reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep)
+    backoff_initial = opts[:backoff_initial] || Config.get(:backoff_initial)
+    backoff_max = opts[:backoff_max] || Config.get(:backoff_max)
     timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
     socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
 
-    [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis], socket_opts: socket_opts]
+    [backoff_initial: backoff_initial, backoff_max: backoff_max, timeout: timeout, name: opts[:redis], socket_opts: socket_opts]
   end
 
   defp server_opts(:default, opts) do

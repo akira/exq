@@ -15,7 +15,8 @@ defmodule Exq.Support.Config do
     redis_timeout: 5000,
     genserver_timeout: 5000,
     shutdown_timeout: 5000,
-    reconnect_on_sleep: 100,
+    backoff_initial: 500,
+    backoff_max: 3000,
     max_retries: 25,
     dead_max_jobs: 10_000,
     dead_timeout_in_seconds: 180 * 24 * 60 * 60, # 6 months
