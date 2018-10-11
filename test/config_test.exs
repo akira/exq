@@ -100,12 +100,12 @@ defmodule Exq.ConfigTest do
   end
 
   test "connection_opts" do
-    Mix.Config.persist([exq: [backoff_initial: 100, redis_timeout: 5000]])
-    [backoff_initial: backoff_initial, backoff_max: backoff_max, timeout: timeout, name: client_name, socket_opts: []] = Exq.Support.Opts.connection_opts
+    Mix.Config.persist([exq: [backoff_initial: 100, sync_connect: true]])
+    [backoff_initial: backoff_initial, backoff_max: backoff_max, sync_connect: sync_connect, name: client_name, socket_opts: []] = Exq.Support.Opts.connection_opts
 
     assert backoff_initial == 100
     assert backoff_max == 3000
-    assert timeout == 5000
+    assert sync_connect == true
     assert client_name == nil
   end
 

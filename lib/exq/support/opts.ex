@@ -60,10 +60,10 @@ defmodule Exq.Support.Opts do
   def connection_opts(opts \\ []) do
     backoff_initial = opts[:backoff_initial] || Config.get(:backoff_initial)
     backoff_max = opts[:backoff_max] || Config.get(:backoff_max)
-    timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
+    sync_connect = opts[:sync_connect] || Config.get(:sync_connect)
     socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
 
-    [backoff_initial: backoff_initial, backoff_max: backoff_max, timeout: timeout, name: opts[:redis], socket_opts: socket_opts]
+    [backoff_initial: backoff_initial, backoff_max: backoff_max, sync_connect: sync_connect, name: opts[:redis], socket_opts: socket_opts]
   end
 
   defp server_opts(:default, opts) do
