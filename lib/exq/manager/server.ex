@@ -369,7 +369,7 @@ defmodule Exq.Manager.Server do
       {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
     catch
       err, reason ->
-        opts = Exq.Support.Opts.redis_opts(opts) |> Enum.into(Map.new) |> Map.delete(:password)
+        opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap |> List.delete(:password)
         raise """
         \n\n\n#{String.duplicate("=", 100)}
         ERROR! Could not connect to Redis!
