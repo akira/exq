@@ -271,7 +271,7 @@ Schedule a job to start in 5 mins
 ```
 Schedule a job to start at 8am 2015-12-25 UTC
 ```elixir
-time = Timex.Date.from({{2015, 12, 25}, {8, 0, 0}}) |> Timex.Date.to_timestamp
+time = Timex.now() |> Timex.shift(days: 8)
 {:ok, ack} = Exq.enqueue_at(Exq, "default", time, MyWorker, ["arg1", "arg2"])
 ```
 
