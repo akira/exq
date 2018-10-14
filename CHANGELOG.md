@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.12.2] - 2018-10-14
+
+### Fixed
+- Don't assume redis_opts is enumerable by @ryansch
+
+### Added
+- Add {:system, VAR} format support for more config params by @LysanderGG
+- Allow setting mode to both [:enqueuer, :api] by @buob
+
+### Changed
+- Specify less than 0.8.0 on redix version in mix.exs by @buob
+
 ## [0.12.1] - 2018-07-13
 
 ### Fixed
