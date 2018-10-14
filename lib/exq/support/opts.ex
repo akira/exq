@@ -58,19 +58,19 @@ defmodule Exq.Support.Opts do
   end
 
   def connection_opts(opts \\ []) do
-    reconnect_on_sleep = opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep)
-    timeout = opts[:redis_timeout] || Config.get(:redis_timeout)
+    reconnect_on_sleep = Coercion.to_integer(opts[:reconnect_on_sleep] || Config.get(:reconnect_on_sleep))
+    timeout = Coercion.to_integer(opts[:redis_timeout] || Config.get(:redis_timeout))
     socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
 
     [backoff: reconnect_on_sleep, timeout: timeout, name: opts[:redis], socket_opts: socket_opts]
   end
 
   defp server_opts(:default, opts) do
-    scheduler_enable = opts[:scheduler_enable] || Config.get(:scheduler_enable)
+    scheduler_enable = Coercion.to_boolean(opts[:scheduler_enable] || Config.get(:scheduler_enable))
     namespace = opts[:namespace] || Config.get(:namespace)
-    scheduler_poll_timeout = opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout)
-    poll_timeout = opts[:poll_timeout] || Config.get(:poll_timeout)
-    shutdown_timeout = opts[:shutdown_timeout] || Config.get(:shutdown_timeout)
+    scheduler_poll_timeout = Coercion.to_integer(opts[:scheduler_poll_timeout] || Config.get(:scheduler_poll_timeout))
+    poll_timeout = Coercion.to_integer(opts[:poll_timeout] || Config.get(:poll_timeout))
+    shutdown_timeout = Coercion.to_integer(opts[:shutdown_timeout] || Config.get(:shutdown_timeout))
 
     enqueuer = Exq.Enqueuer.Server.server_name(opts[:name])
     stats = Exq.Stats.Server.server_name(opts[:name])
@@ -80,13 +80,13 @@ defmodule Exq.Support.Opts do
     metadata = Exq.Worker.Metadata.server_name(opts[:name])
 
     queue_configs = opts[:queues] || Config.get(:queues)
-    per_queue_concurrency = opts[:concurrency] || Config.get(:concurrency)
+    per_queue_concurrency = opts[:concurrency] || get_config_concurrency()
     queues = get_queues(queue_configs)
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
     default_middleware = Config.get(:middleware)
 
     [scheduler_enable: scheduler_enable, namespace: namespace,
-     scheduler_poll_timeout: scheduler_poll_timeout,workers_sup: workers_sup,
+     scheduler_poll_timeout: scheduler_poll_timeout, workers_sup: workers_sup,
      poll_timeout: poll_timeout, enqueuer: enqueuer, metadata: metadata,
      stats: stats, name: opts[:name], scheduler: scheduler, queues:
      queues, redis: opts[:redis], concurrency: concurrency,
@@ -105,6 +105,18 @@ defmodule Exq.Support.Opts do
         queue -> queue
       end
     end)
+  end
+
+  defp get_config_concurrency() do
+    case Config.get(:concurrency) do
+      x when is_atom(x) -> x
+      x when is_integer(x) -> x
+      x when is_binary(x) ->
+        case x |> String.trim() |> String.downcase() do
+          "infinity" -> :infinity
+          x -> Coercion.to_integer(x)
+        end
+    end
   end
 
   defp get_concurrency(queue_configs, per_queue_concurrency) do

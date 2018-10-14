@@ -198,7 +198,7 @@ defmodule Exq.Redis.JobQueue do
     retry_or_fail_job(redis, namespace, job, error, retry)
   end
   def retry_or_fail_job(redis, namespace, %{retry: true} = job, error) do
-    retry_or_fail_job(redis, namespace, job, error, Config.get(:max_retries))
+    retry_or_fail_job(redis, namespace, job, error, get_max_retries())
   end
   def retry_or_fail_job(redis, namespace, job, error) do
     fail_job(redis, namespace, job, error)
@@ -373,8 +373,14 @@ defmodule Exq.Redis.JobQueue do
   end
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
     jid = UUID.uuid4
-    retry = Keyword.get_lazy(options, :max_retries, fn() -> Config.get(:max_retries) end)
+    retry = Keyword.get_lazy(options, :max_retries, fn() -> get_max_retries() end)
     job = %{queue: queue, retry: retry, class: worker, args: args, jid: jid, enqueued_at: enqueued_at}
     {jid, Config.serializer.encode!(job)}
+  end
+
+  defp get_max_retries do
+    :max_retries
+    |> Config.get()
+    |> Exq.Support.Coercion.to_integer()
   end
 end

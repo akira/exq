@@ -16,6 +16,7 @@ config :exq,
   poll_timeout: 100,
   redis_timeout: 5000,
   genserver_timeout: 5000,
+  shutdown_timeout: 5000,
   reconnect_on_sleep: 100,
   dead_max_jobs: 10_000,
   dead_timeout_in_seconds: 180 * 24 * 60 * 60, # 6 months

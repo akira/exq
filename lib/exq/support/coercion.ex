@@ -22,4 +22,21 @@ defmodule Exq.Support.Coercion do
     raise ArgumentError,
       message: "Failed to parse #{inspect(value)} into an integer."
   end
+
+  def to_boolean(value) when is_boolean(value) do
+    value
+  end
+
+  @true_values ["true", "yes", "1"]
+  def to_boolean(value) when is_binary(value) do
+    case value |> String.trim() |> String.downcase() do
+      x when x in @true_values -> true
+      _ -> false
+    end
+  end
+
+  def to_boolean(value) do
+    raise ArgumentError,
+      message: "Failed to parse #{inspect(value)} into a boolean."
+  end
 end
