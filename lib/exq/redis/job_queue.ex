@@ -282,7 +282,7 @@ defmodule Exq.Redis.JobQueue do
 
   def scheduled_jobs_with_scores(redis, namespace, queue) do
     Connection.zrangebyscorewithscore!(redis, full_key(namespace, queue))
-    |> Enum.chunk(2)
+    |> Enum.chunk_every(2)
     |> Enum.map( fn([job, score]) -> {Job.decode(job), score} end)
   end
 
