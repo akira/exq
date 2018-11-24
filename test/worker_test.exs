@@ -121,17 +121,6 @@ defmodule WorkerTest do
     end
 
     # Same reply as Redix connection
-    def connected(
-          :cast,
-          {:pipeline, [["ZADD" | _], ["ZREMRANGEBYSCORE" | _], ["ZREMRANGEBYRANK" | _]], from,
-           timeout},
-          data
-        ) do
-      reply(from, {:ok, [1, 0, 0]})
-      {:keep_state, data}
-    end
-
-    # Same reply as Redix connection
     def connected(:cast, {:pipeline, [["LREM" | _]], from, timeout}, data) do
       send(:workertest, :lrem_redis)
       reply(from, {:ok, [1]})
