@@ -38,7 +38,6 @@ defmodule Exq.Mixfile do
       { :redix, ">= 0.8.1"},
       { :poison, ">= 1.2.0 or ~> 2.0"},
       { :excoveralls, "~> 0.6", only: :test },
-      { :redix_sentinel, "~> 0.5.0", only: :test },
       { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
 
       # docs
