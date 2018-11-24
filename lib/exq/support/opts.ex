@@ -45,23 +45,10 @@ defmodule Exq.Support.Opts do
   def redis_worker_opts(opts) do
     {redis_opts, connection_opts, opts} = conform_opts(opts)
 
-    case Config.get(:redis_worker) do
-      {module, args} ->
-        {module, args, opts}
-
-      _ ->
-        if is_binary(redis_opts) do
-          {Redix, [redis_opts, connection_opts], opts}
-        else
-          {Redix, [Keyword.merge(redis_opts, connection_opts)], opts}
-        end
-    end
-  end
-
-  def redis_worker_module() do
-    case Config.get(:redis_worker) do
-      {module, _args} -> module
-      _ -> Redix
+    if is_binary(redis_opts) do
+      {Redix, [redis_opts, connection_opts], opts}
+    else
+      {Redix, [Keyword.merge(redis_opts, connection_opts)], opts}
     end
   end
 

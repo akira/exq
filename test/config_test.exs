@@ -109,7 +109,7 @@ defmodule Exq.ConfigTest do
   end
 
   test "default redis_worker_opts" do
-    Mix.Config.persist([
+    Mix.Config.persist(
       exq: [
         queues: ["default"],
         scheduler_enable: true,
@@ -120,13 +120,30 @@ defmodule Exq.ConfigTest do
         redis_timeout: 5000,
         shutdown_timeout: 7000,
       ]
-    ])
-    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
-    [scheduler_enable: scheduler_enable, namespace: namespace, scheduler_poll_timeout: scheduler_poll_timeout,
-     workers_sup: workers_sup, poll_timeout: poll_timeout, enqueuer: enqueuer, metadata: metadata, stats: stats,
-     name: name, scheduler: scheduler, queues: queues, redis: redis, concurrency: concurrency, middleware: middleware,
-     default_middleware: default_middleware, mode: mode, shutdown_timeout: shutdown_timeout]
-    = server_opts
+    )
+
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+
+    [
+      scheduler_enable: scheduler_enable,
+      namespace: namespace,
+      scheduler_poll_timeout: scheduler_poll_timeout,
+      workers_sup: workers_sup,
+      poll_timeout: poll_timeout,
+      enqueuer: enqueuer,
+      metadata: metadata,
+      stats: stats,
+      name: name,
+      scheduler: scheduler,
+      queues: queues,
+      redis: redis,
+      concurrency: concurrency,
+      middleware: middleware,
+      default_middleware: default_middleware,
+      mode: mode,
+      shutdown_timeout: shutdown_timeout
+    ] = server_opts
+
     assert scheduler_enable == true
     assert namespace == "exq"
     assert scheduler_poll_timeout == 200
@@ -145,15 +162,19 @@ defmodule Exq.ConfigTest do
     assert default_middleware == [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager]
     assert mode == :default
 
-    Mix.Config.persist([exq: [queues: [{"default", 1000}, {"test1", 2000}]]])
-    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
+    Mix.Config.persist(exq: [queues: [{"default", 1000}, {"test1", 2000}]])
+
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+
     assert server_opts[:queues] == ["default", "test1"]
     assert server_opts[:concurrency] == [{"default", 1000, 0}, {"test1", 2000, 0}]
   end
 
   test "api redis_worker_opts" do
-    Mix.Config.persist([exq: []])
-    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :api])
+    Mix.Config.persist(exq: [])
+
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :api)
+
     [name: name, namespace: namespace, redis: redis, mode: mode] = server_opts
     assert namespace == "test"
     assert name == nil
@@ -169,7 +190,7 @@ defmodule Exq.ConfigTest do
     System.put_env("EXQ_SCHEDULER_ENABLE", "True")
     System.put_env("EXQ_SHUTDOWN_TIMEOUT", "1234")
 
-    Mix.Config.persist([
+    Mix.Config.persist(
       exq: [
         namespace: {:system, "EXQ_NAMESPACE"},
         concurrency: {:system, "EXQ_CONCURRENCY"},
@@ -178,9 +199,9 @@ defmodule Exq.ConfigTest do
         scheduler_enable: {:system, "EXQ_SCHEDULER_ENABLE"},
         shutdown_timeout: {:system, "EXQ_SHUTDOWN_TIMEOUT"}
       ]
-    ])
+    )
 
-    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:namespace] == "test"
     assert server_opts[:concurrency] == [{"default", 333, 0}]
@@ -199,16 +220,8 @@ defmodule Exq.ConfigTest do
       ]
     ])
 
-    {Redix, [_redis_opts, _connection_opts], server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:concurrency] == [{"default", :infinity, 0}]
-  end
-
-  test "custom redis module" do
-    with_application_env(:exq, :redis_worker, {RedisWorker, [1, 2]}, fn ->
-      {module, args, _server_opts} = Exq.Support.Opts.redis_worker_opts([mode: :default])
-      assert module == RedisWorker
-      assert args == [1, 2]
-    end)
   end
 end
