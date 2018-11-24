@@ -44,7 +44,8 @@ defmodule Exq.Mixfile do
       # docs
       {:ex_doc, "~> 0.10", only: :dev},
       {:earmark, "~> 1.0", only: :dev},
-      {:inch_ex, "~> 0.5", only: :dev}
+      {:inch_ex, "~> 0.5", only: :dev},
+      {:ranch, "~> 1.6", only: :test, override: true}
     ]
   end
 end
