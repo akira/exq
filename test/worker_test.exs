@@ -91,23 +91,56 @@ defmodule WorkerTest do
   end
 
   defmodule MockServer do
-    use GenServer
+    @behaviour :gen_statem
 
-    # Same reply as Redix connection
-    def handle_call({:commands, [["ZADD"|_], ["ZREMRANGEBYSCORE"|_], ["ZREMRANGEBYRANK"|_]], req_id}, _from, state) do
-      send :workertest, :zadd_redis
-      {:reply, {req_id, {:ok, [1, 0, 0]}}, state}
+    def start_link() do
+      :gen_statem.start_link(__MODULE__, [], [])
+    end
+
+    @impl true
+    def callback_mode(), do: :state_functions
+
+    @impl true
+    def init([]) do
+      {:ok, :connected, []}
+    end
+
+    defp reply({pid, request_id} = _from, reply) do
+      send(pid, {request_id, reply})
+    end
+
+    def connected(
+          :cast,
+          {:pipeline, [["ZADD" | _], ["ZREMRANGEBYSCORE" | _], ["ZREMRANGEBYRANK" | _]], from,
+           timeout},
+          data
+        ) do
+      send(:workertest, :zadd_redis)
+      reply(from, {:ok, [1, 0, 0]})
+      {:keep_state, data}
     end
 
     # Same reply as Redix connection
-    def handle_call({:commands, [["LREM"|_]], req_id}, _from, state) do
-      send :workertest, :lrem_redis
-      {:reply, {req_id, {:ok, [1]}}, state}
+    def connected(
+          :cast,
+          {:pipeline, [["ZADD" | _], ["ZREMRANGEBYSCORE" | _], ["ZREMRANGEBYRANK" | _]], from,
+           timeout},
+          data
+        ) do
+      reply(from, {:ok, [1, 0, 0]})
+      {:keep_state, data}
     end
 
-    def handle_cast({:job_terminated, _, _, _}, state) do
-      send :workertest, :job_terminated
-      {:noreply, state}
+    # Same reply as Redix connection
+    def connected(:cast, {:pipeline, [["LREM" | _]], from, timeout}, data) do
+      send(:workertest, :lrem_redis)
+      reply(from, {:ok, [1]})
+      {:keep_state, data}
+    end
+
+    def connected(:cast, {:job_terminated, _, _, _}, data) do
+      send(:workertest, :job_terminated)
+      {:keep_state, data}
     end
   end
 
@@ -135,7 +168,7 @@ defmodule WorkerTest do
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args} }"
 
     work_table = :ets.new(:work_table, [:set, :public])
-    {:ok, stub_server} = GenServer.start_link(WorkerTest.MockServer, %{})
+    {:ok, stub_server} = WorkerTest.MockServer.start_link()
     {:ok, mock_stats_server} = GenServer.start_link(WorkerTest.MockStatsServer, %{})
     {:ok, middleware} = GenServer.start_link(Exq.Middleware.Server, [])
     {:ok, metadata} = Exq.Worker.Metadata.start_link(%{})
