@@ -6,10 +6,12 @@ defmodule FlakyConnectionTest do
   @moduletag :failure_scenarios
 
   setup do
-    TestRedis.setup
-    on_exit fn ->
-      TestRedis.teardown
-    end
+    TestRedis.setup()
+
+    on_exit(fn ->
+      TestRedis.teardown()
+    end)
+
     :ok
   end
 
@@ -23,14 +25,13 @@ defmodule FlakyConnectionTest do
     Application.start(:ranch)
     conn = FlakyConnection.start(redis_host(), redis_port())
 
-    #Needs to be x2 latency + ~10
-    Mix.Config.persist([exq: [redis_timeout: 2010]])
+    # Needs to be x2 latency + ~10
+    Mix.Config.persist(exq: [redis_timeout: 2010])
 
     Process.register(self(), :tester)
-    {:ok, sup} = Exq.start_link([name: ExqPerf, port: conn.port])
+    {:ok, sup} = Exq.start_link(name: ExqPerf, port: conn.port)
 
     FlakyConnection.set_latency(conn, 1000)
-
 
     {:ok, _} = Exq.enqueue(ExqPerf.Enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
 
@@ -41,8 +42,8 @@ defmodule FlakyConnectionTest do
     Application.start(:ranch)
     conn = FlakyConnection.start(redis_host(), redis_port())
 
-    #Needs to be x2 latency + ~10
-    Mix.Config.persist([exq: [redis_timeout: 11010]])
+    # Needs to be x2 latency + ~10
+    Mix.Config.persist(exq: [redis_timeout: 11010])
 
     Process.register(self(), :tester)
 
@@ -50,11 +51,12 @@ defmodule FlakyConnectionTest do
 
     FlakyConnection.set_latency(conn, 5500)
 
-    result = try do
-      {:ok, _} = Exq.enqueue(Exq.Enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
-    catch
-      :exit, {:timeout, _} -> :failed
-    end
+    result =
+      try do
+        {:ok, _} = Exq.enqueue(Exq.Enqueuer, "default", FlakyConnectionTest.Worker, ["work"])
+      catch
+        :exit, {:timeout, _} -> :failed
+      end
 
     assert result == :failed
 
@@ -65,9 +67,9 @@ defmodule FlakyConnectionTest do
     Application.start(:ranch)
     conn = FlakyConnection.start(redis_host(), redis_port())
 
-    #redis_timeout needs to be x2 latency + ~10
-    #genserver_timeout needs to be x2 latency + ~30
-    Mix.Config.persist([exq: [redis_timeout: 11010, genserver_timeout: 11030]])
+    # redis_timeout needs to be x2 latency + ~10
+    # genserver_timeout needs to be x2 latency + ~30
+    Mix.Config.persist(exq: [redis_timeout: 11010, genserver_timeout: 11030])
 
     Process.register(self(), :tester)
 
@@ -79,5 +81,4 @@ defmodule FlakyConnectionTest do
 
     stop_process(sup)
   end
-
 end

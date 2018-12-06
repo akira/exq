@@ -19,7 +19,13 @@ defmodule Exq.Middleware.Stats do
   end
 
   defp add_process(%Pipeline{assigns: assigns, worker_pid: worker_pid}) do
-    Stats.add_process(assigns.stats, assigns.namespace, worker_pid, assigns.host, assigns.job_serialized)
+    Stats.add_process(
+      assigns.stats,
+      assigns.namespace,
+      worker_pid,
+      assigns.host,
+      assigns.job_serialized
+    )
   end
 
   defp process_terminated(%Pipeline{assigns: assigns} = pipeline) do
@@ -33,8 +39,13 @@ defmodule Exq.Middleware.Stats do
   end
 
   defp record_failure(%Pipeline{assigns: assigns} = pipeline) do
-    Stats.record_failure(assigns.stats, assigns.namespace, to_string(assigns.error_message),
-      assigns.job)
+    Stats.record_failure(
+      assigns.stats,
+      assigns.namespace,
+      to_string(assigns.error_message),
+      assigns.job
+    )
+
     pipeline
   end
 end

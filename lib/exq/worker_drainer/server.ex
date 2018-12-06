@@ -22,12 +22,12 @@ defmodule Exq.WorkerDrainer.Server do
 
   def server_name(name) do
     name = name || Exq.Support.Config.get(:name)
-    "#{name}.WorkerDrainer" |> String.to_atom
+    "#{name}.WorkerDrainer" |> String.to_atom()
   end
 
-##===========================================================
-## gen server callbacks
-##===========================================================
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
@@ -55,23 +55,23 @@ defmodule Exq.WorkerDrainer.Server do
     :ok
   end
 
-
-##===========================================================
-## functions
-##===========================================================
+  ## ===========================================================
+  ## functions
+  ## ===========================================================
 
   defp drain_workers(state) do
-    timer_ref = :erlang.start_timer(state.shutdown_timeout, self(),
-                                    :end_of_grace_period)
+    timer_ref = :erlang.start_timer(state.shutdown_timeout, self(), :end_of_grace_period)
+
     :ok =
       state.name
       |> Manager.Server.server_name()
       |> Exq.unsubscribe_all()
+
     state.name
     |> Worker.Supervisor.supervisor_name()
     |> Worker.Supervisor.workers()
     |> Enum.map(&Process.monitor(elem(&1, 1)))
-    |> Enum.into(MapSet.new)
+    |> Enum.into(MapSet.new())
     |> await_workers(timer_ref)
   end
 

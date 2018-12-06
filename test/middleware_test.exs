@@ -31,17 +31,17 @@ defmodule MiddlewareTest do
     import Exq.Middleware.Pipeline
 
     def before_work(pipeline) do
-      send :middlewaretest, :before_work
+      send(:middlewaretest, :before_work)
       pipeline
     end
 
     def after_processed_work(pipeline) do
-      send :middlewaretest, {:after_processed_work, pipeline.assigns.result}
+      send(:middlewaretest, {:after_processed_work, pipeline.assigns.result})
       pipeline
     end
 
     def after_failed_work(pipeline) do
-      send :middlewaretest, {:after_failed_work, pipeline.assigns.error}
+      send(:middlewaretest, {:after_failed_work, pipeline.assigns.error})
       pipeline
     end
   end
@@ -52,17 +52,17 @@ defmodule MiddlewareTest do
     import Exq.Middleware.Pipeline
 
     def before_work(pipeline) do
-      send :middlewaretest, :before_work
+      send(:middlewaretest, :before_work)
       assign(pipeline, :process_info, 1)
     end
 
     def after_processed_work(pipeline) do
-      send :middlewaretest, :after_processed_work
+      send(:middlewaretest, :after_processed_work)
       pipeline
     end
 
     def after_failed_work(pipeline) do
-      send :middlewaretest, :after_failed_work
+      send(:middlewaretest, :after_failed_work)
       pipeline
     end
   end
@@ -73,12 +73,12 @@ defmodule MiddlewareTest do
     import Exq.Middleware.Pipeline
 
     def before_work(pipeline) do
-      send :middlewaretest, :before_work_halted
+      send(:middlewaretest, :before_work_halted)
       halt(pipeline)
     end
 
     def after_processed_work(pipeline) do
-      send :middlewaretest, :after_processed_work_halted
+      send(:middlewaretest, :after_processed_work_halted)
       halt(pipeline)
     end
 
@@ -93,12 +93,12 @@ defmodule MiddlewareTest do
     import Exq.Middleware.Pipeline
 
     def before_work(pipeline) do
-      send :middlewaretest, :before_work_terminated
+      send(:middlewaretest, :before_work_terminated)
       terminate(pipeline)
     end
 
     def after_processed_work(pipeline) do
-      send :middlewaretest, :after_processed_work_terminated
+      send(:middlewaretest, :after_processed_work_terminated)
       terminate(pipeline)
     end
 
@@ -120,22 +120,35 @@ defmodule MiddlewareTest do
   end
 
   def start_worker({class, args, middleware}) do
-    job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args}, \"jid\": \"123\" }"
+    job =
+      "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args}, \"jid\": \"123\" }"
 
     work_table = :ets.new(:work_table, [:set, :public])
     {:ok, stub_server} = GenServer.start_link(MiddlewareTest.StubServer, [])
 
     {:ok, metadata} = Exq.Worker.Metadata.start_link(%{})
-    Worker.start_link(job, stub_server, "default", work_table, stub_server,
-      "exq", "localhost", :testredis, middleware, metadata)
+
+    Worker.start_link(
+      job,
+      stub_server,
+      "default",
+      work_table,
+      stub_server,
+      "exq",
+      "localhost",
+      :testredis,
+      middleware,
+      metadata
+    )
   end
 
   setup do
-    TestRedis.setup
-    on_exit fn ->
+    TestRedis.setup()
+
+    on_exit(fn ->
       wait()
-      TestRedis.teardown
-    end
+      TestRedis.teardown()
+    end)
 
     Process.register(self(), :middlewaretest)
     {:ok, middleware} = GenServer.start_link(Middleware, [])
@@ -218,7 +231,7 @@ defmodule MiddlewareTest do
   end
 
   test "restores default middleware after process kill" do
-    {:ok, _pid} = Exq.start_link
+    {:ok, _pid} = Exq.start_link()
     chain = [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager]
     assert Middleware.all(Middleware) == chain
 

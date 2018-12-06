@@ -6,25 +6,27 @@ defmodule FailureScenariosTest do
 
   defmodule PerformWorker do
     def perform do
-      send :exqtest, {:worked}
+      send(:exqtest, {:worked})
     end
   end
 
   defmodule SleepWorker do
     def perform do
-      send :exqtest, {:worked}
-      Process.register(self(), :sleep_worker )
+      send(:exqtest, {:worked})
+      Process.register(self(), :sleep_worker)
       :timer.sleep(:infinity)
     end
   end
 
   setup do
-    TestRedis.setup
+    TestRedis.setup()
     Application.start(:ranch)
-    on_exit fn ->
+
+    on_exit(fn ->
       wait()
-      TestRedis.teardown
-    end
+      TestRedis.teardown()
+    end)
+
     :ok
   end
 
@@ -41,8 +43,16 @@ defmodule FailureScenariosTest do
 
     # Restart Flakey connection manually, things should be back to normal
     {:ok, agent} = Agent.start_link(fn -> [] end)
-    {:ok, _} = :ranch.start_listener(conn.ref, 100, :ranch_tcp, [port: conn.port],
-                  FlakyConnectionHandler, ['127.0.0.1', redis_port(), agent])
+
+    {:ok, _} =
+      :ranch.start_listener(
+        conn.ref,
+        100,
+        :ranch_tcp,
+        [port: conn.port],
+        FlakyConnectionHandler,
+        ['127.0.0.1', redis_port(), agent]
+      )
 
     wait_long()
     assert_exq_up(Exq)
@@ -62,18 +72,27 @@ defmodule FailureScenariosTest do
 
     # enqueue with redis stopped
     enq_result = Exq.enqueue(Exq, "default", "FakeWorker", [])
-    assert enq_result ==  {:error, :closed}
+    assert enq_result == {:error, :closed}
 
-    enq_result = Exq.enqueue_at(Exq, "default", DateTime.utc_now, ExqTest.PerformWorker, [])
-    assert enq_result ==  {:error, :closed}
+    enq_result = Exq.enqueue_at(Exq, "default", DateTime.utc_now(), ExqTest.PerformWorker, [])
+    assert enq_result == {:error, :closed}
 
     # Starting Redis again and things should be back to normal
     wait_long()
 
     # Restart Flakey connection manually
     {:ok, agent} = Agent.start_link(fn -> [] end)
-    {:ok, _} = :ranch.start_listener(conn.ref, 100, :ranch_tcp, [port: conn.port],
-                  FlakyConnectionHandler, ['127.0.0.1', redis_port(), agent])
+
+    {:ok, _} =
+      :ranch.start_listener(
+        conn.ref,
+        100,
+        :ranch_tcp,
+        [port: conn.port],
+        FlakyConnectionHandler,
+        ['127.0.0.1', redis_port(), agent]
+      )
+
     wait_long()
 
     assert_exq_up(Exq)
@@ -81,7 +100,7 @@ defmodule FailureScenariosTest do
   end
 
   test "handle supervisor tree shutdown properly" do
-    {:ok, sup} = Exq.start_link
+    {:ok, sup} = Exq.start_link()
 
     assert Process.alive?(sup) == true
 

@@ -1,7 +1,6 @@
 use Mix.Config
 
-config :logger, :console,
-  format: "\n$date $time [$level]: $message \n"
+config :logger, :console, format: "\n$date $time [$level]: $message \n"
 
 config :exq,
   name: Exq,

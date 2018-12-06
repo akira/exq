@@ -22,7 +22,6 @@ defmodule WorkerTest do
     end
   end
 
-
   defmodule MissingMethodWorker do
   end
 
@@ -70,22 +69,22 @@ defmodule WorkerTest do
     use GenServer
 
     def handle_cast({:add_process, _, _, _}, state) do
-      send :workertest, :add_process
+      send(:workertest, :add_process)
       {:noreply, state}
     end
 
     def handle_cast({:record_processed, _, _}, state) do
-      send :workertest, :record_processed
+      send(:workertest, :record_processed)
       {:noreply, state}
     end
 
     def handle_cast({:record_failure, _, _, _}, state) do
-      send :workertest, :record_failure
+      send(:workertest, :record_failure)
       {:noreply, state}
     end
 
     def handle_cast({:process_terminated, _, _, _}, state) do
-      send :workertest, :process_terminated
+      send(:workertest, :process_terminated)
       {:noreply, state}
     end
   end
@@ -94,19 +93,23 @@ defmodule WorkerTest do
     use GenServer
 
     # Same reply as Redix connection
-    def handle_call({:commands, [["ZADD"|_], ["ZREMRANGEBYSCORE"|_], ["ZREMRANGEBYRANK"|_]], req_id}, _from, state) do
-      send :workertest, :zadd_redis
+    def handle_call(
+          {:commands, [["ZADD" | _], ["ZREMRANGEBYSCORE" | _], ["ZREMRANGEBYRANK" | _]], req_id},
+          _from,
+          state
+        ) do
+      send(:workertest, :zadd_redis)
       {:reply, {req_id, {:ok, [1, 0, 0]}}, state}
     end
 
     # Same reply as Redix connection
-    def handle_call({:commands, [["LREM"|_]], req_id}, _from, state) do
-      send :workertest, :lrem_redis
+    def handle_call({:commands, [["LREM" | _]], req_id}, _from, state) do
+      send(:workertest, :lrem_redis)
       {:reply, {req_id, {:ok, [1]}}, state}
     end
 
     def handle_cast({:job_terminated, _, _, _}, state) do
-      send :workertest, :job_terminated
+      send(:workertest, :job_terminated)
       {:noreply, state}
     end
   end
@@ -144,8 +147,18 @@ defmodule WorkerTest do
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Manager)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Logger)
 
-    Exq.Worker.Server.start_link(job, stub_server, "default", work_table, mock_stats_server,
-      "exq", "localhost", stub_server, middleware, metadata)
+    Exq.Worker.Server.start_link(
+      job,
+      stub_server,
+      "default",
+      work_table,
+      mock_stats_server,
+      "exq",
+      "localhost",
+      stub_server,
+      middleware,
+      metadata
+    )
   end
 
   test "execute valid job with perform" do

@@ -32,16 +32,20 @@ defmodule Exq.Scheduler.Server do
 
   def server_name(name) do
     name = name || Exq.Support.Config.get(:name)
-    "#{name}.Scheduler" |> String.to_atom
-   end
+    "#{name}.Scheduler" |> String.to_atom()
+  end
 
-##===========================================================
-## gen server callbacks
-##===========================================================
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
   def init(opts) do
-    state = %State{redis: opts[:redis], namespace: opts[:namespace],
-      queues: opts[:queues], scheduler_poll_timeout: opts[:scheduler_poll_timeout]}
+    state = %State{
+      redis: opts[:redis],
+      namespace: opts[:namespace],
+      queues: opts[:queues],
+      scheduler_poll_timeout: opts[:scheduler_poll_timeout]
+    }
 
     start_timeout(self())
 
@@ -57,9 +61,9 @@ defmodule Exq.Scheduler.Server do
     {:noreply, updated_state, timeout}
   end
 
-##===========================================================
-## Internal Functions
-##===========================================================
+  ## ===========================================================
+  ## Internal Functions
+  ## ===========================================================
 
   @doc """
   Dequeue any active jobs in the scheduled and retry queues, and enqueue them to live queue.
@@ -68,5 +72,4 @@ defmodule Exq.Scheduler.Server do
     Exq.Redis.JobQueue.scheduler_dequeue(state.redis, state.namespace)
     {state, state.scheduler_poll_timeout}
   end
-
 end

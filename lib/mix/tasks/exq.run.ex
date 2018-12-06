@@ -4,8 +4,8 @@ defmodule Mix.Tasks.Exq.Run do
   @shortdoc "Starts the Exq worker"
 
   def run(_args) do
-    Exq.start_link
-    IO.puts "Started Exq"
+    Exq.start_link()
+    IO.puts("Started Exq")
     :timer.sleep(:infinity)
   end
 end

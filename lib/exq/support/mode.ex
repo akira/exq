@@ -21,6 +21,7 @@ defmodule Exq.Support.Mode do
     children = children ++ children(opts[:mode], opts)
     children
   end
+
   def children(:default, opts) do
     shutdown_timeout = Keyword.get(opts, :shutdown_timeout)
 
@@ -41,17 +42,21 @@ defmodule Exq.Support.Mode do
       children
     end
   end
+
   def children(:enqueuer, opts) do
     [worker(Exq.Enqueuer.Server, [opts])]
   end
+
   def children(:api, opts) do
     [worker(Exq.Api.Server, [opts])]
   end
+
   def children([:enqueuer, :api], opts) do
     [
       worker(Exq.Enqueuer.Server, [opts]),
       worker(Exq.Api.Server, [opts])
     ]
   end
+
   def children([:api, :enqueuer], opts), do: children([:enqueuer, :api], opts)
 end

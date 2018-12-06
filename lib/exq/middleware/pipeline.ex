@@ -20,11 +20,11 @@ defmodule Exq.Middleware.Pipeline do
       - Exq.Middleware.Stats: Will NOT remove job from processes queue
   """
 
-  defstruct assigns:      %{},
-            halted:       false,
-            terminated:   false,
-            worker_pid:   nil,
-            event:        nil
+  defstruct assigns: %{},
+            halted: false,
+            terminated: false,
+            worker_pid: nil,
+            event: nil
 
   alias Exq.Middleware.Pipeline
 
@@ -54,13 +54,13 @@ defmodule Exq.Middleware.Pipeline do
   """
   def assign_worker_state(pipeline, worker_state) do
     pipeline
-    |> assign(    :redis, worker_state.redis)
-    |> assign(     :host, worker_state.host)
+    |> assign(:redis, worker_state.redis)
+    |> assign(:host, worker_state.host)
     |> assign(:namespace, worker_state.namespace)
-    |> assign(    :queue, worker_state.queue)
-    |> assign(  :manager, worker_state.manager)
-    |> assign(    :stats, worker_state.stats)
-    |> assign( :job_serialized, worker_state.job_serialized)
+    |> assign(:queue, worker_state.queue)
+    |> assign(:manager, worker_state.manager)
+    |> assign(:stats, worker_state.stats)
+    |> assign(:job_serialized, worker_state.job_serialized)
   end
 
   @doc """
@@ -69,13 +69,16 @@ defmodule Exq.Middleware.Pipeline do
   def chain(pipeline, []) do
     pipeline
   end
+
   def chain(%Pipeline{halted: true} = pipeline, _modules) do
     pipeline
   end
+
   def chain(%Pipeline{terminated: true} = pipeline, _modules) do
     pipeline
   end
-  def chain(pipeline, [module|modules]) do
+
+  def chain(pipeline, [module | modules]) do
     chain(apply(module, pipeline.event, [pipeline]), modules)
   end
 end

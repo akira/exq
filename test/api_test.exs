@@ -7,12 +7,14 @@ defmodule ApiTest do
   alias Exq.Support.Job
 
   setup do
-    TestRedis.setup
-    Exq.start_link
-    on_exit fn ->
+    TestRedis.setup()
+    Exq.start_link()
+
+    on_exit(fn ->
       wait()
-      TestRedis.teardown
-    end
+      TestRedis.teardown()
+    end)
+
     :ok
   end
 
@@ -79,8 +81,8 @@ defmodule ApiTest do
     {:ok, jid1} = Exq.enqueue(Exq, 'custom1', Bogus, [])
     {:ok, jid2} = Exq.enqueue(Exq, 'custom2', Bogus, [12345])
     {:ok, jobs} = Exq.Api.jobs(Exq.Api)
-    assert Enum.find(jobs, fn({queue, [job]}) -> queue == "custom1" && job.jid == jid1 end)
-    assert Enum.find(jobs, fn({queue, [job]}) -> queue == "custom2" && job.jid == jid2 end)
+    assert Enum.find(jobs, fn {queue, [job]} -> queue == "custom1" && job.jid == jid1 end)
+    assert Enum.find(jobs, fn {queue, [job]} -> queue == "custom2" && job.jid == jid2 end)
   end
 
   test "jobs for queue when empty" do
@@ -92,8 +94,8 @@ defmodule ApiTest do
     {:ok, jid2} = Exq.enqueue(Exq, 'custom', Bogus, [12345])
     {:ok, jobs} = Exq.Api.jobs(Exq.Api, 'custom')
     assert Enum.count(jobs) == 2
-    assert Enum.find(jobs, fn(job) -> job.jid == jid1 end)
-    assert Enum.find(jobs, fn(job) -> job.jid == jid2 end)
+    assert Enum.find(jobs, fn job -> job.jid == jid1 end)
+    assert Enum.find(jobs, fn job -> job.jid == jid2 end)
   end
 
   test "failed when empty" do
