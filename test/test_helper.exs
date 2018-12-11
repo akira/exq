@@ -36,7 +36,7 @@ defmodule ExqTestUtil do
 
   defmodule SendWorker do
     def perform(pid) do
-      send String.to_atom(pid), {:worked}
+      send(String.to_atom(pid), {:worked})
     end
   end
 
@@ -45,7 +45,7 @@ defmodule ExqTestUtil do
     System.put_env(previous_env)
 
     # Remove any newly added keys
-    for {key, _} <- System.get_env do
+    for {key, _} <- System.get_env() do
       unless Map.has_key?(previous_env, key) do
         System.delete_env(key)
       end
@@ -53,10 +53,10 @@ defmodule ExqTestUtil do
   end
 
   def assert_exq_up(exq) do
-    my_pid = String.to_atom(UUID.uuid4)
+    my_pid = String.to_atom(UUID.uuid4())
     Process.register(self(), my_pid)
     {:ok, _} = Exq.enqueue(exq, "default", "ExqTestUtil.SendWorker", [my_pid])
-    ExUnit.Assertions.assert_receive {:worked}
+    ExUnit.Assertions.assert_receive({:worked})
     Process.unregister(my_pid)
   end
 
@@ -64,12 +64,14 @@ defmodule ExqTestUtil do
     try do
       Process.flag(:trap_exit, true)
       Process.exit(pid, :shutdown)
+
       receive do
         {:EXIT, _pid, _error} -> :ok
       end
     rescue
       e in RuntimeError -> e
     end
+
     Process.flag(:trap_exit, false)
   end
 
@@ -89,6 +91,7 @@ defmodule ExqTestUtil do
   def with_application_env(app, key, new, context) do
     old = Application.get_env(app, key)
     Application.put_env(app, key, new)
+
     try do
       context.()
     after
@@ -102,7 +105,7 @@ defmodule TestRedis do
   alias Exq.Redis.Connection
   alias Exq.Support.Config
 
-  #TODO: Automate config
+  # TODO: Automate config
   def start do
     unless Config.get(:test_with_local_redis) == false do
       [] = :os.cmd('redis-server test/test-redis.conf')
@@ -119,7 +122,7 @@ defmodule TestRedis do
   end
 
   def setup do
-    {:ok, redis} = Redix.start_link([host: redis_host(), port: redis_port()])
+    {:ok, redis} = Redix.start_link(host: redis_host(), port: redis_port())
     Process.register(redis, :testredis)
     flush_all()
     :ok
@@ -127,7 +130,7 @@ defmodule TestRedis do
 
   def flush_all do
     try do
-      Connection.flushdb! :testredis
+      Connection.flushdb!(:testredis)
     catch
       :exit, {:timeout, _info} -> nil
     end
@@ -136,14 +139,16 @@ defmodule TestRedis do
   def teardown do
     if !Process.whereis(:testredis) do
       # For some reason at the end of test the link is down, before we actually stop and unregister?
-      {:ok, redis} = Redix.start_link([host: redis_host(), port: redis_port()])
+      {:ok, redis} = Redix.start_link(host: redis_host(), port: redis_port())
       Process.register(redis, :testredis)
     end
+
     try do
       Process.unregister(:testredis)
     rescue
       ArgumentError -> true
     end
+
     :ok
   end
 end
@@ -155,10 +160,10 @@ ExUnit.configure(seed: 0, max_cases: 1, exclude: [failure_scenarios: true, pendi
 # Start logger
 :application.start(:logger)
 
-TestRedis.start
+TestRedis.start()
 
-System.at_exit fn(_status) ->
-  TestRedis.stop
-end
+System.at_exit(fn _status ->
+  TestRedis.stop()
+end)
 
 ExUnit.start(capture_log: true)

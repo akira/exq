@@ -19,6 +19,7 @@ defmodule Exq.Serializers.JsonSerializer do
 
   def decode_job(serialized) do
     deserialized = decode!(serialized)
+
     %Exq.Support.Job{
       args: Map.get(deserialized, "args"),
       class: Map.get(deserialized, "class"),
@@ -31,7 +32,8 @@ defmodule Exq.Serializers.JsonSerializer do
       processor: Map.get(deserialized, "processor"),
       queue: Map.get(deserialized, "queue"),
       retry: Map.get(deserialized, "retry"),
-      retry_count: Map.get(deserialized, "retry_count")}
+      retry_count: Map.get(deserialized, "retry_count")
+    }
   end
 
   def encode_job(job) do
@@ -49,11 +51,13 @@ defmodule Exq.Serializers.JsonSerializer do
       retry: job.retry,
       retry_count: job.retry_count
     }
+
     encode!(deserialized)
   end
 
   def decode_process(serialized) do
     deserialized = decode!(serialized)
+
     %Exq.Support.Process{
       pid: Map.get(deserialized, "pid"),
       host: Map.get(deserialized, "host"),
@@ -64,11 +68,17 @@ defmodule Exq.Serializers.JsonSerializer do
 
   def encode_process(process) do
     formatted_pid = to_string(:io_lib.format("~p", [process.pid]))
-    deserialized = Enum.into([
-      pid: formatted_pid,
-      host: process.host,
-      job: process.job,
-      started_at: process.started_at], Map.new)
+
+    deserialized =
+      Enum.into(
+        [
+          pid: formatted_pid,
+          host: process.host,
+          job: process.job,
+          started_at: process.started_at
+        ],
+        Map.new()
+      )
 
     encode!(deserialized)
   end

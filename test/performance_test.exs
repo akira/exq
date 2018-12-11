@@ -4,10 +4,12 @@ defmodule PerformanceTest do
   import ExqTestUtil
 
   setup do
-    TestRedis.setup
-    on_exit fn ->
-      TestRedis.teardown
-    end
+    TestRedis.setup()
+
+    on_exit(fn ->
+      TestRedis.teardown()
+    end)
+
     :ok
   end
 
@@ -34,24 +36,34 @@ defmodule PerformanceTest do
     end
   end
 
-
   test "test to_job_serialized performance" do
-    started = :os.timestamp
+    started = :os.timestamp()
     max_timeout_ms = 1_000
-    for _ <- 1..1000, do: Exq.Redis.JobQueue.to_job_serialized("default", PerformanceTest.Worker, ["keep_on_trucking"], max_retries: 10)
-    elapsed_ms = :timer.now_diff(:os.timestamp, started) / 1_000
-    Logger.debug "to_job_serialized performance test took #{elapsed_ms / 1_000} secs"
+
+    for _ <- 1..1000,
+        do:
+          Exq.Redis.JobQueue.to_job_serialized(
+            "default",
+            PerformanceTest.Worker,
+            ["keep_on_trucking"],
+            max_retries: 10
+          )
+
+    elapsed_ms = :timer.now_diff(:os.timestamp(), started) / 1_000
+    Logger.debug("to_job_serialized performance test took #{elapsed_ms / 1_000} secs")
     assert elapsed_ms < max_timeout_ms
   end
 
   test "performance is in acceptable range" do
-
     Process.register(self(), :tester)
-    started = :os.timestamp
+    started = :os.timestamp()
     max_timeout_ms = 5 * 1_000
 
-    {:ok, sup} = Exq.start_link
-    for _ <- 1..1000, do: Exq.enqueue(Exq, "default", PerformanceTest.Worker, ["keep_on_trucking"])
+    {:ok, sup} = Exq.start_link()
+
+    for _ <- 1..1000,
+        do: Exq.enqueue(Exq, "default", PerformanceTest.Worker, ["keep_on_trucking"])
+
     Exq.enqueue(Exq, "default", PerformanceTest.Worker, ["last"])
 
     # Wait for last message
@@ -59,11 +71,11 @@ defmodule PerformanceTest do
       :done -> Logger.info("Received done")
     after
       # This won't count enqueue
-      max_timeout_ms  -> assert false, "Timeout of #{max_timeout_ms} reached for performance test"
+      max_timeout_ms -> assert false, "Timeout of #{max_timeout_ms} reached for performance test"
     end
 
-    elapsed_ms = :timer.now_diff(:os.timestamp, started) / 1_000
-    Logger.debug "Perf test took #{elapsed_ms / 1_000} secs"
+    elapsed_ms = :timer.now_diff(:os.timestamp(), started) / 1_000
+    Logger.debug("Perf test took #{elapsed_ms / 1_000} secs")
     count = Exq.Redis.Connection.llen!(:testredis, "test:queue:default")
 
     assert count == 0
@@ -78,7 +90,13 @@ defmodule PerformanceTest do
     max_timeout_ms = 2 * 1_000
 
     {:ok, sup} = Exq.start_link(concurrency: 20)
-    for _ <- 1..200, do: Exq.enqueue(Exq, "default", PerformanceTest.FlakeyWorker, [Enum.random([1, 2, 3, 4, 5, 6])])
+
+    for _ <- 1..200,
+        do:
+          Exq.enqueue(Exq, "default", PerformanceTest.FlakeyWorker, [
+            Enum.random([1, 2, 3, 4, 5, 6])
+          ])
+
     Exq.enqueue(Exq, "default", PerformanceTest.FlakeyWorker, [:done])
 
     # Wait for last message
@@ -86,7 +104,7 @@ defmodule PerformanceTest do
       :done -> Logger.info("Received done")
     after
       # This won't count enqueue
-      max_timeout_ms  -> assert false, "Timeout of #{max_timeout_ms} reached for performance test"
+      max_timeout_ms -> assert false, "Timeout of #{max_timeout_ms} reached for performance test"
     end
 
     count = Exq.Redis.Connection.llen!(:testredis, "test:queue:default")

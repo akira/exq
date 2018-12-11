@@ -118,12 +118,22 @@ defmodule Exq.Manager.Server do
   @backoff_mult 10
 
   defmodule State do
-    defstruct redis: nil, stats: nil, enqueuer: nil, pid: nil, node_id: nil, namespace: nil, work_table: nil,
-              queues: nil, poll_timeout: nil, scheduler_poll_timeout: nil, workers_sup: nil,
-              middleware: nil, metadata: nil
+    defstruct redis: nil,
+              stats: nil,
+              enqueuer: nil,
+              pid: nil,
+              node_id: nil,
+              namespace: nil,
+              work_table: nil,
+              queues: nil,
+              poll_timeout: nil,
+              scheduler_poll_timeout: nil,
+              workers_sup: nil,
+              middleware: nil,
+              metadata: nil
   end
 
-  def start_link(opts\\[]) do
+  def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
@@ -135,33 +145,32 @@ defmodule Exq.Manager.Server do
   def server_name(nil), do: Config.get(:name)
   def server_name(name), do: name
 
-
-##===========================================================
-## gen server callbacks
-##===========================================================
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
   def init(opts) do
-
     # Cleanup stale stats
     GenServer.cast(self(), :cleanup_host_stats)
 
     # Setup queues
     work_table = setup_queues(opts)
 
-    state = %State{work_table: work_table,
-                   redis: opts[:redis],
-                   stats: opts[:stats],
-                   workers_sup: opts[:workers_sup],
-                   enqueuer: opts[:enqueuer],
-                   middleware: opts[:middleware],
-                   metadata: opts[:metadata],
-                   node_id:  Config.node_identifier.node_id(),
-                   namespace: opts[:namespace],
-                   queues: opts[:queues],
-                   pid: self(),
-                   poll_timeout: opts[:poll_timeout],
-                   scheduler_poll_timeout: opts[:scheduler_poll_timeout]
-                   }
+    state = %State{
+      work_table: work_table,
+      redis: opts[:redis],
+      stats: opts[:stats],
+      workers_sup: opts[:workers_sup],
+      enqueuer: opts[:enqueuer],
+      middleware: opts[:middleware],
+      metadata: opts[:metadata],
+      node_id: Config.node_identifier().node_id(),
+      namespace: opts[:namespace],
+      queues: opts[:queues],
+      pid: self(),
+      poll_timeout: opts[:poll_timeout],
+      scheduler_poll_timeout: opts[:scheduler_poll_timeout]
+    }
 
     check_redis_connection(opts)
     {:ok, state, 0}
@@ -210,6 +219,7 @@ defmodule Exq.Manager.Server do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)
     end)
+
     {:noreply, state, 0}
   end
 
@@ -220,6 +230,7 @@ defmodule Exq.Manager.Server do
     rescue_timeout(fn ->
       Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id)
     end)
+
     {:noreply, state, 0}
   end
 
@@ -241,26 +252,29 @@ defmodule Exq.Manager.Server do
     :ok
   end
 
-##===========================================================
-## Internal Functions
-##===========================================================
+  ## ===========================================================
+  ## Internal Functions
+  ## ===========================================================
   @doc """
   Dequeue jobs and dispatch to workers
   """
   def dequeue_and_dispatch(state), do: dequeue_and_dispatch(state, available_queues(state))
   def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
+
   def dequeue_and_dispatch(state, queues) do
     rescue_timeout({state, state.poll_timeout}, fn ->
       jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
 
-      job_results = jobs |> Enum.map(fn(potential_job) -> dispatch_job(state, potential_job) end)
+      job_results = jobs |> Enum.map(fn potential_job -> dispatch_job(state, potential_job) end)
 
       cond do
-        Enum.any?(job_results, fn(status) -> elem(status, 1) == :dispatch end) ->
+        Enum.any?(job_results, fn status -> elem(status, 1) == :dispatch end) ->
           {state, 0}
-        Enum.any?(job_results, fn(status) -> elem(status, 0) == :error end) ->
+
+        Enum.any?(job_results, fn status -> elem(status, 0) == :error end) ->
           Logger.error("Redis Error #{Kernel.inspect(job_results)}}.  Backing off...")
           {state, state.poll_timeout * @backoff_mult}
+
         true ->
           {state, state.poll_timeout}
       end
@@ -271,7 +285,7 @@ defmodule Exq.Manager.Server do
   Returns list of active queues with free workers
   """
   def available_queues(state) do
-    Enum.filter(state.queues, fn(q) ->
+    Enum.filter(state.queues, fn q ->
       [{_, concurrency, worker_count}] = :ets.lookup(state.work_table, q)
       worker_count < concurrency
     end)
@@ -285,22 +299,37 @@ defmodule Exq.Manager.Server do
     case potential_job do
       {:ok, {:none, _queue}} ->
         {:ok, :none}
+
       {:ok, {job, queue}} ->
         dispatch_job(state, job, queue)
         {:ok, :dispatch}
+
       {status, reason} ->
         {:error, {status, reason}}
     end
   end
+
   def dispatch_job(state, job, queue) do
-    {:ok, worker} = Exq.Worker.Supervisor.start_child(
-      state.workers_sup,
-      [job, state.pid, queue, state.work_table,
-       state.stats, state.namespace, state.node_id, state.redis, state.middleware, state.metadata])
+    {:ok, worker} =
+      Exq.Worker.Supervisor.start_child(
+        state.workers_sup,
+        [
+          job,
+          state.pid,
+          queue,
+          state.work_table,
+          state.stats,
+          state.namespace,
+          state.node_id,
+          state.redis,
+          state.middleware,
+          state.metadata
+        ]
+      )
+
     Exq.Worker.Server.work(worker)
     update_worker_count(state.work_table, queue, 1)
   end
-
 
   # Setup queues from options / configs.
 
@@ -313,10 +342,12 @@ defmodule Exq.Manager.Server do
 
   defp setup_queues(opts) do
     work_table = :ets.new(:work_table, [:set, :public])
-    Enum.each(opts[:concurrency], fn (queue_concurrency) ->
+
+    Enum.each(opts[:concurrency], fn queue_concurrency ->
       :ets.insert(work_table, queue_concurrency)
       GenServer.cast(self(), {:re_enqueue_backup, elem(queue_concurrency, 0)})
     end)
+
     work_table
   end
 
@@ -352,12 +383,13 @@ defmodule Exq.Manager.Server do
   def rescue_timeout(f) do
     rescue_timeout(nil, f)
   end
+
   def rescue_timeout(fail_return, f) do
     try do
       f.()
     catch
       :exit, {:timeout, info} ->
-        Logger.info("Manager timeout occurred #{Kernel.inspect info}")
+        Logger.info("Manager timeout occurred #{Kernel.inspect(info)}")
         fail_return
     end
   end
@@ -369,19 +401,19 @@ defmodule Exq.Manager.Server do
       {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
     catch
       err, reason ->
-        opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap |> List.delete(:password)
+        opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap() |> List.delete(:password)
+
         raise """
         \n\n\n#{String.duplicate("=", 100)}
         ERROR! Could not connect to Redis!
 
-        Configuration passed in: #{inspect opts}
-        Error: #{inspect err}
-        Reason: #{inspect reason}
+        Configuration passed in: #{inspect(opts)}
+        Error: #{inspect(err)}
+        Reason: #{inspect(reason)}
 
         Make sure Redis is running, and your configuration matches Redis settings.
         #{String.duplicate("=", 100)}
         """
     end
   end
-
 end

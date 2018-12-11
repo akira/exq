@@ -17,9 +17,9 @@ defmodule Exq.Api.Server do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
-##===========================================================
-## gen server callbacks
-##===========================================================
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
   def init(opts) do
     {:ok, %State{redis: opts[:redis], namespace: opts[:namespace]}}
@@ -51,27 +51,30 @@ defmodule Exq.Api.Server do
   end
 
   def handle_call(:failed, _from, state) do
-   jobs = JobQueue.failed(state.redis, state.namespace)
-   {:reply, {:ok, jobs}, state}
+    jobs = JobQueue.failed(state.redis, state.namespace)
+    {:reply, {:ok, jobs}, state}
   end
 
   def handle_call(:retries, _from, state) do
-   jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "retry")
-   {:reply, {:ok, jobs}, state}
+    jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "retry")
+    {:reply, {:ok, jobs}, state}
   end
 
   def handle_call(:jobs, _from, state) do
     jobs = JobQueue.jobs(state.redis, state.namespace)
     {:reply, {:ok, jobs}, state}
   end
+
   def handle_call({:jobs, :scheduled}, _from, state) do
     jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "schedule")
     {:reply, {:ok, jobs}, state}
   end
+
   def handle_call({:jobs, :scheduled_with_scores}, _from, state) do
     jobs = JobQueue.scheduled_jobs_with_scores(state.redis, state.namespace, "schedule")
     {:reply, {:ok, jobs}, state}
   end
+
   def handle_call({:jobs, queue}, _from, state) do
     jobs = JobQueue.jobs(state.redis, state.namespace, queue)
     {:reply, {:ok, jobs}, state}
@@ -81,6 +84,7 @@ defmodule Exq.Api.Server do
     sizes = JobQueue.queue_size(state.redis, state.namespace)
     {:reply, {:ok, sizes}, state}
   end
+
   def handle_call({:queue_size, queue}, _from, state) do
     size = JobQueue.queue_size(state.redis, state.namespace, queue)
     {:reply, {:ok, size}, state}
@@ -131,7 +135,6 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
-
   def handle_call({:remove_retry, jid}, _from, state) do
     JobQueue.remove_retry(state.redis, state.namespace, jid)
     {:reply, :ok, state}
@@ -146,7 +149,6 @@ defmodule Exq.Api.Server do
     JobStat.remove_failed(state.redis, state.namespace, jid)
     {:reply, :ok, state}
   end
-
 
   def handle_call(:clear_failed, _from, state) do
     JobStat.clear_failed(state.redis, state.namespace)
@@ -185,6 +187,6 @@ defmodule Exq.Api.Server do
 
   def server_name(name) do
     name = name || Config.get(:name)
-    "#{name}.Api" |> String.to_atom
+    "#{name}.Api" |> String.to_atom()
   end
 end

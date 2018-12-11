@@ -23,13 +23,38 @@ defmodule Exq.Worker.Server do
   alias Exq.Worker.Metadata
 
   defmodule State do
-    defstruct job_serialized: nil, manager: nil, queue: nil, namespace: nil,
-      work_table: nil, stats: nil, host: nil, redis: nil, middleware: nil, pipeline: nil,
-      metadata: nil, middleware_state: nil
+    defstruct job_serialized: nil,
+              manager: nil,
+              queue: nil,
+              namespace: nil,
+              work_table: nil,
+              stats: nil,
+              host: nil,
+              redis: nil,
+              middleware: nil,
+              pipeline: nil,
+              metadata: nil,
+              middleware_state: nil
   end
 
-  def start_link(job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata) do
-    GenServer.start_link(__MODULE__, {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata}, [])
+  def start_link(
+        job_serialized,
+        manager,
+        queue,
+        work_table,
+        stats,
+        namespace,
+        host,
+        redis,
+        middleware,
+        metadata
+      ) do
+    GenServer.start_link(
+      __MODULE__,
+      {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware,
+       metadata},
+      []
+    )
   end
 
   @doc """
@@ -39,20 +64,31 @@ defmodule Exq.Worker.Server do
     GenServer.cast(pid, :work)
   end
 
-##===========================================================
-## gen server callbacks
-##===========================================================
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
-  def init({job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware, metadata}) do
+  def init(
+        {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware,
+         metadata}
+      ) do
     {
       :ok,
       %State{
-        job_serialized: job_serialized, manager: manager, queue: queue,
-        work_table: work_table, stats: stats, namespace: namespace,
-        host: host, redis: redis, middleware: middleware, metadata: metadata
+        job_serialized: job_serialized,
+        manager: manager,
+        queue: queue,
+        work_table: work_table,
+        stats: stats,
+        namespace: namespace,
+        host: host,
+        redis: redis,
+        middleware: middleware,
+        metadata: metadata
       }
     }
   end
+
   @doc """
   Kickoff work associated with worker.
 
@@ -65,21 +101,27 @@ defmodule Exq.Worker.Server do
   def handle_cast(:work, state) do
     state = %{state | middleware_state: Middleware.all(state.middleware)}
     state = %{state | pipeline: before_work(state)}
+
     case state |> Map.fetch!(:pipeline) |> Map.get(:terminated, false) do
       # case done to run the after hooks
       true -> nil
       _ -> GenServer.cast(self(), :dispatch)
     end
+
     {:noreply, state}
   end
-
 
   @doc """
   Dispatch work to the target module (call :perform method of target)
   """
   def handle_cast(:dispatch, state) do
-    dispatch_work(state.pipeline.assigns.worker_module, state.pipeline.assigns.job, state.metadata)
-    {:noreply, state }
+    dispatch_work(
+      state.pipeline.assigns.worker_module,
+      state.pipeline.assigns.job,
+      state.metadata
+    )
+
+    {:noreply, state}
   end
 
   @doc """
@@ -93,7 +135,7 @@ defmodule Exq.Worker.Server do
         state
       end
 
-    {:stop, :normal, state }
+    {:stop, :normal, state}
   end
 
   def handle_info({:DOWN, _, _, _, :normal}, state) do
@@ -109,10 +151,11 @@ defmodule Exq.Worker.Server do
   end
 
   def handle_info({:DOWN, _, :process, _, error}, state) do
-    error_message = error
-    |> Inspect.Algebra.to_doc(%Inspect.Opts{})
-    |> Inspect.Algebra.format(%Inspect.Opts{}.width)
-    |> to_string
+    error_message =
+      error
+      |> Inspect.Algebra.to_doc(%Inspect.Opts{})
+      |> Inspect.Algebra.format(%Inspect.Opts{}.width)
+      |> to_string
 
     state =
       if !has_pipeline_after_work_ran?(state.pipeline) do
@@ -128,19 +171,22 @@ defmodule Exq.Worker.Server do
     {:noreply, state}
   end
 
-##===========================================================
-## Internal Functions
-##===========================================================
+  ## ===========================================================
+  ## Internal Functions
+  ## ===========================================================
 
   def dispatch_work(worker_module, job, metadata) do
     # trap exit so that link can still track dispatch without crashing
     Process.flag(:trap_exit, true)
     worker = self()
-    pid = spawn_link fn ->
-      :ok = Metadata.associate(metadata, self(), job)
-      result = apply(worker_module, :perform, job.args)
-      GenServer.cast(worker, {:done, result})
-    end
+
+    pid =
+      spawn_link(fn ->
+        :ok = Metadata.associate(metadata, self(), job)
+        result = apply(worker_module, :perform, job.args)
+        GenServer.cast(worker, {:done, result})
+      end)
+
     Process.monitor(pid)
   end
 

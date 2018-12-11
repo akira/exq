@@ -28,11 +28,13 @@ defmodule Exq do
       name: top_supervisor(opts[:name]),
       strategy: :one_for_one,
       max_restarts: 20,
-      max_seconds: 5)
+      max_seconds: 5
+    )
   end
 
   def stop(nil), do: :ok
   def stop(pid) when is_pid(pid), do: Process.exit(pid, :shutdown)
+
   def stop(name) do
     name
     |> whereis
@@ -42,7 +44,7 @@ defmodule Exq do
   def whereis(name) do
     name
     |> top_supervisor
-    |> Process.whereis
+    |> Process.whereis()
   end
 
   @doc """
@@ -62,6 +64,7 @@ defmodule Exq do
   def subscribe(pid, queue) do
     GenServer.call(pid, {:subscribe, queue})
   end
+
   def subscribe(pid, queue, concurrency) do
     GenServer.call(pid, {:subscribe, queue, concurrency})
   end
@@ -82,7 +85,6 @@ defmodule Exq do
   def unsubscribe_all(pid) do
     GenServer.call(pid, :unsubscribe_all)
   end
-
 
   @doc """
   Get the job metadata

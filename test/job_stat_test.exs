@@ -29,25 +29,22 @@ defmodule JobStatTest do
   end
 
   def create_process_info(host) do
-    process_info = %Process{pid: self(),
-                            host: host,
-                            job: %Job{},
-                            started_at: Time.unix_seconds}
+    process_info = %Process{pid: self(), host: host, job: %Job{}, started_at: Time.unix_seconds()}
     serialized = Exq.Support.Process.encode(process_info)
     {process_info, serialized}
   end
 
   setup do
-    TestRedis.setup
-    on_exit(fn -> TestRedis.teardown end)
-    Exq.start_link
+    TestRedis.setup()
+    on_exit(fn -> TestRedis.teardown() end)
+    Exq.start_link()
 
     :ok
   end
 
   test "show realtime statistics" do
-    {:ok, time1} = DateTime.from_unix(1452173400000, :milliseconds)
-    {:ok, time2} = DateTime.from_unix(1452175515000, :milliseconds)
+    {:ok, time1} = DateTime.from_unix(1_452_173_400_000, :milliseconds)
+    {:ok, time2} = DateTime.from_unix(1_452_175_515_000, :milliseconds)
 
     JobStat.record_processed(:testredis, "test", nil, time1)
     JobStat.record_processed(:testredis, "test", nil, time2)
@@ -58,8 +55,15 @@ defmodule JobStatTest do
     Exq.start_link(mode: :api, name: ExqApi)
     {:ok, failures, successes} = Exq.Api.realtime_stats(ExqApi.Api)
 
-    assert List.keysort(failures, 0) == [{"2016-01-07 13:30:00Z", "1"}, {"2016-01-07 14:05:15Z", "1"}]
-    assert List.keysort(successes, 0) == [{"2016-01-07 13:30:00Z", "2"}, {"2016-01-07 14:05:15Z", "1"}]
+    assert List.keysort(failures, 0) == [
+             {"2016-01-07 13:30:00Z", "1"},
+             {"2016-01-07 14:05:15Z", "1"}
+           ]
+
+    assert List.keysort(successes, 0) == [
+             {"2016-01-07 13:30:00Z", "2"},
+             {"2016-01-07 14:05:15Z", "1"}
+           ]
   end
 
   test "show realtime statistics with no data" do
@@ -91,7 +95,7 @@ defmodule JobStatTest do
   end
 
   test "clear failed" do
-    Enum.each [1,2,3], fn(_) -> enqueue_and_fail_job(:testredis) end
+    Enum.each([1, 2, 3], fn _ -> enqueue_and_fail_job(:testredis) end)
     assert dead_jobs_count(:testredis) == 3
 
     JobStat.clear_failed(:testredis, "test")
@@ -125,8 +129,6 @@ defmodule JobStatTest do
     JobStat.cleanup_processes(:testredis, namespace, "host123")
     processes = Exq.Redis.JobStat.processes(:testredis, namespace)
     assert Enum.count(processes) == 1
-    assert Enum.find(processes, fn(process) -> process.host == "host456" end) != nil
+    assert Enum.find(processes, fn process -> process.host == "host456" end) != nil
   end
-
-
 end
