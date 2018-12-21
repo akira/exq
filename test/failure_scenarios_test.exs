@@ -1,5 +1,5 @@
 defmodule FailureScenariosTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import ExqTestUtil
 
   @moduletag :failure_scenarios
@@ -31,7 +31,7 @@ defmodule FailureScenariosTest do
   end
 
   test "handle Redis connection lost on manager" do
-    conn = FlakyConnection.start(redis_host(), redis_port())
+    conn = FlakyConnection.start(String.to_charlist(redis_host()), redis_port())
 
     {:ok, _} = Exq.start_link(port: conn.port)
 
@@ -54,13 +54,14 @@ defmodule FailureScenariosTest do
         ['127.0.0.1', redis_port(), agent]
       )
 
-    wait_long()
+    :timer.sleep(2000)
+
     assert_exq_up(Exq)
     Exq.stop(Exq)
   end
 
   test "handle Redis connection lost on enqueue" do
-    conn = FlakyConnection.start(redis_host(), redis_port())
+    conn = FlakyConnection.start(String.to_charlist(redis_host()), redis_port())
 
     # Start Exq but don't listen to any queues
     {:ok, _} = Exq.start_link(port: conn.port)
@@ -72,10 +73,10 @@ defmodule FailureScenariosTest do
 
     # enqueue with redis stopped
     enq_result = Exq.enqueue(Exq, "default", "FakeWorker", [])
-    assert enq_result == {:error, :closed}
+    assert enq_result == {:error, %Redix.ConnectionError{reason: :closed}}
 
     enq_result = Exq.enqueue_at(Exq, "default", DateTime.utc_now(), ExqTest.PerformWorker, [])
-    assert enq_result == {:error, :closed}
+    assert enq_result == {:error, %Redix.ConnectionError{reason: :closed}}
 
     # Starting Redis again and things should be back to normal
     wait_long()
@@ -93,7 +94,7 @@ defmodule FailureScenariosTest do
         ['127.0.0.1', redis_port(), agent]
       )
 
-    wait_long()
+    :timer.sleep(2000)
 
     assert_exq_up(Exq)
     Exq.stop(Exq)
