@@ -10,13 +10,13 @@ defmodule Exq.Support.Process do
   Serialize process to JSON
   """
   def encode(process) do
-    Config.serializer.encode_process(process)
+    Config.serializer().encode_process(process)
   end
 
   @doc """
   Decode JSON into process
   """
   def decode(serialized) do
-    Config.serializer.decode_process(serialized)
+    Config.serializer().decode_process(serialized)
   end
 end

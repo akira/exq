@@ -69,7 +69,7 @@ defmodule Exq.Middleware.Server do
   """
   def server_name(name) do
     name = name || Exq.Support.Config.get(:name)
-    "#{name}.Middleware.Server" |> String.to_atom
+    "#{name}.Middleware.Server" |> String.to_atom()
   end
 
   @doc false
@@ -77,9 +77,9 @@ defmodule Exq.Middleware.Server do
     :ok
   end
 
-##===========================================================
-## gen server callbacks
-##===========================================================
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
   def handle_cast({:push, middleware}, state) do
     {:noreply, List.insert_at(state, -1, middleware)}
@@ -93,9 +93,9 @@ defmodule Exq.Middleware.Server do
     {:ok, args}
   end
 
-##===========================================================
-## Internal Functions
-##===========================================================
+  ## ===========================================================
+  ## Internal Functions
+  ## ===========================================================
 
   defp default_middleware([]), do: []
   defp default_middleware(opts), do: opts[:default_middleware]

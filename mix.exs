@@ -2,16 +2,22 @@ defmodule Exq.Mixfile do
   use Mix.Project
 
   def project do
-    [ app: :exq,
+    [
+      app: :exq,
       version: "0.12.2",
       elixir: "~> 1.6",
       elixirc_paths: ["lib"],
       package: [
-        maintainers: ["Alex Kira", "zhongwencool", "Denis Tataurov", "Justin McNally", "Anantha Kumaran"],
+        maintainers: [
+          "Alex Kira",
+          "zhongwencool",
+          "Denis Tataurov",
+          "Justin McNally",
+          "Anantha Kumaran"
+        ],
         links: %{"GitHub" => "https://github.com/akira/exq"},
         licenses: ["Apache2.0"],
-        files: ~w(lib test) ++
-               ~w(LICENSE mix.exs README.md)
+        files: ~w(lib test) ++ ~w(LICENSE mix.exs README.md)
       ],
       description: """
       Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
@@ -25,7 +31,7 @@ defmodule Exq.Mixfile do
   # Configuration for the OTP application
   def application do
     [
-      mod: { Exq, [] },
+      mod: {Exq, []},
       applications: [:logger, :redix, :elixir_uuid]
     ]
   end
@@ -34,11 +40,11 @@ defmodule Exq.Mixfile do
   # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
   defp deps do
     [
-      { :elixir_uuid, ">= 1.2.0"},
-      { :redix, ">= 0.8.1"},
-      { :poison, ">= 1.2.0 or ~> 2.0"},
-      { :excoveralls, "~> 0.6", only: :test },
-      { :flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
+      {:elixir_uuid, ">= 1.2.0"},
+      {:redix, ">= 0.8.1"},
+      {:poison, ">= 1.2.0 or ~> 2.0"},
+      {:excoveralls, "~> 0.6", only: :test},
+      {:flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
 
       # docs
       {:ex_doc, "~> 0.10", only: :dev},

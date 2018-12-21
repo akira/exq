@@ -35,7 +35,6 @@ defmodule Exq.Api do
     GenServer.call(pid, {:remove_queue, queue})
   end
 
-
   @doc """
   Number of busy workers
 
@@ -118,6 +117,7 @@ defmodule Exq.Api do
   def queue_size(pid) do
     GenServer.call(pid, :queue_size)
   end
+
   def queue_size(pid, queue) do
     GenServer.call(pid, {:queue_size, queue})
   end
@@ -189,6 +189,7 @@ defmodule Exq.Api do
   def stats(pid, key) do
     GenServer.call(pid, {:stats, key})
   end
+
   def stats(pid, key, date) do
     GenServer.call(pid, {:stats, key, date})
   end

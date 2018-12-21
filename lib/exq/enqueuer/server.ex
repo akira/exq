@@ -27,9 +27,9 @@ defmodule Exq.Enqueuer.Server do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
-##===========================================================
-## gen server callbacks
-##===========================================================
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
   def init(opts) do
     {:ok, %State{redis: opts[:redis], namespace: opts[:namespace]}}
@@ -42,13 +42,17 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def handle_cast({:enqueue_at, from, queue, time, worker, args, options}, state) do
-    response = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
+    response =
+      JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
+
     GenServer.reply(from, response)
     {:noreply, state}
   end
 
   def handle_cast({:enqueue_in, from, queue, offset, worker, args, options}, state) do
-    response = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
+    response =
+      JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
+
     GenServer.reply(from, response)
     {:noreply, state}
   end
@@ -59,12 +63,16 @@ defmodule Exq.Enqueuer.Server do
   end
 
   def handle_call({:enqueue_at, queue, time, worker, args, options}, _from, state) do
-    response = JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
+    response =
+      JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
+
     {:reply, response, state}
   end
 
   def handle_call({:enqueue_in, queue, offset, worker, args, options}, _from, state) do
-    response = JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
+    response =
+      JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
+
     {:reply, response, state}
   end
 
@@ -76,7 +84,6 @@ defmodule Exq.Enqueuer.Server do
 
   def server_name(name) do
     name = name || Config.get(:name)
-    "#{name}.Enqueuer" |> String.to_atom
+    "#{name}.Enqueuer" |> String.to_atom()
   end
 end
-

@@ -9,15 +9,17 @@ defmodule JobQueueTest do
   @host 'host-name'
 
   setup do
-    TestRedis.setup
-    on_exit fn ->
-      TestRedis.teardown
-    end
+    TestRedis.setup()
+
+    on_exit(fn ->
+      TestRedis.teardown()
+    end)
   end
 
   def assert_dequeue_job(queues, expected_result) do
     jobs = JobQueue.dequeue(:testredis, "test", @host, queues)
-    result = jobs |> Enum.reject(fn({:ok, {status, _}}) -> status == :none end)
+    result = jobs |> Enum.reject(fn {:ok, {status, _}} -> status == :none end)
+
     if is_boolean(expected_result) do
       assert expected_result == !Enum.empty?(result)
     else
@@ -87,9 +89,18 @@ defmodule JobQueueTest do
   end
 
   test "scheduler_dequeue enqueue_at" do
-    JobQueue.enqueue_at(:testredis, "test", "default", DateTime.utc_now, MyWorker, [], [])
+    JobQueue.enqueue_at(:testredis, "test", "default", DateTime.utc_now(), MyWorker, [], [])
     {jid, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [], retry: true)
-    JobQueue.enqueue_job_at(:testredis, "test", job_serialized, jid, DateTime.utc_now, "test:retry")
+
+    JobQueue.enqueue_job_at(
+      :testredis,
+      "test",
+      job_serialized,
+      jid,
+      DateTime.utc_now(),
+      "test:retry"
+    )
+
     assert JobQueue.scheduler_dequeue(:testredis, "test") == 2
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], false)
@@ -108,11 +119,11 @@ defmodule JobQueueTest do
           retry: true,
           queue: "default",
           class: "MyWorker",
-          jid: UUID.uuid4,
+          jid: UUID.uuid4(),
           error_class: nil,
           error_message: "failed",
-          failed_at: Time.unix_seconds,
-          enqueued_at: Time.unix_seconds,
+          failed_at: Time.unix_seconds(),
+          enqueued_at: Time.unix_seconds(),
           finished_at: nil,
           processor: nil,
           args: []
@@ -125,13 +136,13 @@ defmodule JobQueueTest do
   end
 
   test "scheduler_dequeue max_score" do
-    add_usecs = fn(time, offset) ->
+    add_usecs = fn time, offset ->
       base = time |> DateTime.to_unix(:microseconds)
       DateTime.from_unix!(base + offset, :microseconds)
     end
 
     JobQueue.enqueue_in(:testredis, "test", "default", 300, MyWorker, [], [])
-    now = DateTime.utc_now
+    now = DateTime.utc_now()
     time1 = add_usecs.(now, 140_000_000)
     JobQueue.enqueue_at(:testredis, "test", "default", time1, MyWorker, [], [])
     time2 = add_usecs.(now, 150_000_000)
@@ -158,7 +169,6 @@ defmodule JobQueueTest do
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, "default") == 5
     assert JobQueue.queue_size(api_state.redis, api_state.namespace, :scheduled) == 0
 
-
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], true)
@@ -168,9 +178,9 @@ defmodule JobQueueTest do
   end
 
   test "full_key" do
-    assert JobQueue.full_key("exq","k1") == "exq:k1"
-    assert JobQueue.full_key("","k1") == "k1"
-    assert JobQueue.full_key(nil,"k1") == "k1"
+    assert JobQueue.full_key("exq", "k1") == "exq:k1"
+    assert JobQueue.full_key("", "k1") == "k1"
+    assert JobQueue.full_key(nil, "k1") == "k1"
   end
 
   test "creates and returns a jid" do
@@ -191,7 +201,9 @@ defmodule JobQueueTest do
   end
 
   test "to_job_serialized using module string" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", "MyWorker/perform", [], max_retries: 10)
+    {_jid, serialized} =
+      JobQueue.to_job_serialized("default", "MyWorker/perform", [], max_retries: 10)
+
     job = Job.decode(serialized)
     assert job.class == "MyWorker/perform"
     assert job.retry == 10
@@ -200,7 +212,7 @@ defmodule JobQueueTest do
   test "max_retries from runtime environment" do
     System.put_env("EXQ_MAX_RETRIES", "3")
 
-    Mix.Config.persist([exq: [max_retries: {:system, "EXQ_MAX_RETRIES"}]])
+    Mix.Config.persist(exq: [max_retries: {:system, "EXQ_MAX_RETRIES"}])
 
     {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
     assert jid != nil

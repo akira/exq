@@ -4,18 +4,20 @@ defmodule Exq.RedisTest do
   alias Exq.Redis.Connection
 
   setup_all do
-    ExqTestUtil.reset_config
-    TestRedis.setup
-    on_exit fn ->
-      ExqTestUtil.reset_config
-      TestRedis.teardown
-    end
+    ExqTestUtil.reset_config()
+    TestRedis.setup()
+
+    on_exit(fn ->
+      ExqTestUtil.reset_config()
+      TestRedis.teardown()
+    end)
   end
 
   setup do
-    on_exit fn ->
-      Connection.flushdb! :testredis
-    end
+    on_exit(fn ->
+      Connection.flushdb!(:testredis)
+    end)
+
     :ok
   end
 
@@ -39,13 +41,13 @@ defmodule Exq.RedisTest do
   end
 
   test "lpop empty" do
-    assert Connection.lpop(:testredis, "bogus")  == {:ok, nil}
+    assert Connection.lpop(:testredis, "bogus") == {:ok, nil}
   end
 
   test "rpush / lpop" do
     Connection.rpush!(:testredis, "akey", "avalue")
-    assert Connection.lpop(:testredis, "akey")  == {:ok, "avalue"}
-    assert Connection.lpop(:testredis, "akey")  == {:ok, nil}
+    assert Connection.lpop(:testredis, "akey") == {:ok, "avalue"}
+    assert Connection.lpop(:testredis, "akey") == {:ok, nil}
   end
 
   test "zadd / zcard / zrem" do
@@ -64,12 +66,31 @@ defmodule Exq.RedisTest do
 
     assert Connection.zrangebyscore!(:testredis, "akey", 0, "111111.111111") == []
     assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123455") == ["avalue"]
-    assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123456") == ["avalue", "bvalue"]
-    assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123457") == ["avalue", "bvalue", "cvalue"]
-    assert Connection.zrangebyscore!(:testredis, "akey", 0, "999999.999999") == ["avalue", "bvalue", "cvalue"]
+
+    assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123456") == [
+             "avalue",
+             "bvalue"
+           ]
+
+    assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123457") == [
+             "avalue",
+             "bvalue",
+             "cvalue"
+           ]
+
+    assert Connection.zrangebyscore!(:testredis, "akey", 0, "999999.999999") == [
+             "avalue",
+             "bvalue",
+             "cvalue"
+           ]
 
     assert Connection.zrem!(:testredis, "akey", "bvalue") == 1
-    assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123457") == ["avalue", "cvalue"]
+
+    assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123457") == [
+             "avalue",
+             "cvalue"
+           ]
+
     assert Connection.zrem!(:testredis, "akey", "avalue") == 1
     assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123456") == []
     assert Connection.zrangebyscore!(:testredis, "akey", 0, "123456.123457") == ["cvalue"]
@@ -93,7 +114,7 @@ defmodule Exq.RedisTest do
 
   test "flushdb" do
     Connection.sadd!(:testredis, "theset", "amember")
-    Connection.flushdb! :testredis
+    Connection.flushdb!(:testredis)
     assert Connection.smembers!(:testredis, "theset") == []
   end
 end

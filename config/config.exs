@@ -1,7 +1,6 @@
 use Mix.Config
 
-config :logger, :console,
-  format: "\n$date $time [$level]: $message \n"
+config :logger, :console, format: "\n$date $time [$level]: $message \n"
 
 config :exq,
   name: Exq,
@@ -18,9 +17,14 @@ config :exq,
   genserver_timeout: 5000,
   shutdown_timeout: 5000,
   dead_max_jobs: 10_000,
-  dead_timeout_in_seconds: 180 * 24 * 60 * 60, # 6 months
+  # 6 months
+  dead_timeout_in_seconds: 180 * 24 * 60 * 60,
   max_retries: 25,
-  middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
-    Exq.Middleware.Logger]
+  middleware: [
+    Exq.Middleware.Stats,
+    Exq.Middleware.Job,
+    Exq.Middleware.Manager,
+    Exq.Middleware.Logger
+  ]
 
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"

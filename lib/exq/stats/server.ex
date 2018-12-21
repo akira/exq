@@ -18,17 +18,20 @@ defmodule Exq.Stats.Server do
   require Logger
 
   defmodule State do
-    defstruct redis: nil, queue: :queue.new
+    defstruct redis: nil, queue: :queue.new()
   end
 
   @doc """
   Add in progress worker process
   """
   def add_process(stats, namespace, worker, host, job_serialized) do
-    process_info = %Process{pid: worker,
-                            host: host,
-                            job: Exq.Support.Config.serializer.decode_job(job_serialized),
-                            started_at: Time.unix_seconds}
+    process_info = %Process{
+      pid: worker,
+      host: host,
+      job: Exq.Support.Config.serializer().decode_job(job_serialized),
+      started_at: Time.unix_seconds()
+    }
+
     serialized = Exq.Support.Process.encode(process_info)
     GenServer.cast(stats, {:add_process, namespace, process_info, serialized})
     {:ok, process_info}
@@ -69,19 +72,18 @@ defmodule Exq.Stats.Server do
 
   def server_name(name) do
     name = name || Exq.Support.Config.get(:name)
-    "#{name}.Stats" |> String.to_atom
+    "#{name}.Stats" |> String.to_atom()
   end
 
   def force_flush(stats) do
     GenServer.call(stats, :force_flush)
   end
 
+  ## ===========================================================
+  ## gen server callbacks
+  ## ===========================================================
 
-##===========================================================
-## gen server callbacks
-##===========================================================
-
-  def start_link(opts \\[]) do
+  def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
@@ -106,8 +108,9 @@ defmodule Exq.Stats.Server do
     try do
       JobStat.cleanup_processes(state.redis, namespace, host)
     rescue
-      e -> Logger.error("Error cleaning up processes -  #{Kernel.inspect e}")
+      e -> Logger.error("Error cleaning up processes -  #{Kernel.inspect(e)}")
     end
+
     {:reply, :ok, state}
   end
 
@@ -124,17 +127,18 @@ defmodule Exq.Stats.Server do
     :ok
   end
 
-
-##===========================================================
-## Methods
-##===========================================================
+  ## ===========================================================
+  ## Methods
+  ## ===========================================================
   def process_queue(queue, state, redis_batch, size \\ 0) do
     case :queue.out(queue) do
-      {:empty, q}          ->
+      {:empty, q} ->
         if size > 0 do
           Connection.qp!(state.redis, redis_batch)
         end
+
         q
+
       {{:value, msg}, q} ->
         if size < Config.get(:stats_batch_size) do
           redis_batch = redis_batch ++ generate_instructions(msg)
@@ -150,12 +154,15 @@ defmodule Exq.Stats.Server do
   def generate_instructions({:add_process, namespace, process_info, serialized}) do
     JobStat.add_process_commands(namespace, process_info, serialized)
   end
+
   def generate_instructions({:record_processed, namespace, job}) do
     JobStat.record_processed_commands(namespace, job)
   end
+
   def generate_instructions({:record_failure, namespace, error, job}) do
     JobStat.record_failure_commands(namespace, error, job)
   end
+
   def generate_instructions({:process_terminated, namespace, process, serialized}) do
     JobStat.remove_process_commands(namespace, process, serialized)
   end
