@@ -5,7 +5,7 @@ defmodule Exq.Mixfile do
     [
       app: :exq,
       version: "0.12.2",
-      elixir: "~> 1.3",
+      elixir: "~> 1.6",
       elixirc_paths: ["lib"],
       package: [
         maintainers: [
@@ -41,16 +41,16 @@ defmodule Exq.Mixfile do
   defp deps do
     [
       {:elixir_uuid, ">= 1.2.0"},
-      {:redix, ">= 0.5.0 and < 0.8.0"},
+      {:redix, ">= 0.8.1"},
       {:poison, ">= 1.2.0 or ~> 2.0"},
       {:excoveralls, "~> 0.6", only: :test},
-      {:redix_sentinel, "~> 0.5.0", only: :test},
       {:flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
 
       # docs
       {:ex_doc, "~> 0.10", only: :dev},
       {:earmark, "~> 1.0", only: :dev},
-      {:inch_ex, "~> 0.5", only: :dev}
+      {:inch_ex, "~> 0.5", only: :dev},
+      {:ranch, "~> 1.6", only: :test, override: true}
     ]
   end
 end

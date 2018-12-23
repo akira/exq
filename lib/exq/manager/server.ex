@@ -36,8 +36,7 @@ defmodule Exq.Manager.Server do
     * `:port` - Redis port (defaults to 6379)
     * `:database` - Redis Database number (used for isolation. Defaults to 0).
     * `:password` - Redis authentication password (optional, off by default).
-    * `:reconnect_on_sleep` - (backoff) The time (in milliseconds) to wait before trying to
-      reconnect when a network error occurs.
+    * `:redis_options` - Additional options provided to Redix
     * TODO: What about max_reconnection_attempts
 
   ## Job lifecycle

@@ -199,20 +199,21 @@ config :exq,
 
 ### Sentinel:
 
-Exq by default uses [Redix](https://github.com/whatyouhide/redix)
-which doesn't support Redis Sentinel. To use Sentinel, add
-[RedixSentinel](https://github.com/ananthakumaran/redix_sentinel) to
-the list of dependencies. Configure `:redis_worker ({module, start_link_args})` appropriately.
+Exq uses [Redix](https://github.com/whatyouhide/redix) client for
+communication with redis server. The client can be configured to use
+sentinel via `redis_options`. Note: you need to have Redix 0.9.0+.
 
 
 ```elixir
 config :exq
-  redis_worker: {RedixSentinel, [
-      [role: "master", group: "exq", sentinels: [[host: "127.0.0.1", port: 6666]]],
-      [database: 0, password: nil],
-      [backoff: 100, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]
-    ]}
-  ...
+  redis_options: [
+    sentinel: [sentinels: [[host: "127.0.0.1", port: 6666]], group: "exq"],
+    database: 0,
+    password: nil,
+    timeout: 5000,
+    name: Exq.Redis.Client,
+    socket_opts: []
+  ]
 ```
 
 

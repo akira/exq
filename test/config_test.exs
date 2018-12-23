@@ -102,13 +102,17 @@ defmodule Exq.ConfigTest do
   end
 
   test "connection_opts" do
-    Mix.Config.persist(exq: [reconnect_on_sleep: 100, redis_timeout: 5000])
+    Mix.Config.persist(exq: [redis_options: [backoff_initial: 100, sync_connect: true]])
 
-    [backoff: reconnect_on_sleep, timeout: timeout, name: client_name, socket_opts: []] =
-      Exq.Support.Opts.connection_opts()
+    [
+      name: client_name,
+      socket_opts: [],
+      backoff_initial: backoff_initial,
+      sync_connect: sync_connect
+    ] = Exq.Support.Opts.connection_opts()
 
-    assert reconnect_on_sleep == 100
-    assert timeout == 5000
+    assert backoff_initial == 100
+    assert sync_connect == true
     assert client_name == nil
   end
 
@@ -126,8 +130,7 @@ defmodule Exq.ConfigTest do
       ]
     )
 
-    {Redix, [_redis_opts, _connection_opts], server_opts} =
-      Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     [
       scheduler_enable: scheduler_enable,
@@ -175,8 +178,7 @@ defmodule Exq.ConfigTest do
 
     Mix.Config.persist(exq: [queues: [{"default", 1000}, {"test1", 2000}]])
 
-    {Redix, [_redis_opts, _connection_opts], server_opts} =
-      Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:queues] == ["default", "test1"]
     assert server_opts[:concurrency] == [{"default", 1000, 0}, {"test1", 2000, 0}]
@@ -185,8 +187,7 @@ defmodule Exq.ConfigTest do
   test "api redis_worker_opts" do
     Mix.Config.persist(exq: [])
 
-    {Redix, [_redis_opts, _connection_opts], server_opts} =
-      Exq.Support.Opts.redis_worker_opts(mode: :api)
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :api)
 
     [name: name, namespace: namespace, redis: redis, mode: mode] = server_opts
     assert namespace == "test"
@@ -214,8 +215,7 @@ defmodule Exq.ConfigTest do
       ]
     )
 
-    {Redix, [_redis_opts, _connection_opts], server_opts} =
-      Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:namespace] == "test"
     assert server_opts[:concurrency] == [{"default", 333, 0}]
@@ -234,17 +234,8 @@ defmodule Exq.ConfigTest do
       ]
     )
 
-    {Redix, [_redis_opts, _connection_opts], server_opts} =
-      Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:concurrency] == [{"default", :infinity, 0}]
-  end
-
-  test "custom redis module" do
-    with_application_env(:exq, :redis_worker, {RedisWorker, [1, 2]}, fn ->
-      {module, args, _server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
-      assert module == RedisWorker
-      assert args == [1, 2]
-    end)
   end
 end
