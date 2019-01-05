@@ -35,7 +35,7 @@ Some OTP related documentation to look at:
 
 * GenServer: http://elixir-lang.org/getting-started/mix-otp/genserver.html
 * Task: https://hexdocs.pm/elixir/Task.html
-* GenStage: https://hexdocs.pm/gen_stage/Experimental.GenStage.html
+* GenStage: https://hexdocs.pm/gen_stage/GenStage.html
 * Supervisor: http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html
 * OTP: http://erlang.org/doc/
 
