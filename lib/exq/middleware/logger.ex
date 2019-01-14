@@ -22,8 +22,8 @@ defmodule Exq.Middleware.Logger do
   end
 
   defp delta(%Pipeline{assigns: assigns}) do
-    now_usecs = DateTime.utc_now() |> DateTime.to_unix(:microseconds)
-    started_usecs = assigns.started_at |> DateTime.to_unix(:microseconds)
+    now_usecs = DateTime.utc_now() |> DateTime.to_unix(:microsecond)
+    started_usecs = assigns.started_at |> DateTime.to_unix(:microsecond)
     now_usecs - started_usecs
   end
 
