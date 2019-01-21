@@ -137,8 +137,8 @@ defmodule JobQueueTest do
 
   test "scheduler_dequeue max_score" do
     add_usecs = fn time, offset ->
-      base = time |> DateTime.to_unix(:microseconds)
-      DateTime.from_unix!(base + offset, :microseconds)
+      base = time |> DateTime.to_unix(:microsecond)
+      DateTime.from_unix!(base + offset, :microsecond)
     end
 
     JobQueue.enqueue_in(:testredis, "test", "default", 300, MyWorker, [], [])

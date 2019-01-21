@@ -2,10 +2,10 @@ defmodule Exq.Support.Time do
   import DateTime, only: [utc_now: 0, to_unix: 2, from_unix!: 2]
 
   def offset_from_now(offset) do
-    now_micro_sec = utc_now() |> to_unix(:microseconds)
+    now_micro_sec = utc_now() |> to_unix(:microsecond)
     now = now_micro_sec
 
-    from_unix!(round(now + offset * 1_000_000), :microseconds)
+    from_unix!(round(now + offset * 1_000_000), :microsecond)
   end
 
   def time_to_score(time \\ utc_now()) do
