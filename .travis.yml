@@ -6,6 +6,9 @@ matrix:
     - language: elixir
       otp_release: 21.0
       elixir: 1.7
+    - language: elixir
+      otp_release: 21.0
+      elixir: 1.8
 before_script:
   - MIX_ENV=test mix do deps.get
   - MIX_ENV=test mix compile --warnings-as-errors
