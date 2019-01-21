@@ -5,10 +5,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+
+## [0.13.0] - 2019-01-21
+
+### Removed
+- Due to library dependencies, support for Elixir 1.3, Elixir 1.4 and OTP 18.0, OTP 19.0 has been removed.
+- Redix version older than 0.8.1 is no longer supported.
+- Config options `reconnect_on_sleep` and `redis_timeout` are now removed.
+
+### Added
+- Support for Redix >= 0.8.1 by @ryansch and @ananthakumaran.
+- Configuration for Mix Format by @chulkilee.
+- Use :microsecond vs :microseconds by @KalvinHom.
+
+## Changed
+- Redis options are now passed in via `redis_options` by @ryansch and @ananthakumaran.
+- Removed redix_sentinel dependency, now supported by new Redix version by @ananthakumaran.
+
 ## [0.12.2] - 2018-10-14
 
 ### Fixed
-- Don't assume redis_opts is enumerable by @ryansch
+- Don't assume redis_opts is enumerable by @ryansch.
 
 ### Added
 - Add {:system, VAR} format support for more config params by @LysanderGG
