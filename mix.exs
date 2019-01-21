@@ -45,7 +45,7 @@ defmodule Exq.Mixfile do
       {:flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
 
       # docs
-      {:ex_doc, "~> 0.10", only: :dev},
+      {:ex_doc, "~> 0.19", only: :dev},
       {:earmark, "~> 1.0", only: :dev},
       {:inch_ex, "~> 0.5", only: :dev},
       {:ranch, "~> 1.6", only: :test, override: true}
