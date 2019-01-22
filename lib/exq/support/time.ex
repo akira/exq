@@ -15,7 +15,7 @@ defmodule Exq.Support.Time do
   end
 
   def unix_seconds(time \\ utc_now()) do
-    to_unix(time, :microseconds) / 1_000_000.0
+    to_unix(time, :microsecond) / 1_000_000.0
   end
 
   def format_current_date(current_date) do
