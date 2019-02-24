@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Support for configurable JSON parser, with Jason as default by @chulkilee.
+
+### Fixed
 - Remove redundant time output for worker log by @akira.
 - Fix deprecated time warning by @gvl.
 
