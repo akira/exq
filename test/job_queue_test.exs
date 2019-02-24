@@ -188,9 +188,8 @@ defmodule JobQueueTest do
     assert jid != nil
 
     [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
-    job = Poison.decode!(job_str, as: %Exq.Support.Job{})
-    assert job.jid == jid
-    assert job.retry == Exq.Support.Config.get(:max_retries)
+    expected_max_retries = Exq.Support.Config.get(:max_retries)
+    assert %{"jid" => ^jid, "retry" => ^expected_max_retries} = Jason.decode!(job_str)
   end
 
   test "to_job_serialized using module atom" do
@@ -218,8 +217,6 @@ defmodule JobQueueTest do
     assert jid != nil
 
     [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
-    job = Poison.decode!(job_str, as: %Exq.Support.Job{})
-    assert job.jid == jid
-    assert job.retry == 3
+    assert %{"jid" => ^jid, "retry" => 3} = Jason.decode!(job_str)
   end
 end

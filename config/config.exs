@@ -20,6 +20,7 @@ config :exq,
   # 6 months
   dead_timeout_in_seconds: 180 * 24 * 60 * 60,
   max_retries: 25,
+  json_library: Jason,
   middleware: [
     Exq.Middleware.Stats,
     Exq.Middleware.Job,

@@ -1,20 +1,24 @@
 defmodule Exq.Serializers.JsonSerializer do
   @behaviour Exq.Serializers.Behaviour
 
+  defp json_library do
+    Application.fetch_env!(:exq, :json_library)
+  end
+
   def decode(json) do
-    Poison.decode(json)
+    json_library().decode(json)
   end
 
   def encode(e) do
-    Poison.encode(e)
+    json_library().encode(e)
   end
 
   def decode!(json) do
-    Poison.decode!(json)
+    json_library().decode!(json)
   end
 
   def encode!(e) do
-    Poison.encode!(e)
+    json_library().encode!(e)
   end
 
   def decode_job(serialized) do

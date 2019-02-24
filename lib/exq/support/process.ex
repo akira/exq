@@ -9,8 +9,13 @@ defmodule Exq.Support.Process do
   @doc """
   Serialize process to JSON
   """
-  def encode(process) do
-    Config.serializer().encode_process(process)
+  def encode(%__MODULE__{} = process) do
+    Config.serializer().encode_process(%{
+      pid: process.pid,
+      host: process.host,
+      job: Exq.Support.Job.encode(process.job),
+      started_at: process.started_at
+    })
   end
 
   @doc """
