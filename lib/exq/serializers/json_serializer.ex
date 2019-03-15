@@ -1,8 +1,9 @@
 defmodule Exq.Serializers.JsonSerializer do
   @behaviour Exq.Serializers.Behaviour
+  alias Exq.Support.Config
 
   defp json_library do
-    Application.fetch_env!(:exq, :json_library)
+    Config.get(:json_library)
   end
 
   def decode(json) do
