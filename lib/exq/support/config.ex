@@ -8,6 +8,7 @@ defmodule Exq.Support.Config do
     redis_options: [],
     namespace: "exq",
     queues: ["default"],
+    json_library: Jason,
     scheduler_enable: true,
     concurrency: 100,
     scheduler_poll_timeout: 200,
