@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.13.2] - 2019-03-15
+
+### Fixed
+- Fix json_library issue #369 needing addition to config file. Add default value.
 
 ## [0.13.1] - 2019-02-24
 
