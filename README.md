@@ -71,9 +71,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   end
 ```
 
-Then run ```mix deps.get```.  Please note that this version requires Elixir 1.3, and has no Timex dependencies.
-
-For Elixir 1.2 or older, you will need to use Exq version 0.7.2 in hex, and you will also need to add :tzdata to your application list.
+Then run ```mix deps.get```. 
 
 
 ### Configuration:
