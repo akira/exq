@@ -33,15 +33,13 @@ defmodule Exq.Enqueuer.EnqueueApi do
       end
 
       def enqueue(pid, queue, worker, args, options) do
-        GenServer.call(
-          pid,
-          {:enqueue, queue, worker, args, options},
-          Config.get(:genserver_timeout)
-        )
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue(pid, queue, worker, args, options)
       end
 
       def enqueue(pid, from, queue, worker, args, options) do
-        GenServer.cast(pid, {:enqueue, from, queue, worker, args, options})
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue(pid, from, queue, worker, args, options)
       end
 
       @doc """
@@ -64,15 +62,13 @@ defmodule Exq.Enqueuer.EnqueueApi do
       end
 
       def enqueue_at(pid, queue, time, worker, args, options) do
-        GenServer.call(
-          pid,
-          {:enqueue_at, queue, time, worker, args, options},
-          Config.get(:genserver_timeout)
-        )
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue_at(pid, queue, time, worker, args, options)
       end
 
       def enqueue_at(pid, from, queue, time, worker, args, options) do
-        GenServer.cast(pid, {:enqueue_at, from, queue, time, worker, args, options})
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue_at(pid, from, queue, time, worker, args, options)
       end
 
       @doc """
@@ -95,15 +91,13 @@ defmodule Exq.Enqueuer.EnqueueApi do
       end
 
       def enqueue_in(pid, queue, offset, worker, args, options) do
-        GenServer.call(
-          pid,
-          {:enqueue_in, queue, offset, worker, args, options},
-          Config.get(:genserver_timeout)
-        )
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue_in(pid, queue, offset, worker, args, options)
       end
 
       def enqueue_in(pid, from, queue, offset, worker, args, options) do
-        GenServer.cast(pid, {:enqueue_in, from, queue, offset, worker, args, options})
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue_in(pid, from, queue, offset, worker, args, options)
       end
     end
   end

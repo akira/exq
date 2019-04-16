@@ -30,7 +30,8 @@ defmodule Exq.Support.Config do
       Exq.Middleware.Job,
       Exq.Middleware.Manager,
       Exq.Middleware.Logger
-    ]
+    ],
+    queue_adapter: Exq.Adapters.Queue.GenServer
   }
 
   def get(key) do
