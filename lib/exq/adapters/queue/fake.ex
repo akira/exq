@@ -1,4 +1,4 @@
-defmodule Exq.Adapters.Queue.Test do
+defmodule Exq.Adapters.Queue.Fake do
   @moduledoc false
 
   @behaviour Exq.Adapters.Queue

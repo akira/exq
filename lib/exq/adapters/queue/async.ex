@@ -1,4 +1,4 @@
-defmodule Exq.Adapters.Queue.GenServer do
+defmodule Exq.Adapters.Queue.Async do
   @moduledoc false
   alias Exq.Support.Config
 
