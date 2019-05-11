@@ -1,5 +1,9 @@
 defmodule Exq.Adapters.Queue.Async do
-  @moduledoc false
+  @moduledoc """
+  Asynchronous queue. Enqueue the job by using the GenServer API.
+
+  Default queue. Designed to be used in production.
+  """
   alias Exq.Support.Config
 
   @behaviour Exq.Adapters.Queue

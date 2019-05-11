@@ -1,5 +1,9 @@
 defmodule Exq.Adapters.Queue.Fake do
-  @moduledoc false
+  @moduledoc """
+  Fake queue. Do not enqueue the job but execute it immediately.
+
+  Designed to be used when testing your application.
+  """
 
   @behaviour Exq.Adapters.Queue
 
