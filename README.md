@@ -403,7 +403,7 @@ By default, your Redis server could be open to the world. As by default, Redis c
 
 Exq relies on unique node identifiers to correctly handle jobs currently in
 progress. Furthermore if a node crashes, leaving jobs marked as in progress
-but incomplete, is it the responsibility of a node with the same identifier
+but incomplete, it is the responsibility of a node with the same identifier
 to come online and requeue the failed jobs.
 
 By default Exq uses the machine's hostname as a node identifier, which works
