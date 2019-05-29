@@ -14,7 +14,7 @@ defmodule Exq.Mixfile do
           "Anantha Kumaran"
         ],
         links: %{"GitHub" => "https://github.com/akira/exq"},
-        licenses: ["Apache2.0"],
+        licenses: ["Apache 2.0"],
         files: ~w(lib test) ++ ~w(LICENSE mix.exs README.md)
       ],
       description: """
