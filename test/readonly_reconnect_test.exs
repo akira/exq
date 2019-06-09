@@ -1,4 +1,4 @@
-defmodule ExqTest do
+defmodule ReadonlyReconnectTest do
   use ExUnit.Case
   import ExqTestUtil
 
