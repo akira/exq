@@ -109,6 +109,7 @@ defmodule TestRedis do
   def start do
     unless Config.get(:test_with_local_redis) == false do
       [] = :os.cmd('redis-server test/test-redis.conf')
+      [] = :os.cmd('redis-server test/test-redis-replica.conf')
       [] = :os.cmd('redis-server test/test-sentinel.conf --sentinel')
       :timer.sleep(500)
     end
@@ -117,6 +118,7 @@ defmodule TestRedis do
   def stop do
     unless Config.get(:test_with_local_redis) == false do
       [] = :os.cmd('redis-cli -p 6555 shutdown')
+      [] = :os.cmd('redis-cli -p 6556 shutdown')
       [] = :os.cmd('redis-cli -p 6666 shutdown')
     end
   end
