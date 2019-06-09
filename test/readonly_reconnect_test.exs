@@ -1,7 +1,6 @@
 defmodule ExqTest do
   use ExUnit.Case
   import ExqTestUtil
-  import ExUnit.CaptureLog
 
   setup do
     on_exit(fn ->
