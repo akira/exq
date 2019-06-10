@@ -33,11 +33,8 @@ defmodule ReadonlyReconnectTest do
     assert redis == pid
   end
 
-  test "pass through other errors", %{redis: redis} do
-    Exq.Redis.Connection.q(:testredis, ["GETS", "key"])
-    refute_received({:EXIT, pid, :killed})
-
-    Exq.Redis.Connection.qp(:testredis, [["GETS", "key"]])
-    refute_received({:EXIT, pid, :killed})
+  test "pass through other errors" do
+    assert {:error, %Redix.Error{}} = Exq.Redis.Connection.q(:testredis, ["GETS", "key"])
+    assert {:ok, [%Redix.Error{}]} = Exq.Redis.Connection.qp(:testredis, [["GETS", "key"]])
   end
 end
