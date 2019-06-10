@@ -3,30 +3,41 @@ defmodule ReadonlyReconnectTest do
   import ExqTestUtil
 
   setup do
-    on_exit(fn ->
-      wait()
-      TestRedis.teardown()
-    end)
-    :ok
-  end
-
-  test "test disconnect on read-only errors with single command" do
     Process.flag(:trap_exit, true)
     {:ok, redis} = Redix.start_link(host: "127.0.0.1", port: 6556)
     Process.register(redis, :testredis)
 
+    on_exit(fn ->
+      wait()
+      TestRedis.teardown()
+    end)
+
+    {:ok, redis: redis}
+  end
+
+  test "disconnect on read-only errors with single command", %{redis: redis} do
     Exq.Redis.Connection.q(:testredis, ["SET", "key", "value"])
     assert_received({:EXIT, pid, :killed})
     assert redis == pid
   end
 
-  test "test disconnect on read-only errors with command pipeline" do
-    Process.flag(:trap_exit, true)
-    {:ok, redis} = Redix.start_link(host: "127.0.0.1", port: 6556)
-    Process.register(redis, :testredis)
-
+  test "disconnect on read-only errors with command pipeline", %{redis: redis} do
     Exq.Redis.Connection.qp(:testredis, [["GET", "key"], ["SET", "key", "value"]])
     assert_received({:EXIT, pid, :killed})
     assert redis == pid
+  end
+
+  test "disconnect on read-only errors with command pipeline returning values", %{redis: redis} do
+    Exq.Redis.Connection.qp!(:testredis, [["GET", "key"], ["SET", "key", "value"]])
+    assert_received({:EXIT, pid, :killed})
+    assert redis == pid
+  end
+
+  test "pass through other errors", %{redis: redis} do
+    Exq.Redis.Connection.q(:testredis, ["GETS", "key"])
+    refute_received({:EXIT, pid, :killed})
+
+    Exq.Redis.Connection.qp(:testredis, [["GETS", "key"]])
+    refute_received({:EXIT, pid, :killed})
   end
 end

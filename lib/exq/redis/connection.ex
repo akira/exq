@@ -172,11 +172,6 @@ defmodule Exq.Redis.Connection do
     |> handle_responses(redis)
   end
 
-  defp handle_response(%{message: "READONLY" <> _rest} = error, redis) do
-    disconnect(redis)
-    error
-  end
-
   defp handle_response({:error, %{message: "READONLY" <> _rest}} = error, redis) do
     disconnect(redis)
     error
