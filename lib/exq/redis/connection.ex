@@ -155,14 +155,68 @@ defmodule Exq.Redis.Connection do
   end
 
   def q(redis, command) do
-    Redix.command(redis, command, timeout: Config.get(:redis_timeout))
+    redis
+    |> Redix.command(command, timeout: Config.get(:redis_timeout))
+    |> handle_response(redis)
   end
 
   def qp(redis, command) do
-    Redix.pipeline(redis, command, timeout: Config.get(:redis_timeout))
+    redis
+    |> Redix.pipeline(command, timeout: Config.get(:redis_timeout))
+    |> handle_responses(redis)
   end
 
   def qp!(redis, command) do
-    Redix.pipeline!(redis, command, timeout: Config.get(:redis_timeout))
+    redis
+    |> Redix.pipeline!(command, timeout: Config.get(:redis_timeout))
+    |> handle_responses(redis)
+  end
+
+  defp handle_response({:error, %{message: "READONLY" <> _rest}} = error, redis) do
+    disconnect(redis)
+    error
+  end
+
+  defp handle_response({:error, message} = error, _) do
+    Logger.error(inspect(message))
+    error
+  end
+
+  defp handle_response(response, _) do
+    response
+  end
+
+  defp handle_responses({:ok, responses} = result, redis) do
+    # Disconnect once for multiple readonly redis node errors.
+    if Enum.any?(responses, &readonly_error?/1) do
+      disconnect(redis)
+    end
+    result
+  end
+
+  defp handle_responses(responses, redis) when is_list(responses) do
+    # Disconnect once for multiple readonly redis node errors.
+    if Enum.any?(responses, &readonly_error?/1) do
+      disconnect(redis)
+    end
+    responses
+  end
+
+  defp handle_responses(responses, _) do
+    responses
+  end
+
+  defp readonly_error?(%{message: "READONLY" <> _rest}), do: true
+  defp readonly_error?(_), do: false
+
+  defp disconnect(redis) do
+    pid = Process.whereis(redis)
+    if !is_nil(pid) && Process.alive?(pid) do
+      # Let the supervisor restart the process with a new connection.
+      Logger.error("Redis failover - forcing a reconnect")
+      Process.exit(pid, :kill)
+      # Give the process some time to be restarted.
+      :timer.sleep(100)
+    end
   end
 end
