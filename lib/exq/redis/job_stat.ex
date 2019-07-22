@@ -118,17 +118,34 @@ defmodule Exq.Redis.JobStat do
   end
 
   def realtime_stats(redis, namespace) do
-    {:ok, [failure_keys, success_keys]} =
-      Connection.qp(redis, [
-        ["KEYS", JobQueue.full_key(namespace, "stat:failed_rt:*")],
-        ["KEYS", JobQueue.full_key(namespace, "stat:processed_rt:*")]
-      ])
+    failure_keys = realtime_stats_scanner(redis, JobQueue.full_key(namespace, "stat:failed_rt:*"))
+
+    success_keys =
+      realtime_stats_scanner(redis, JobQueue.full_key(namespace, "stat:processed_rt:*"))
 
     formatter = realtime_stats_formatter(redis, namespace)
     failures = formatter.(failure_keys, "stat:failed_rt:")
     successes = formatter.(success_keys, "stat:processed_rt:")
 
     {:ok, failures, successes}
+  end
+
+  defp realtime_stats_scanner(redis, namespace) do
+    {:ok, [[cursor, result]]} =
+      Connection.qp(redis, [["SCAN", 0, "MATCH", namespace, "COUNT", 1_000]])
+
+    realtime_stats_scan_keys(redis, namespace, cursor, result)
+  end
+
+  defp realtime_stats_scan_keys(_redis, _namespace, "0", accumulator) do
+    accumulator
+  end
+
+  defp realtime_stats_scan_keys(redis, namespace, cursor, accumulator) do
+    {:ok, [[new_cursor, result]]} =
+      Connection.qp(redis, [["SCAN", cursor, "MATCH", namespace, "COUNT", 1_000]])
+
+    realtime_stats_scan_keys(redis, namespace, new_cursor, accumulator ++ result)
   end
 
   defp realtime_stats_formatter(redis, namespace) do
