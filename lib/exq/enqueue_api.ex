@@ -30,7 +30,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         do: enqueue(pid, queue, worker, args, @default_options)
 
       def enqueue(pid, queue, worker, args, options) do
-        {redis, namespace} = GenServer.call(pid, {:redis})
+        {redis, namespace} = GenServer.call(pid, {:redis}, Config.get(:genserver_timeout))
         JobQueue.enqueue(redis, namespace, queue, worker, args, options)
       end
 
@@ -50,7 +50,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         do: enqueue_at(pid, queue, time, worker, args, @default_options)
 
       def enqueue_at(pid, queue, time, worker, args, options) do
-        {redis, namespace} = GenServer.call(pid, {:redis})
+        {redis, namespace} = GenServer.call(pid, {:redis}, Config.get(:genserver_timeout))
         JobQueue.enqueue_at(redis, namespace, queue, time, worker, args, options)
       end
 
@@ -70,7 +70,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         do: enqueue_in(pid, queue, offset, worker, args, @default_options)
 
       def enqueue_in(pid, queue, offset, worker, args, options) do
-        {redis, namespace} = GenServer.call(pid, {:redis})
+        {redis, namespace} = GenServer.call(pid, {:redis}, Config.get(:genserver_timeout))
         JobQueue.enqueue_in(redis, namespace, queue, offset, worker, args, options)
       end
     end
