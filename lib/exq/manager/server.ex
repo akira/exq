@@ -174,7 +174,7 @@ defmodule Exq.Manager.Server do
     {:ok, state, 0}
   end
 
-  def handle_call({:redis}, _from, state) do
+  def handle_call(:redis, _from, state) do
     {:reply, {state.redis, state.namespace}, state, 10}
   end
 

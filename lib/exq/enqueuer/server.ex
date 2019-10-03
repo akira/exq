@@ -34,7 +34,7 @@ defmodule Exq.Enqueuer.Server do
     {:ok, %State{redis: opts[:redis], namespace: opts[:namespace]}}
   end
 
-  def handle_call({:redis}, _from, state) do
+  def handle_call(:redis, _from, state) do
     {:reply, {state.redis, state.namespace}, state}
   end
 
