@@ -6,10 +6,9 @@ end
 {:ok, _} = Application.ensure_all_started(:exq)
 Logger.configure(level: :warn)
 
-
 Benchee.run(
   %{
     "enqueue" => fn -> {:ok, _} = Exq.enqueue(Exq, "default", BenchmarkWorker, []) end
   },
-  parallel: 10
+  parallel: 100
 )
