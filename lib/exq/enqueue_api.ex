@@ -9,6 +9,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
   defmacro __using__(_) do
     quote location: :keep do
       alias Exq.Support.Config
+      alias Exq.Redis.JobQueue
 
       @default_options []
       @doc """
@@ -28,20 +29,9 @@ defmodule Exq.Enqueuer.EnqueueApi do
       def enqueue(pid, queue, worker, args),
         do: enqueue(pid, queue, worker, args, @default_options)
 
-      def enqueue(pid, from, queue, worker, args) when is_pid(from) do
-        enqueue(pid, from, queue, worker, args, @default_options)
-      end
-
       def enqueue(pid, queue, worker, args, options) do
-        GenServer.call(
-          pid,
-          {:enqueue, queue, worker, args, options},
-          Config.get(:genserver_timeout)
-        )
-      end
-
-      def enqueue(pid, from, queue, worker, args, options) do
-        GenServer.cast(pid, {:enqueue, from, queue, worker, args, options})
+        {redis, namespace} = GenServer.call(pid, :redis, Config.get(:genserver_timeout))
+        JobQueue.enqueue(redis, namespace, queue, worker, args, options)
       end
 
       @doc """
@@ -59,20 +49,9 @@ defmodule Exq.Enqueuer.EnqueueApi do
       def enqueue_at(pid, queue, time, worker, args),
         do: enqueue_at(pid, queue, time, worker, args, @default_options)
 
-      def enqueue_at(pid, from, queue, time, worker, args) when is_pid(from) do
-        enqueue_at(pid, from, queue, time, worker, args, @default_options)
-      end
-
       def enqueue_at(pid, queue, time, worker, args, options) do
-        GenServer.call(
-          pid,
-          {:enqueue_at, queue, time, worker, args, options},
-          Config.get(:genserver_timeout)
-        )
-      end
-
-      def enqueue_at(pid, from, queue, time, worker, args, options) do
-        GenServer.cast(pid, {:enqueue_at, from, queue, time, worker, args, options})
+        {redis, namespace} = GenServer.call(pid, :redis, Config.get(:genserver_timeout))
+        JobQueue.enqueue_at(redis, namespace, queue, time, worker, args, options)
       end
 
       @doc """
@@ -90,20 +69,9 @@ defmodule Exq.Enqueuer.EnqueueApi do
       def enqueue_in(pid, queue, offset, worker, args),
         do: enqueue_in(pid, queue, offset, worker, args, @default_options)
 
-      def enqueue_in(pid, from, queue, offset, worker, args) when is_pid(from) do
-        enqueue_in(pid, from, queue, offset, worker, args, @default_options)
-      end
-
       def enqueue_in(pid, queue, offset, worker, args, options) do
-        GenServer.call(
-          pid,
-          {:enqueue_in, queue, offset, worker, args, options},
-          Config.get(:genserver_timeout)
-        )
-      end
-
-      def enqueue_in(pid, from, queue, offset, worker, args, options) do
-        GenServer.cast(pid, {:enqueue_in, from, queue, offset, worker, args, options})
+        {redis, namespace} = GenServer.call(pid, :redis, Config.get(:genserver_timeout))
+        JobQueue.enqueue_in(redis, namespace, queue, offset, worker, args, options)
       end
     end
   end
