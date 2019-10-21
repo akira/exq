@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+- Remove unnecessary serialization of enqueue calls #390
+
 ## [0.13.3] - 2019-06-16
 
 ### Added
