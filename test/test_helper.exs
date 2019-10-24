@@ -160,7 +160,9 @@ end
 ExUnit.configure(seed: 0, max_cases: 1, exclude: [failure_scenarios: true, pending: true])
 
 # Start logger
-:application.start(:logger)
+for app <- [:logger, :redix, :elixir_uuid] do
+  Application.ensure_all_started(app)
+end
 
 TestRedis.start()
 
