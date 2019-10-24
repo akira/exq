@@ -51,6 +51,26 @@ defmodule Exq.Heartbeat.MonitorTest do
     assert queue_length(redis, "3") == {:ok, 0}
   end
 
+  test "can handle connection failure" do
+    with_application_env(:exq, :redis_timeout, 500, fn ->
+      {:ok, _} = Exq.Stats.Server.start_link(@opts)
+      redis = :testredis
+
+      assert alive_nodes(redis) == []
+      {:ok, _} = Exq.Heartbeat.Server.start_link(Keyword.put(@opts, :node_id, "1"))
+      {:ok, _} = Exq.Heartbeat.Monitor.start_link(Keyword.put(@opts, :node_id, "1"))
+
+      spawn(fn ->
+        Redix.command(:testredis, ["DEBUG", "SLEEP", "2"])
+      end)
+
+      Process.sleep(2000)
+      Redix.command(:testredis, ["FLUSHALL"])
+      Process.sleep(1000)
+      assert alive_nodes(redis) == ["1"]
+    end)
+  end
+
   test "shouldn't dequeue from live node" do
     redis = :testredis
     namespace = Config.get(:namespace)
