@@ -5,7 +5,15 @@ defmodule Exq.Heartbeat.Monitor do
   alias Exq.Support.Config
 
   defmodule State do
-    defstruct [:namespace, :redis, :interval, :queues, :node_id, :missed_heartbeats_allowed]
+    defstruct [
+      :namespace,
+      :redis,
+      :interval,
+      :queues,
+      :node_id,
+      :missed_heartbeats_allowed,
+      :stats
+    ]
   end
 
   def start_link(options) do
@@ -17,6 +25,7 @@ defmodule Exq.Heartbeat.Monitor do
         interval: Keyword.fetch!(options, :heartbeat_interval),
         node_id: Keyword.get(options, :node_id, Config.node_identifier().node_id()),
         queues: Keyword.fetch!(options, :queues),
+        stats: Keyword.get(options, :stats),
         missed_heartbeats_allowed: Keyword.fetch!(options, :missed_heartbeats_allowed)
       },
       []
@@ -60,13 +69,17 @@ defmodule Exq.Heartbeat.Monitor do
 
   defp re_enqueue_backup(state, node_id, score) do
     Logger.info(
-      "#{node_id} missed the last #{state.missed_heartbeats_allowed} heartbeats. Re-enqueing jobs from backup."
+      "#{node_id} missed the last #{state.missed_heartbeats_allowed} heartbeats. Re-enqueing jobs from backup and cleaning up stats."
     )
 
     Enum.uniq(Exq.Redis.JobQueue.list_queues(state.redis, state.namespace) ++ state.queues)
     |> Enum.each(fn queue ->
       Heartbeat.re_enqueue_backup(state.redis, state.namespace, node_id, queue, score)
     end)
+
+    if state.stats do
+      :ok = Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, node_id)
+    end
 
     _ = Heartbeat.unregister(state.redis, state.namespace, node_id)
     :ok
