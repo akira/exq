@@ -36,8 +36,15 @@ defmodule Exq.Support.Mode do
       worker(Exq.Api.Server, [opts])
     ]
 
-    if opts[:scheduler_enable] do
-      children ++ [worker(Exq.Scheduler.Server, [opts])]
+    children =
+      if opts[:scheduler_enable] do
+        children ++ [worker(Exq.Scheduler.Server, [opts])]
+      else
+        children
+      end
+
+    if opts[:heartbeat_enable] do
+      children ++ [worker(Exq.Heartbeat.Server, [opts]), worker(Exq.Heartbeat.Watcher, [opts])]
     else
       children
     end
