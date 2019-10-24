@@ -31,7 +31,7 @@ defmodule Exq.Heartbeat.Server do
       :ok ->
         :ok = schedule_ping(state.interval)
 
-      error ->
+      _error ->
         :ok = schedule_ping(Enum.min([state.interval, 5000]))
     end
 
