@@ -4,6 +4,17 @@ defmodule Exq.Heartbeat.MonitorTest do
   alias Exq.Support.Config
   alias Exq.Redis.Heartbeat
 
+  @opts [
+    redis: :testredis,
+    heartbeat_enable: true,
+    heartbeat_interval: 200,
+    missed_heartbeats_allowed: 3,
+    queues: ["default"],
+    namespace: "test",
+    name: ExqHeartbeat,
+    stats: ExqHeartbeat.Stats
+  ]
+
   setup do
     TestRedis.setup()
 
@@ -14,24 +25,16 @@ defmodule Exq.Heartbeat.MonitorTest do
   end
 
   test "re-enqueues orphaned jobs from backup queue" do
+    {:ok, _} = Exq.Stats.Server.start_link(@opts)
     redis = :testredis
-
-    config = [
-      redis: redis,
-      heartbeat_enable: true,
-      heartbeat_interval: 200,
-      missed_heartbeats_allowed: 3,
-      queues: ["default"],
-      namespace: "test"
-    ]
 
     servers =
       for i <- 1..5 do
         {:ok, heartbeat} =
-          Exq.Heartbeat.Server.start_link(Keyword.put(config, :node_id, to_string(i)))
+          Exq.Heartbeat.Server.start_link(Keyword.put(@opts, :node_id, to_string(i)))
 
         {:ok, monitor} =
-          Exq.Heartbeat.Monitor.start_link(Keyword.put(config, :node_id, to_string(i)))
+          Exq.Heartbeat.Monitor.start_link(Keyword.put(@opts, :node_id, to_string(i)))
 
         %{heartbeat: heartbeat, monitor: monitor}
       end
@@ -96,7 +99,7 @@ defmodule Exq.Heartbeat.MonitorTest do
         missed_heartbeats_allowed
       )
 
-    # The node got removed by another heartbeat watcher
+    # The node got removed by another heartbeat monitor
     Heartbeat.unregister(redis, namespace, "1")
     Heartbeat.re_enqueue_backup(redis, namespace, "1", "default", score)
     assert queue_length(redis, "1") == {:ok, 1}
