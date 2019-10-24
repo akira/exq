@@ -64,10 +64,6 @@ defmodule Exq.Redis.Connection do
     members
   end
 
-  def smembers(redis, set) do
-    q(redis, ["SMEMBERS", set])
-  end
-
   def sadd!(redis, set, member) do
     {:ok, res} = q(redis, ["SADD", set, member])
     res
