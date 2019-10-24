@@ -2,6 +2,7 @@ defmodule Exq.Heartbeat.MonitorTest do
   use ExUnit.Case
   import ExqTestUtil
   alias Exq.Support.Config
+  alias Exq.Redis.Heartbeat
 
   setup do
     TestRedis.setup()
@@ -21,7 +22,7 @@ defmodule Exq.Heartbeat.MonitorTest do
       heartbeat_interval: 200,
       missed_heartbeats_allowed: 3,
       queues: ["default"],
-      namespace: Config.get(:namespace)
+      namespace: "test"
     ]
 
     servers =
@@ -45,6 +46,60 @@ defmodule Exq.Heartbeat.MonitorTest do
 
     assert alive_nodes(redis) == ["1", "2", "4", "5"]
     assert queue_length(redis, "3") == {:ok, 0}
+  end
+
+  test "shouldn't dequeue from live node" do
+    redis = :testredis
+    namespace = Config.get(:namespace)
+    interval = 100
+    missed_heartbeats_allowed = 3
+    Heartbeat.register(redis, namespace, "1")
+    assert {:ok, 1} = working(redis, "1")
+    Process.sleep(1000)
+
+    {:ok, %{"1" => score}} =
+      Heartbeat.orphaned_nodes(
+        redis,
+        namespace,
+        interval,
+        missed_heartbeats_allowed
+      )
+
+    assert queue_length(redis, "1") == {:ok, 1}
+    Heartbeat.re_enqueue_backup(redis, namespace, "1", "default", score)
+    assert queue_length(redis, "1") == {:ok, 0}
+
+    Heartbeat.register(redis, namespace, "1")
+    assert {:ok, 1} = working(redis, "1")
+    Process.sleep(1000)
+
+    {:ok, %{"1" => score}} =
+      Heartbeat.orphaned_nodes(
+        redis,
+        namespace,
+        interval,
+        missed_heartbeats_allowed
+      )
+
+    # The node came back after we got the orphan list, but before we could re-enqueue
+    Heartbeat.register(redis, namespace, "1")
+    Heartbeat.re_enqueue_backup(redis, namespace, "1", "default", score)
+    assert queue_length(redis, "1") == {:ok, 1}
+
+    Process.sleep(1000)
+
+    {:ok, %{"1" => score}} =
+      Heartbeat.orphaned_nodes(
+        redis,
+        namespace,
+        interval,
+        missed_heartbeats_allowed
+      )
+
+    # The node got removed by another heartbeat watcher
+    Heartbeat.unregister(redis, namespace, "1")
+    Heartbeat.re_enqueue_backup(redis, namespace, "1", "default", score)
+    assert queue_length(redis, "1") == {:ok, 1}
   end
 
   defp alive_nodes(redis) do

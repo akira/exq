@@ -36,8 +36,8 @@ defmodule Exq.Heartbeat.Monitor do
            state.missed_heartbeats_allowed
          ) do
       {:ok, node_ids} ->
-        Enum.each(node_ids, fn node_id ->
-          :ok = re_enqueue_backup(state, node_id)
+        Enum.each(node_ids, fn {node_id, score} ->
+          :ok = re_enqueue_backup(state, node_id, score)
         end)
 
       _error ->
@@ -58,14 +58,14 @@ defmodule Exq.Heartbeat.Monitor do
     :ok
   end
 
-  defp re_enqueue_backup(state, node_id) do
+  defp re_enqueue_backup(state, node_id, score) do
     Logger.info(
       "#{node_id} missed the last #{state.missed_heartbeats_allowed} heartbeats. Re-enqueing jobs from backup."
     )
 
     Enum.uniq(Exq.Redis.JobQueue.list_queues(state.redis, state.namespace) ++ state.queues)
     |> Enum.each(fn queue ->
-      Exq.Redis.JobQueue.re_enqueue_backup(state.redis, state.namespace, node_id, queue)
+      Heartbeat.re_enqueue_backup(state.redis, state.namespace, node_id, queue, score)
     end)
 
     _ = Heartbeat.unregister(state.redis, state.namespace, node_id)

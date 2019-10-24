@@ -144,6 +144,10 @@ defmodule Exq.Redis.Connection do
     items
   end
 
+  def zrangebyscorewithscore(redis, set, min \\ "0", max \\ "+inf") do
+    q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
+  end
+
   def zrange!(redis, set, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = q(redis, ["ZRANGE", set, range_start, range_end])
     items
@@ -178,6 +182,10 @@ defmodule Exq.Redis.Connection do
 
   defp handle_response({:error, %{message: "READONLY" <> _rest}} = error, redis) do
     disconnect(redis)
+    error
+  end
+
+  defp handle_response({:error, %{message: "NOSCRIPT" <> _rest}} = error, _) do
     error
   end
 
