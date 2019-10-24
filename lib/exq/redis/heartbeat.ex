@@ -3,7 +3,7 @@ defmodule Exq.Redis.Heartbeat do
   alias Exq.Redis.Connection
 
   def register(redis, namespace, node_id) do
-    score = DateTime.utc_now() |> DateTime.to_unix(:second)
+    score = DateTime.to_unix(DateTime.utc_now(), :milliseconds) / 1000
 
     case Connection.qp(redis, [
            ["MULTI"],
@@ -30,12 +30,13 @@ defmodule Exq.Redis.Heartbeat do
         Logger.error(
           "Failed to clear old heartbeat. Unexpected error from redis: #{inspect(error)}"
         )
+
         error
     end
   end
 
   def orphaned_nodes(redis, namespace, interval, missed_heartbeats_allowed) do
-    score = DateTime.utc_now() |> DateTime.to_unix(:second)
+    score = DateTime.to_unix(DateTime.utc_now(), :milliseconds) / 1000
     cutoff = score - interval / 1000 * (missed_heartbeats_allowed + 1)
     cutoff = Enum.max([0, cutoff])
 

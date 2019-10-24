@@ -18,7 +18,7 @@ defmodule Exq.Heartbeat.MonitorTest do
     config = [
       redis: redis,
       heartbeat_enable: true,
-      heartbeat_interval: 500,
+      heartbeat_interval: 200,
       missed_heartbeats_allowed: 3,
       queues: ["default"],
       namespace: Config.get(:namespace)
@@ -36,12 +36,12 @@ defmodule Exq.Heartbeat.MonitorTest do
       end
 
     assert {:ok, 1} = working(redis, "3")
-    Process.sleep(2000)
+    Process.sleep(1000)
     assert alive_nodes(redis) == ["1", "2", "3", "4", "5"]
     assert queue_length(redis, "3") == {:ok, 1}
     server = Enum.at(servers, 2)
     :ok = GenServer.stop(server.heartbeat)
-    Process.sleep(4000)
+    Process.sleep(2000)
 
     assert alive_nodes(redis) == ["1", "2", "4", "5"]
     assert queue_length(redis, "3") == {:ok, 0}
