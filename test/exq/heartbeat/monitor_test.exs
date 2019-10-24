@@ -1,4 +1,4 @@
-defmodule Exq.Heartbeat.WatcherTest do
+defmodule Exq.Heartbeat.MonitorTest do
   use ExUnit.Case
   import ExqTestUtil
   alias Exq.Support.Config
@@ -29,10 +29,10 @@ defmodule Exq.Heartbeat.WatcherTest do
         {:ok, heartbeat} =
           Exq.Heartbeat.Server.start_link(Keyword.put(config, :node_id, to_string(i)))
 
-        {:ok, watcher} =
-          Exq.Heartbeat.Watcher.start_link(Keyword.put(config, :node_id, to_string(i)))
+        {:ok, monitor} =
+          Exq.Heartbeat.Monitor.start_link(Keyword.put(config, :node_id, to_string(i)))
 
-        %{heartbeat: heartbeat, watcher: watcher}
+        %{heartbeat: heartbeat, monitor: monitor}
       end
 
     assert {:ok, 1} = working(redis, "3")

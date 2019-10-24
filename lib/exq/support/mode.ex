@@ -44,7 +44,7 @@ defmodule Exq.Support.Mode do
       end
 
     if opts[:heartbeat_enable] do
-      children ++ [worker(Exq.Heartbeat.Server, [opts]), worker(Exq.Heartbeat.Watcher, [opts])]
+      children ++ [worker(Exq.Heartbeat.Server, [opts]), worker(Exq.Heartbeat.Monitor, [opts])]
     else
       children
     end

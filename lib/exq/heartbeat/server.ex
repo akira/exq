@@ -2,6 +2,7 @@ defmodule Exq.Heartbeat.Server do
   use GenServer
   require Logger
   alias Exq.Support.Config
+  alias Exq.Redis.Heartbeat
 
   defmodule State do
     defstruct [:namespace, :node_id, :redis, :interval]
@@ -26,21 +27,11 @@ defmodule Exq.Heartbeat.Server do
   end
 
   def handle_info(:ping, state) do
-    sorted_set_key = "#{state.namespace}:heartbeats"
-    score = DateTime.utc_now() |> DateTime.to_unix(:second)
-
-    case Redix.pipeline(state.redis, [
-           ["MULTI"],
-           ["ZREM", sorted_set_key, state.node_id],
-           ["ZADD", sorted_set_key, score, state.node_id],
-           ["EXEC"]
-         ]) do
-      {:ok, ["OK", "QUEUED", "QUEUED", [_, 1]]} ->
-        Logger.debug(fn -> "sent heartbeat for #{state.node_id}" end)
+    case Heartbeat.register(state.redis, state.namespace, state.node_id) do
+      :ok ->
         :ok = schedule_ping(state.interval)
 
       error ->
-        Logger.error("Failed to send heartbeat. Unexpected error from redis: #{inspect(error)}")
         :ok = schedule_ping(Enum.min([state.interval, 5000]))
     end
 

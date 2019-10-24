@@ -64,6 +64,10 @@ defmodule Exq.Redis.Connection do
     members
   end
 
+  def smembers(redis, set) do
+    q(redis, ["SMEMBERS", set])
+  end
+
   def sadd!(redis, set, member) do
     {:ok, res} = q(redis, ["SADD", set, member])
     res
@@ -191,6 +195,7 @@ defmodule Exq.Redis.Connection do
     if Enum.any?(responses, &readonly_error?/1) do
       disconnect(redis)
     end
+
     result
   end
 
@@ -199,6 +204,7 @@ defmodule Exq.Redis.Connection do
     if Enum.any?(responses, &readonly_error?/1) do
       disconnect(redis)
     end
+
     responses
   end
 
@@ -211,6 +217,7 @@ defmodule Exq.Redis.Connection do
 
   defp disconnect(redis) do
     pid = Process.whereis(redis)
+
     if !is_nil(pid) && Process.alive?(pid) do
       # Let the supervisor restart the process with a new connection.
       Logger.error("Redis failover - forcing a reconnect")

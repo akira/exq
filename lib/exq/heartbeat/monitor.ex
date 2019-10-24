@@ -1,6 +1,7 @@
-defmodule Exq.Heartbeat.Watcher do
+defmodule Exq.Heartbeat.Monitor do
   use GenServer
   require Logger
+  alias Exq.Redis.Heartbeat
   alias Exq.Support.Config
 
   defmodule State do
@@ -28,20 +29,19 @@ defmodule Exq.Heartbeat.Watcher do
   end
 
   def handle_info(:verify, state) do
-    sorted_set_key = "#{state.namespace}:heartbeats"
-
-    score = DateTime.utc_now() |> DateTime.to_unix(:second)
-    cutoff = score - state.interval / 1000 * (state.missed_heartbeats_allowed + 1)
-    cutoff = Enum.max([0, cutoff])
-
-    case Redix.command(state.redis, ["ZRANGEBYSCORE", sorted_set_key, 0, cutoff]) do
+    case Heartbeat.orphaned_nodes(
+           state.redis,
+           state.namespace,
+           state.interval,
+           state.missed_heartbeats_allowed
+         ) do
       {:ok, node_ids} ->
         Enum.each(node_ids, fn node_id ->
           :ok = re_enqueue_backup(state, node_id)
         end)
 
-      error ->
-        Logger.error("Failed to fetch heartbeats. Unexpected error from redis: #{inspect(error)}")
+      _error ->
+        :ok
     end
 
     :ok = schedule_verify(state.interval)
@@ -63,29 +63,12 @@ defmodule Exq.Heartbeat.Watcher do
       "#{node_id} missed the last #{state.missed_heartbeats_allowed} heartbeats. Re-enqueing jobs from backup."
     )
 
-    case Redix.command(state.redis, ["SMEMBERS", "#{state.namespace}:queues"]) do
-      {:ok, queues} ->
-        Enum.uniq(queues ++ state.queues)
-        |> Enum.each(fn queue ->
-          Exq.Redis.JobQueue.re_enqueue_backup(state.redis, state.namespace, node_id, queue)
-        end)
+    Enum.uniq(Exq.Redis.JobQueue.list_queues(state.redis, state.namespace) ++ state.queues)
+    |> Enum.each(fn queue ->
+      Exq.Redis.JobQueue.re_enqueue_backup(state.redis, state.namespace, node_id, queue)
+    end)
 
-        sorted_set_key = "#{state.namespace}:heartbeats"
-
-        case Redix.command(state.redis, ["ZREM", sorted_set_key, node_id]) do
-          {:ok, _} ->
-            :ok
-
-          error ->
-            Logger.error(
-              "Failed to clear old heartbeat. Unexpected error from redis: #{inspect(error)}"
-            )
-        end
-
-      error ->
-        Logger.error("Failed to fetch queues. Unexpected error from redis: #{inspect(error)}")
-    end
-
+    _ = Heartbeat.unregister(state.redis, state.namespace, node_id)
     :ok
   end
 end
