@@ -38,7 +38,7 @@ defmodule Exq.Heartbeat.Monitor do
   end
 
   def handle_info(:verify, state) do
-    case Heartbeat.orphaned_nodes(
+    case Heartbeat.dead_nodes(
            state.redis,
            state.namespace,
            state.interval,

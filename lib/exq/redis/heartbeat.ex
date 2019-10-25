@@ -64,7 +64,7 @@ defmodule Exq.Redis.Heartbeat do
     end
   end
 
-  def orphaned_nodes(redis, namespace, interval, missed_heartbeats_allowed) do
+  def dead_nodes(redis, namespace, interval, missed_heartbeats_allowed) do
     score = DateTime.to_unix(DateTime.utc_now(), :milliseconds) / 1000
     cutoff = score - interval / 1000 * (missed_heartbeats_allowed + 1)
     cutoff = Enum.max([0, cutoff])

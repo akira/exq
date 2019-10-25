@@ -24,7 +24,7 @@ defmodule Exq.Heartbeat.MonitorTest do
     end)
   end
 
-  test "re-enqueues orphaned jobs from backup queue" do
+  test "re-enqueues orphaned jobs from dead node's backup queue" do
     {:ok, _} = Exq.Stats.Server.start_link(@opts)
     redis = :testredis
 
@@ -81,7 +81,7 @@ defmodule Exq.Heartbeat.MonitorTest do
     Process.sleep(1000)
 
     {:ok, %{"1" => score}} =
-      Heartbeat.orphaned_nodes(
+      Heartbeat.dead_nodes(
         redis,
         namespace,
         interval,
@@ -97,14 +97,14 @@ defmodule Exq.Heartbeat.MonitorTest do
     Process.sleep(1000)
 
     {:ok, %{"1" => score}} =
-      Heartbeat.orphaned_nodes(
+      Heartbeat.dead_nodes(
         redis,
         namespace,
         interval,
         missed_heartbeats_allowed
       )
 
-    # The node came back after we got the orphan list, but before we could re-enqueue
+    # The node came back after we got the dead node list, but before we could re-enqueue
     Heartbeat.register(redis, namespace, "1")
     Heartbeat.re_enqueue_backup(redis, namespace, "1", "default", score)
     assert queue_length(redis, "1") == {:ok, 1}
@@ -112,7 +112,7 @@ defmodule Exq.Heartbeat.MonitorTest do
     Process.sleep(1000)
 
     {:ok, %{"1" => score}} =
-      Heartbeat.orphaned_nodes(
+      Heartbeat.dead_nodes(
         redis,
         namespace,
         interval,
