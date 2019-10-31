@@ -65,6 +65,12 @@ defmodule WorkerTest do
     end
   end
 
+  defmodule RetryWorker do
+    def perform do
+      {:retry, "Retry message"}
+    end
+  end
+
   defmodule MockStatsServer do
     use GenServer
 
@@ -218,6 +224,11 @@ defmodule WorkerTest do
 
   test "worker killed still sends stats" do
     {:ok, worker} = start_worker({"WorkerTest.SuicideWorker", "[]"})
+    assert_terminate(worker, false)
+  end
+
+  test "worker that sends a retry tuple will retry" do
+    {:ok, worker} = start_worker({"WorkerTest.RetryWorker", "[]"})
     assert_terminate(worker, false)
   end
 

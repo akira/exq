@@ -138,6 +138,20 @@ defmodule Exq.Worker.Server do
     {:stop, :normal, state}
   end
 
+  @doc """
+  Worker done with retry message
+  """
+  def handle_cast({:retry, error}, state) do
+    state =
+      if !has_pipeline_after_work_ran?(state.pipeline) do
+        %{state | pipeline: pipeline_after_failed_work(state, error, error)}
+      else
+        state
+      end
+
+    {:stop, :normal, state}
+  end
+
   def handle_info({:DOWN, _, _, _, :normal}, state) do
     state =
       if !has_pipeline_after_work_ran?(state.pipeline) do
@@ -183,8 +197,14 @@ defmodule Exq.Worker.Server do
     pid =
       spawn_link(fn ->
         :ok = Metadata.associate(metadata, self(), job)
-        result = apply(worker_module, :perform, job.args)
-        GenServer.cast(worker, {:done, result})
+
+        case apply(worker_module, :perform, job.args) do
+          {:retry, reason} ->
+            GenServer.cast(worker, {:retry, reason})
+
+          result ->
+            GenServer.cast(worker, {:done, result})
+        end
       end)
 
     Process.monitor(pid)
