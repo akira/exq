@@ -1,7 +1,6 @@
 defmodule Exq.ConfigTest do
   use ExUnit.Case
   require Mix.Config
-  import ExqTestUtil
 
   setup_all do
     ExqTestUtil.reset_config()
