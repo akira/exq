@@ -1,6 +1,7 @@
 defmodule Exq.Mock do
   alias Exq.Support.Config
   alias Exq.Adapters.Queue.Redis
+  alias Exq.Support.Job
   use GenServer
   @timeout 30000
 
@@ -24,8 +25,12 @@ defmodule Exq.Mock do
     GenServer.start_link(__MODULE__, options, name: __MODULE__)
   end
 
-  def set_mode(mode) when mode in [:redis, :inline] do
+  def set_mode(mode) when mode in [:redis, :inline, :fake] do
     GenServer.call(__MODULE__, {:mode, self(), mode}, @timeout)
+  end
+
+  def jobs do
+    GenServer.call(__MODULE__, {:jobs, self()}, @timeout)
   end
 
   ### Private
@@ -72,28 +77,30 @@ defmodule Exq.Mock do
   def handle_call({:enqueue, owner_pid, type, args}, _from, state) do
     state = maybe_add_and_monitor_pid(state, owner_pid, state.default_mode)
 
-    runnable =
-      case state.modes[owner_pid] do
-        :redis ->
-          fn -> apply(Redis, type, args) end
+    case state.modes[owner_pid] do
+      :redis ->
+        runnable = fn -> apply(Redis, type, args) end
+        {:reply, {:ok, runnable}, state}
 
-        :inline ->
-          fn ->
-            jid = UUID.uuid4()
+      :inline ->
+        runnable = fn ->
+          job = to_job(args)
+          apply(job.class, :perform, job.args)
+          {:ok, job.jid}
+        end
 
-            case args do
-              [_pid, _queue, worker, args, _options] ->
-                apply(worker, :perform, args)
+        {:reply, {:ok, runnable}, state}
 
-              [_pid, _queue, _time_or_offset, worker, args, _options] ->
-                apply(worker, :perform, args)
-            end
+      :fake ->
+        job = to_job(args)
+        state = update_in(state.jobs[owner_pid], &((&1 || []) ++ [job]))
 
-            {:ok, jid}
-          end
-      end
+        runnable = fn ->
+          {:ok, job.jid}
+        end
 
-    {:reply, {:ok, runnable}, state}
+        {:reply, {:ok, runnable}, state}
+    end
   end
 
   def handle_call({:mode, owner_pid, mode}, _from, state) do
@@ -101,10 +108,36 @@ defmodule Exq.Mock do
     {:reply, :ok, state}
   end
 
+  def handle_call({:jobs, owner_pid}, _from, state) do
+    jobs = state.jobs[owner_pid] || []
+    {:reply, jobs, state}
+  end
+
   @impl true
   def handle_info({:DOWN, _, _, pid, _}, state) do
     {_, state} = pop_in(state.modes[pid])
+    {_, state} = pop_in(state.jobs[pid])
     {:noreply, state}
+  end
+
+  defp to_job([_pid, queue, worker, args, _options]) do
+    %Job{
+      jid: UUID.uuid4(),
+      queue: queue,
+      class: worker,
+      args: args,
+      enqueued_at: DateTime.utc_now()
+    }
+  end
+
+  defp to_job([_pid, queue, _time_or_offset, worker, args, _options]) do
+    %Job{
+      jid: UUID.uuid4(),
+      queue: queue,
+      class: worker,
+      args: args,
+      enqueued_at: DateTime.utc_now()
+    }
   end
 
   defp maybe_add_and_monitor_pid(state, pid, mode) do

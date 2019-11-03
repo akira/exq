@@ -1,4 +1,4 @@
-defmodule InlineAdapterTest do
+defmodule InlineModeTest do
   use ExUnit.Case, async: true
 
   defmodule EchoWorker do
