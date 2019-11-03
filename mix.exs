@@ -4,7 +4,7 @@ defmodule Exq.Mixfile do
   def project do
     [
       app: :exq,
-      version: "0.13.2",
+      version: "0.13.3",
       elixir: "~> 1.6",
       elixirc_paths: ["lib"],
       package: [
@@ -14,7 +14,7 @@ defmodule Exq.Mixfile do
           "Anantha Kumaran"
         ],
         links: %{"GitHub" => "https://github.com/akira/exq"},
-        licenses: ["Apache2.0"],
+        licenses: ["Apache 2.0"],
         files: ~w(lib test) ++ ~w(LICENSE mix.exs README.md)
       ],
       description: """
@@ -48,6 +48,7 @@ defmodule Exq.Mixfile do
       # docs
       {:ex_doc, "~> 0.19", only: :dev},
       {:earmark, "~> 1.0", only: :dev},
+      {:benchee, "~> 1.0", only: :dev},
       {:ranch, "~> 1.6", only: :test, override: true}
     ]
   end

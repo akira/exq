@@ -110,7 +110,6 @@ defmodule Exq.Manager.Server do
 
   require Logger
   use GenServer
-  alias Exq.Enqueuer
   alias Exq.Support.Config
   alias Exq.Redis.JobQueue
 
@@ -175,19 +174,8 @@ defmodule Exq.Manager.Server do
     {:ok, state, 0}
   end
 
-  def handle_call({:enqueue, queue, worker, args, options}, from, state) do
-    Enqueuer.enqueue(state.enqueuer, from, queue, worker, args, options)
-    {:noreply, state, 10}
-  end
-
-  def handle_call({:enqueue_at, queue, time, worker, args, options}, from, state) do
-    Enqueuer.enqueue_at(state.enqueuer, from, queue, time, worker, args, options)
-    {:noreply, state, 10}
-  end
-
-  def handle_call({:enqueue_in, queue, offset, worker, args, options}, from, state) do
-    Enqueuer.enqueue_in(state.enqueuer, from, queue, offset, worker, args, options)
-    {:noreply, state, 10}
+  def handle_call(:redis, _from, state) do
+    {:reply, {state.redis, state.namespace}, state, 10}
   end
 
   def handle_call(:subscriptions, _from, state) do

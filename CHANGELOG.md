@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+- Remove unnecessary serialization of enqueue calls #390
+
+## [0.13.3] - 2019-06-16
+
+### Added
+- Handle AWS Elasticache Redis DNS failover. This ensures persistent connections are shutdown, forcing a reconnect in scenarios where a Redis node in a HA cluster is switched to READONLY mode by @deepfryed.
+
 ## [0.13.2] - 2019-03-15
 
 ### Fixed

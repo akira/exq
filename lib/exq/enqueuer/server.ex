@@ -16,7 +16,6 @@ defmodule Exq.Enqueuer.Server do
   require Logger
 
   alias Exq.Support.Config
-  alias Exq.Redis.JobQueue
   use GenServer
 
   defmodule State do
@@ -35,45 +34,8 @@ defmodule Exq.Enqueuer.Server do
     {:ok, %State{redis: opts[:redis], namespace: opts[:namespace]}}
   end
 
-  def handle_cast({:enqueue, from, queue, worker, args, options}, state) do
-    response = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args, options)
-    GenServer.reply(from, response)
-    {:noreply, state}
-  end
-
-  def handle_cast({:enqueue_at, from, queue, time, worker, args, options}, state) do
-    response =
-      JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
-
-    GenServer.reply(from, response)
-    {:noreply, state}
-  end
-
-  def handle_cast({:enqueue_in, from, queue, offset, worker, args, options}, state) do
-    response =
-      JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
-
-    GenServer.reply(from, response)
-    {:noreply, state}
-  end
-
-  def handle_call({:enqueue, queue, worker, args, options}, _from, state) do
-    response = JobQueue.enqueue(state.redis, state.namespace, queue, worker, args, options)
-    {:reply, response, state}
-  end
-
-  def handle_call({:enqueue_at, queue, time, worker, args, options}, _from, state) do
-    response =
-      JobQueue.enqueue_at(state.redis, state.namespace, queue, time, worker, args, options)
-
-    {:reply, response, state}
-  end
-
-  def handle_call({:enqueue_in, queue, offset, worker, args, options}, _from, state) do
-    response =
-      JobQueue.enqueue_in(state.redis, state.namespace, queue, offset, worker, args, options)
-
-    {:reply, response, state}
+  def handle_call(:redis, _from, state) do
+    {:reply, {state.redis, state.namespace}, state}
   end
 
   def terminate(_reason, _state) do

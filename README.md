@@ -66,14 +66,12 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.13.2"}
+      {:exq, "~> 0.13.3"}
     ]
   end
 ```
 
-Then run ```mix deps.get```.  Please note that this version requires Elixir 1.3, and has no Timex dependencies.
-
-For Elixir 1.2 or older, you will need to use Exq version 0.7.2 in hex, and you will also need to add :tzdata to your application list.
+Then run ```mix deps.get```. 
 
 
 ### Configuration:
@@ -403,7 +401,7 @@ By default, your Redis server could be open to the world. As by default, Redis c
 
 Exq relies on unique node identifiers to correctly handle jobs currently in
 progress. Furthermore if a node crashes, leaving jobs marked as in progress
-but incomplete, is it the responsibility of a node with the same identifier
+but incomplete, it is the responsibility of a node with the same identifier
 to come online and requeue the failed jobs.
 
 By default Exq uses the machine's hostname as a node identifier, which works

@@ -28,18 +28,9 @@ defmodule Exq.Enqueuer.EnqueueApi do
       def enqueue(pid, queue, worker, args),
         do: enqueue(pid, queue, worker, args, @default_options)
 
-      def enqueue(pid, from, queue, worker, args) when is_pid(from) do
-        enqueue(pid, from, queue, worker, args, @default_options)
-      end
-
       def enqueue(pid, queue, worker, args, options) do
         queue_adapter = Config.get(:queue_adapter)
         queue_adapter.enqueue(pid, queue, worker, args, options)
-      end
-
-      def enqueue(pid, from, queue, worker, args, options) do
-        queue_adapter = Config.get(:queue_adapter)
-        queue_adapter.enqueue(pid, from, queue, worker, args, options)
       end
 
       @doc """
@@ -57,18 +48,9 @@ defmodule Exq.Enqueuer.EnqueueApi do
       def enqueue_at(pid, queue, time, worker, args),
         do: enqueue_at(pid, queue, time, worker, args, @default_options)
 
-      def enqueue_at(pid, from, queue, time, worker, args) when is_pid(from) do
-        enqueue_at(pid, from, queue, time, worker, args, @default_options)
-      end
-
       def enqueue_at(pid, queue, time, worker, args, options) do
         queue_adapter = Config.get(:queue_adapter)
         queue_adapter.enqueue_at(pid, queue, time, worker, args, options)
-      end
-
-      def enqueue_at(pid, from, queue, time, worker, args, options) do
-        queue_adapter = Config.get(:queue_adapter)
-        queue_adapter.enqueue_at(pid, from, queue, time, worker, args, options)
       end
 
       @doc """
@@ -86,18 +68,9 @@ defmodule Exq.Enqueuer.EnqueueApi do
       def enqueue_in(pid, queue, offset, worker, args),
         do: enqueue_in(pid, queue, offset, worker, args, @default_options)
 
-      def enqueue_in(pid, from, queue, offset, worker, args) when is_pid(from) do
-        enqueue_in(pid, from, queue, offset, worker, args, @default_options)
-      end
-
       def enqueue_in(pid, queue, offset, worker, args, options) do
         queue_adapter = Config.get(:queue_adapter)
         queue_adapter.enqueue_in(pid, queue, offset, worker, args, options)
-      end
-
-      def enqueue_in(pid, from, queue, offset, worker, args, options) do
-        queue_adapter = Config.get(:queue_adapter)
-        queue_adapter.enqueue_in(pid, from, queue, offset, worker, args, options)
       end
     end
   end

@@ -43,8 +43,8 @@ defmodule JobStatTest do
   end
 
   test "show realtime statistics" do
-    {:ok, time1} = DateTime.from_unix(1_452_173_400_000, :milliseconds)
-    {:ok, time2} = DateTime.from_unix(1_452_175_515_000, :milliseconds)
+    {:ok, time1} = DateTime.from_unix(1_452_173_400_000, :millisecond)
+    {:ok, time2} = DateTime.from_unix(1_452_175_515_000, :millisecond)
 
     JobStat.record_processed(:testredis, "test", nil, time1)
     JobStat.record_processed(:testredis, "test", nil, time2)
