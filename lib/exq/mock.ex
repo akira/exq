@@ -70,7 +70,7 @@ defmodule Exq.Mock do
 
   @impl true
   def handle_call({:enqueue, owner_pid, type, args}, _from, state) do
-    state = maybe_add_and_monitor_pid(state, owner_pid)
+    state = maybe_add_and_monitor_pid(state, owner_pid, state.default_mode)
 
     runnable =
       case state.modes[owner_pid] do
@@ -97,18 +97,24 @@ defmodule Exq.Mock do
   end
 
   def handle_call({:mode, owner_pid, mode}, _from, state) do
-    state = put_in(state.modes[owner_pid], mode)
+    state = maybe_add_and_monitor_pid(state, owner_pid, mode)
     {:reply, :ok, state}
   end
 
-  defp maybe_add_and_monitor_pid(state, pid) do
+  @impl true
+  def handle_info({:DOWN, _, _, pid, _}, state) do
+    {_, state} = pop_in(state.modes[pid])
+    {:noreply, state}
+  end
+
+  defp maybe_add_and_monitor_pid(state, pid, mode) do
     case state.modes do
       %{^pid => _mode} ->
         state
 
       _ ->
         Process.monitor(pid)
-        state = put_in(state.modes[pid], state.default_mode)
+        state = put_in(state.modes[pid], mode)
         state
     end
   end
