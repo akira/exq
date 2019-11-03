@@ -1,6 +1,6 @@
-defmodule Exq.Adapters.Queue.Async do
+defmodule Exq.Adapters.Queue.Redis do
   @moduledoc """
-  Asynchronous queue. Enqueue the job by using the GenServer API.
+  Redis based Asynchronous queue. Enqueue the job by using the GenServer API.
 
   Default queue. Designed to be used in production.
   """

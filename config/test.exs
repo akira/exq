@@ -19,4 +19,5 @@ config :exq,
   max_retries: 0,
   stats_flush_interval: 5,
   stats_batch_size: 1,
-  middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager]
+  middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager],
+  queue_adapter: Exq.Adapters.Queue.Mock
