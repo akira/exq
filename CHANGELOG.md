@@ -5,7 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-- Remove unnecessary serialization of enqueue calls #390
+## [0.13.4] - 2019-11-3
+
+### Fixed
+- Remove unnecessary serialization of enqueue calls #390 by @ananthakumaran and @sb8244
+- Fix warnings by @hkrutzer #394
+- Start all the apps during test by @ananthakumaran #391
+- Replace KEYS with a cursored call to SCAN for realtime stats by @neslinesli93 #384
 
 ## [0.13.3] - 2019-06-16
 
