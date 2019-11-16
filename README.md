@@ -457,6 +457,40 @@ By default, Exq will register itself under the ```Elixir.Exq``` atom.  You can c
 {:ok, exq} = Exq.start_link(name: Exq.Custom)
 ```
 
+## Testing
+
+`Exq.Mock` module provides few options to test your workers.
+
+```elixir
+# change queue_adapter in config/test.exs
+config :exq,
+  queue_adapter: Exq.Adapters.Queue.Mock
+
+# start mock server in your test_helper.exs
+Exq.Mock.start_link(mode: :redis)
+```
+
+`Exq.Mock` currently supports three modes. The default mode can provided
+on the `Exq.Mock.start_link` call. The mode could be overriden for
+each test by calling `Exq.Mock.set_mode(:fake)`
+
+### redis
+
+This could be used for integration testing. Doesn't support `async:
+true` option.
+
+### fake
+
+The jobs get enqueued in a local queue and never get
+executed. `Exq.Mock.jobs()` returns all the jobs. Supports `async:
+true` option.
+
+### inline
+
+The jobs get executed in the same process. Supports `async: true` option.
+
+
+
 ## Donation
 
 To donate, send to:
