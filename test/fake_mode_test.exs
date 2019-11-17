@@ -12,7 +12,7 @@ defmodule FakeModeTest do
   end
 
   describe "fake mode" do
-    test "enqueue should " do
+    test "enqueue" do
       assert [] = Exq.Mock.jobs()
       assert {:ok, _} = Exq.enqueue(Exq, "low", BrokenWorker, [1])
       assert {:ok, _} = Exq.enqueue_at(Exq, "low", DateTime.utc_now(), BrokenWorker, [2])
