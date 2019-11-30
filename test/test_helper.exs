@@ -170,4 +170,6 @@ System.at_exit(fn _status ->
   TestRedis.stop()
 end)
 
+Exq.Mock.start_link(mode: :redis)
+
 ExUnit.start(capture_log: true)
