@@ -129,7 +129,7 @@ defmodule Exq.ConfigTest do
       ]
     )
 
-    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {_child_spec, server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     [
       scheduler_enable: scheduler_enable,
@@ -177,7 +177,7 @@ defmodule Exq.ConfigTest do
 
     Mix.Config.persist(exq: [queues: [{"default", 1000}, {"test1", 2000}]])
 
-    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {_child_spec, server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:queues] == ["default", "test1"]
     assert server_opts[:concurrency] == [{"default", 1000, 0}, {"test1", 2000, 0}]
@@ -186,7 +186,7 @@ defmodule Exq.ConfigTest do
   test "api redis_worker_opts" do
     Mix.Config.persist(exq: [])
 
-    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :api)
+    {_child_spec, server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :api)
 
     [name: name, namespace: namespace, redis: redis, mode: mode] = server_opts
     assert namespace == "test"
@@ -214,7 +214,7 @@ defmodule Exq.ConfigTest do
       ]
     )
 
-    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {_child_spec, server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:namespace] == "test"
     assert server_opts[:concurrency] == [{"default", 333, 0}]
@@ -233,7 +233,7 @@ defmodule Exq.ConfigTest do
       ]
     )
 
-    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {_child_spec, server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:concurrency] == [{"default", :infinity, 0}]
   end

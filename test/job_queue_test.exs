@@ -10,10 +10,6 @@ defmodule JobQueueTest do
 
   setup do
     TestRedis.setup()
-
-    on_exit(fn ->
-      TestRedis.teardown()
-    end)
   end
 
   def assert_dequeue_job(queues, expected_result) do

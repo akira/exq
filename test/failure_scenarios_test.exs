@@ -22,11 +22,6 @@ defmodule FailureScenariosTest do
     TestRedis.setup()
     Application.start(:ranch)
 
-    on_exit(fn ->
-      wait()
-      TestRedis.teardown()
-    end)
-
     :ok
   end
 

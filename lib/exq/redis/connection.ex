@@ -6,6 +6,7 @@ defmodule Exq.Redis.Connection do
   require Logger
 
   alias Exq.Support.Config
+  alias Exq.Redis.Pool
 
   def flushdb!(redis) do
     {:ok, res} = q(redis, ["flushdb"])
@@ -156,19 +157,19 @@ defmodule Exq.Redis.Connection do
 
   def q(redis, command) do
     redis
-    |> Redix.command(command, timeout: Config.get(:redis_timeout))
+    |> Pool.command(command, timeout: Config.get(:redis_timeout))
     |> handle_response(redis)
   end
 
   def qp(redis, command) do
     redis
-    |> Redix.pipeline(command, timeout: Config.get(:redis_timeout))
+    |> Pool.pipeline(command, timeout: Config.get(:redis_timeout))
     |> handle_responses(redis)
   end
 
   def qp!(redis, command) do
     redis
-    |> Redix.pipeline!(command, timeout: Config.get(:redis_timeout))
+    |> Pool.pipeline!(command, timeout: Config.get(:redis_timeout))
     |> handle_responses(redis)
   end
 

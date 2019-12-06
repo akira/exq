@@ -45,9 +45,9 @@ defmodule Exq.Support.Opts do
     {redis_opts, connection_opts, opts} = conform_opts(opts)
 
     if is_binary(redis_opts) do
-      {Redix, [redis_opts, connection_opts], opts}
+      {Exq.Redis.Pool.child_spec([redis_opts, connection_opts]), opts}
     else
-      {Redix, [Keyword.merge(redis_opts, connection_opts)], opts}
+      {Exq.Redis.Pool.child_spec(Keyword.merge(redis_opts, connection_opts)), opts}
     end
   end
 

@@ -124,8 +124,8 @@ defmodule TestRedis do
   end
 
   def setup do
-    {:ok, redis} = Redix.start_link(host: redis_host(), port: redis_port())
-    Process.register(redis, :testredis)
+    redix_opts = [host: redis_host(), port: redis_port(), name: :testredis]
+    ExUnit.Callbacks.start_supervised!(Exq.Redis.Pool.child_spec(redix_opts))
     flush_all()
     :ok
   end
@@ -136,22 +136,6 @@ defmodule TestRedis do
     catch
       :exit, {:timeout, _info} -> nil
     end
-  end
-
-  def teardown do
-    if !Process.whereis(:testredis) do
-      # For some reason at the end of test the link is down, before we actually stop and unregister?
-      {:ok, redis} = Redix.start_link(host: redis_host(), port: redis_port())
-      Process.register(redis, :testredis)
-    end
-
-    try do
-      Process.unregister(:testredis)
-    rescue
-      ArgumentError -> true
-    end
-
-    :ok
   end
 end
 

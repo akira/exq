@@ -4,13 +4,9 @@ defmodule ReadonlyReconnectTest do
 
   setup do
     Process.flag(:trap_exit, true)
-    {:ok, redis} = Redix.start_link(host: "127.0.0.1", port: 6556)
+    redix_opts = [host: "127.0.0.1", port: 6556, name: :testredis]
+    {:ok, redis} = Supervisor.start_link([Exq.Redis.Pool.child_spec(redix_opts)], strategy: :one_for_one)
     Process.register(redis, :testredis)
-
-    on_exit(fn ->
-      wait()
-      TestRedis.teardown()
-    end)
 
     {:ok, redis: redis}
   end

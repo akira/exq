@@ -17,6 +17,7 @@ defmodule Exq.Mixfile do
         licenses: ["Apache 2.0"],
         files: ~w(lib test) ++ ~w(LICENSE mix.exs README.md)
       ],
+      aliases: [test: "test --no-start"],
       description: """
       Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
       """,

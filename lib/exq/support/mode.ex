@@ -15,9 +15,9 @@ defmodule Exq.Support.Mode do
   import Supervisor.Spec
 
   def children(opts) do
-    {module, args, opts} = redis_worker_opts(opts)
+    {child_spec, opts} = redis_worker_opts(opts)
     # make sure redis always first(start in order)
-    children = [worker(module, args)]
+    children = [child_spec]
     children = children ++ children(opts[:mode], opts)
     children
   end

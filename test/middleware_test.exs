@@ -145,11 +145,6 @@ defmodule MiddlewareTest do
   setup do
     TestRedis.setup()
 
-    on_exit(fn ->
-      wait()
-      TestRedis.teardown()
-    end)
-
     Process.register(self(), :middlewaretest)
     {:ok, middleware} = GenServer.start_link(Middleware, [])
     {:ok, middleware: middleware}

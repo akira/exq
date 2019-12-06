@@ -9,6 +9,9 @@ defmodule ModeTest do
   end
 
   defp find_child(children, child_id) do
-    Enum.find(children, fn {id, _, _, _, _, _} -> id == child_id end)
+    Enum.find(children, fn
+      {id, _, _, _, _, _} -> id == child_id
+      _any -> false
+    end)
   end
 end

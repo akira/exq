@@ -10,11 +10,6 @@ defmodule ApiTest do
     TestRedis.setup()
     Exq.start_link()
 
-    on_exit(fn ->
-      wait()
-      TestRedis.teardown()
-    end)
-
     :ok
   end
 

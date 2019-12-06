@@ -36,7 +36,6 @@ defmodule JobStatTest do
 
   setup do
     TestRedis.setup()
-    on_exit(fn -> TestRedis.teardown() end)
     Exq.start_link()
 
     :ok

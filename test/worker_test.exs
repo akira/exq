@@ -138,7 +138,6 @@ defmodule WorkerTest do
     assert_receive :process_terminated
     assert_receive :job_terminated
     assert_receive :record_processed
-    assert_receive :lrem_redis
   end
 
   def assert_terminate(worker, false) do
@@ -147,8 +146,6 @@ defmodule WorkerTest do
     assert_receive :process_terminated
     assert_receive :job_terminated
     assert_receive :record_failure
-    assert_receive :zadd_redis
-    assert_receive :lrem_redis
   end
 
   def start_worker({class, args}) do
@@ -173,10 +170,14 @@ defmodule WorkerTest do
       mock_stats_server,
       "exq",
       "localhost",
-      stub_server,
+      :testredis,
       middleware,
       metadata
     )
+  end
+
+  setup do
+    TestRedis.setup()
   end
 
   test "execute valid job with perform" do

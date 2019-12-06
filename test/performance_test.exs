@@ -6,10 +6,6 @@ defmodule PerformanceTest do
   setup do
     TestRedis.setup()
 
-    on_exit(fn ->
-      TestRedis.teardown()
-    end)
-
     :ok
   end
 

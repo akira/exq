@@ -48,11 +48,6 @@ defmodule ExqTest do
   setup do
     TestRedis.setup()
 
-    on_exit(fn ->
-      wait()
-      TestRedis.teardown()
-    end)
-
     :ok
   end
 
