@@ -518,6 +518,8 @@ To run the full suite, including failure conditions (can have some false negativ
 ```
 mix test --trace --include failure_scenarios:true --no-start
 ```
+## Maintainers:
+Anantha Kumaran / @ananthakumaran (Lead)
 
 ## Contributors:
 
@@ -560,8 +562,6 @@ Andrew Vy (andrewvy)
 David Le (dl103)
 
 Roman Smirnov (romul)
-
-Anantha Kumaran (ananthakumaran)
 
 Thomas Athanas (typicalpixel)
 
