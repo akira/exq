@@ -1,6 +1,5 @@
 defmodule ApiTest do
   use ExUnit.Case
-  import ExqTestUtil
   alias Exq.Redis.JobStat
   alias Exq.Redis.JobQueue
   alias Exq.Support.Process

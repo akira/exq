@@ -1,5 +1,5 @@
 defmodule Exq.Redis.Pool do
-  @pool_size 20
+  @pool_size Application.get_env(:exq, "pool_size", 1)
 
   def child_spec(redix_opts) do
     # Specs for the Redix connections.
