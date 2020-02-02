@@ -397,19 +397,13 @@ Side::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' =
 
 By default, your Redis server could be open to the world. As by default, Redis comes with no password authentication, and some hosting companies leave that port accessible to the world.. This means that anyone can read data on the queue as well as pass data in to be run. Obviously this is not desired, please secure your Redis installation by following guides such as the [Digital Ocean Redis Security Guide](https://www.digitalocean.com/community/tutorials/how-to-secure-your-redis-installation-on-ubuntu-14-04).
 
-## Use When Deployed in a Deployment Environment
+## Node Recovery
 
-Exq relies on unique node identifiers to correctly handle jobs currently in
-progress. Furthermore if a node crashes, leaving jobs marked as in progress
-but incomplete, it is the responsibility of a node with the same identifier
-to come online and requeue the failed jobs.
+A Node can be stopped unexpectedly while processing jobs due to various reasons like deployment, system crash, OOM, etc. This could leave the jobs in the in-progress state. Exq comes with two mechanisms to handle this situation.
 
-By default Exq uses the machine's hostname as a node identifier, which works
-well when deployed to a server in the conventional style. In a dynamic
-environment such as Heroku or Kubernetes, where nodes come up and down, you may
-want to override node id to use an environment variable instead.
+### Same Node Recovery
 
-This can be done using a custom `NodeIdentifier` module.
+Exq identifies each node using an identifier. By default machine's hostname is used as the identifier. When a node comes back online after a crash, it will first check if there are any in-progress jobs for its identifier. Note that it will only re-enqueue jobs with the same identifier. There are environments like Heroku or Kubernetes where the hostname would change on each deployment. In those cases, the default identifier can be overridden
 
 ```elixir
 config :exq,
@@ -424,6 +418,21 @@ defmodule MyApp.CustomNodeIdentifier do
      System.get_env("NODE_ID")
   end
 end
+```
+
+### Heartbeat
+
+Same node recovery is straightforward and works well if the number of worker nodes is fixed. There are use cases that need the worker nodes to be autoscaled based on the workload. In those situations, a node that goes down might not come back for a very long period.
+
+Heartbeat mechanism helps in these cases. Each node registers a heartbeat at regular interval. If any node misses 5 consecutive heartbeats, it will be considered dead and all the in-progress jobs belong to that node will be re-enqueued.
+
+This feature is disabled by default and can be enabled using the following config.
+
+```elixir
+config :exq,
+    heartbeat_enable: false,
+    heartbeat_interval: 60_000,
+    missed_heartbeats_allowed: 5
 ```
 
 ## Web UI:
