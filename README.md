@@ -88,6 +88,11 @@ Other options include:
 * The `shutdown_timeout` is the number of milliseconds to wait for workers to
   finish processing jobs when the application is shutting down. It defaults to
   5000 ms.
+* The `mode` option can be used to control what components of exq are started. This would be useful if you want to only enqueue jobs in one node and run the workers in different node.
+  * `:default` - starts worker, enqueuer and api.
+  * `:enqueuer` - starts only the enqueuer.
+  * `:api` - starts only the api.
+  * `[:api, :enqueuer]` - starts both enqueuer and api.
 
 ```elixir
 config :exq,
@@ -102,6 +107,7 @@ config :exq,
   scheduler_poll_timeout: 200,
   scheduler_enable: true,
   max_retries: 25,
+  mode: :default,
   shutdown_timeout: 5000
 ```
 
