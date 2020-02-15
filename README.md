@@ -430,7 +430,7 @@ This feature is disabled by default and can be enabled using the following confi
 
 ```elixir
 config :exq,
-    heartbeat_enable: false,
+    heartbeat_enable: true,
     heartbeat_interval: 60_000,
     missed_heartbeats_allowed: 5
 ```
