@@ -93,6 +93,7 @@ Other options include:
   * `:enqueuer` - starts only the enqueuer.
   * `:api` - starts only the api.
   * `[:api, :enqueuer]` - starts both enqueuer and api.
+* The `backoff` option allows you to customize the backoff time used for retry when a job fails. By default exponential time scaled based on job's retry_count is used. To change the default behavior, create a new module which implements the `Exq.Backoff.Behaviour` and set backoff option value to the module name.
 
 ```elixir
 config :exq,
