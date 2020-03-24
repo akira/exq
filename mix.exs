@@ -39,7 +39,7 @@ defmodule Exq.Mixfile do
   defp deps do
     [
       {:elixir_uuid, ">= 1.2.0"},
-      {:redix, ">= 0.8.1"},
+      {:redix, ">= 0.9.0"},
       {:poison, ">= 1.2.0 or ~> 2.0", optional: true},
       {:jason, "~> 1.0", optional: true},
       {:excoveralls, "~> 0.6", only: :test},

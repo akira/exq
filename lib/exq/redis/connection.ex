@@ -140,6 +140,10 @@ defmodule Exq.Redis.Connection do
     items
   end
 
+  def zrangebyscorewithscore(redis, set, min \\ "0", max \\ "+inf") do
+    q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
+  end
+
   def zrange!(redis, set, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = q(redis, ["ZRANGE", set, range_start, range_end])
     items
@@ -177,6 +181,10 @@ defmodule Exq.Redis.Connection do
     error
   end
 
+  defp handle_response({:error, %{message: "NOSCRIPT" <> _rest}} = error, _) do
+    error
+  end
+
   defp handle_response({:error, message} = error, _) do
     Logger.error(inspect(message))
     error
@@ -191,6 +199,7 @@ defmodule Exq.Redis.Connection do
     if Enum.any?(responses, &readonly_error?/1) do
       disconnect(redis)
     end
+
     result
   end
 
@@ -199,6 +208,7 @@ defmodule Exq.Redis.Connection do
     if Enum.any?(responses, &readonly_error?/1) do
       disconnect(redis)
     end
+
     responses
   end
 
@@ -211,6 +221,7 @@ defmodule Exq.Redis.Connection do
 
   defp disconnect(redis) do
     pid = Process.whereis(redis)
+
     if !is_nil(pid) && Process.alive?(pid) do
       # Let the supervisor restart the process with a new connection.
       Logger.error("Redis failover - forcing a reconnect")

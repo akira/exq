@@ -148,7 +148,10 @@ defmodule Exq.ConfigTest do
       middleware: middleware,
       default_middleware: default_middleware,
       mode: mode,
-      shutdown_timeout: shutdown_timeout
+      shutdown_timeout: shutdown_timeout,
+      heartbeat_enable: true,
+      heartbeat_interval: 500,
+      missed_heartbeats_allowed: 3
     ] = server_opts
 
     assert scheduler_enable == true

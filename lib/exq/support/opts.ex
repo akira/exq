@@ -88,6 +88,17 @@ defmodule Exq.Support.Opts do
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
     default_middleware = Config.get(:middleware)
 
+    heartbeat_enable =
+      Coercion.to_boolean(Keyword.get(opts, :heartbeat_enable, Config.get(:heartbeat_enable)))
+
+    heartbeat_interval =
+      Coercion.to_integer(opts[:heartbeat_interval] || Config.get(:heartbeat_interval))
+
+    missed_heartbeats_allowed =
+      Coercion.to_integer(
+        opts[:missed_heartbeats_allowed] || Config.get(:missed_heartbeats_allowed)
+      )
+
     [
       scheduler_enable: scheduler_enable,
       namespace: namespace,
@@ -105,7 +116,10 @@ defmodule Exq.Support.Opts do
       middleware: middleware,
       default_middleware: default_middleware,
       mode: :default,
-      shutdown_timeout: shutdown_timeout
+      shutdown_timeout: shutdown_timeout,
+      heartbeat_enable: heartbeat_enable,
+      heartbeat_interval: heartbeat_interval,
+      missed_heartbeats_allowed: missed_heartbeats_allowed
     ]
   end
 

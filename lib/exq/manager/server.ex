@@ -386,6 +386,13 @@ defmodule Exq.Manager.Server do
   defp check_redis_connection(opts) do
     try do
       {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
+
+      :ok =
+        Exq.Redis.Heartbeat.register(
+          opts[:redis],
+          opts[:namespace],
+          Config.node_identifier().node_id()
+        )
     catch
       err, reason ->
         opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap() |> List.delete(:password)
