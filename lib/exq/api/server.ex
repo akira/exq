@@ -83,6 +83,8 @@ defmodule Exq.Api.Server do
   def handle_call(:queue_size, _from, state) do
     sizes = JobQueue.queue_size(state.redis, state.namespace)
     {:reply, {:ok, sizes}, state}
+  rescue
+    _-> {:reply, {:error, 0}, state}
   end
 
   def handle_call({:queue_size, queue}, _from, state) do

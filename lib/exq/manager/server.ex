@@ -397,7 +397,7 @@ defmodule Exq.Manager.Server do
       err, reason ->
         opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap() |> List.delete(:password)
 
-        raise """
+        Logger.error("""
         \n\n\n#{String.duplicate("=", 100)}
         ERROR! Could not connect to Redis!
 
@@ -407,7 +407,7 @@ defmodule Exq.Manager.Server do
 
         Make sure Redis is running, and your configuration matches Redis settings.
         #{String.duplicate("=", 100)}
-        """
+        """)
     end
   end
 end
