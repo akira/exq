@@ -5,7 +5,7 @@ defmodule Exq.Redis.Heartbeat do
   alias Exq.Redis.Script
 
   def register(redis, namespace, node_id) do
-    score = DateTime.to_unix(DateTime.utc_now(), :milliseconds) / 1000
+    score = DateTime.to_unix(DateTime.utc_now(), :millisecond) / 1000
 
     case Connection.qp(redis, [
            ["MULTI"],
