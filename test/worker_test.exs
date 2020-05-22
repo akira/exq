@@ -68,6 +68,10 @@ defmodule WorkerTest do
   defmodule MockStatsServer do
     use GenServer
 
+    def init(args) do
+      {:ok, args}
+    end
+
     def handle_cast({:add_process, _, _, _}, state) do
       send(:workertest, :add_process)
       {:noreply, state}

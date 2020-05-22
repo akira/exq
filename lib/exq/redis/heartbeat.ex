@@ -5,7 +5,7 @@ defmodule Exq.Redis.Heartbeat do
   alias Exq.Redis.Script
 
   def register(redis, namespace, node_id) do
-    score = DateTime.to_unix(DateTime.utc_now(), :milliseconds) / 1000
+    score = DateTime.to_unix(DateTime.utc_now(), :millisecond) / 1000
 
     case Connection.qp(redis, [
            ["MULTI"],
@@ -65,7 +65,7 @@ defmodule Exq.Redis.Heartbeat do
   end
 
   def dead_nodes(redis, namespace, interval, missed_heartbeats_allowed) do
-    score = DateTime.to_unix(DateTime.utc_now(), :milliseconds) / 1000
+    score = DateTime.to_unix(DateTime.utc_now(), :millisecond) / 1000
     cutoff = score - interval / 1000 * (missed_heartbeats_allowed + 1)
     cutoff = Enum.max([0, cutoff])
 
