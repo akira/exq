@@ -432,7 +432,7 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
-    jid = UUID.uuid4()
+    jid = Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end)
     retry = Keyword.get_lazy(options, :max_retries, fn -> get_max_retries() end)
 
     job = %{

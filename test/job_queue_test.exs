@@ -208,6 +208,14 @@ defmodule JobQueueTest do
     assert job.retry == 10
   end
 
+  test "to_job_serialized using existing job ID" do
+    jid = UUID.uuid4()
+    {^jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], jid: jid)
+
+    job = Job.decode(serialized)
+    assert job.jid == jid
+  end
+
   test "max_retries from runtime environment" do
     System.put_env("EXQ_MAX_RETRIES", "3")
 
