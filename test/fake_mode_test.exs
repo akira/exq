@@ -36,5 +36,21 @@ defmodule FakeModeTest do
                }
              ] = Exq.Mock.jobs()
     end
+
+    test "with predetermined job ID" do
+      jid = UUID.uuid4()
+
+      assert [] = Exq.Mock.jobs()
+      assert {:ok, jid} == Exq.enqueue(Exq, "low", BrokenWorker, [], jid: jid)
+
+      assert [
+               %Exq.Support.Job{
+                 args: [],
+                 class: FakeModeTest.BrokenWorker,
+                 queue: "low",
+                 jid: ^jid
+               }
+             ] = Exq.Mock.jobs()
+    end
   end
 end

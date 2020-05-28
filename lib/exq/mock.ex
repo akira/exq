@@ -141,7 +141,7 @@ defmodule Exq.Mock do
     {:noreply, state}
   end
 
-  def to_job([_pid, queue, worker, args, options]) do
+  defp to_job([_pid, queue, worker, args, options]) do
     %Job{
       jid: Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end),
       queue: queue,
@@ -151,7 +151,7 @@ defmodule Exq.Mock do
     }
   end
 
-  def to_job([_pid, queue, _time_or_offset, worker, args, options]) do
+  defp to_job([_pid, queue, _time_or_offset, worker, args, options]) do
     %Job{
       jid: Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end),
       queue: queue,

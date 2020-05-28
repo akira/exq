@@ -21,5 +21,10 @@ defmodule InlineModeTest do
     test "enqueue_in should return the correct value" do
       assert {:ok, _} = Exq.enqueue_in(Exq, "low", 300, EchoWorker, [1])
     end
+
+    test "enqueue should use the provided job ID, if any" do
+      jid = UUID.uuid4()
+      assert {:ok, jid} == Exq.enqueue(Exq, "low", EchoWorker, [1], jid: jid)
+    end
   end
 end
