@@ -189,7 +189,7 @@ defmodule Exq.ConfigTest do
       exq: [queues: [{"default", "1000"}, {"test1", "infinite"}, {"test2", "infinity"}]]
     )
 
-    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+    {_child_spec, server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:concurrency] == [
              {"default", 1000, 0},

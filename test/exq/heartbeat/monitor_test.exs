@@ -3,6 +3,7 @@ defmodule Exq.Heartbeat.MonitorTest do
   import ExqTestUtil
   alias Exq.Support.Config
   alias Exq.Redis.Heartbeat
+  alias Exq.Redis.Pool
 
   @opts [
     redis: :testredis,
@@ -17,11 +18,6 @@ defmodule Exq.Heartbeat.MonitorTest do
 
   setup do
     TestRedis.setup()
-
-    on_exit(fn ->
-      wait()
-      TestRedis.teardown()
-    end)
   end
 
   test "re-enqueues orphaned jobs from dead node's backup queue" do
@@ -61,11 +57,11 @@ defmodule Exq.Heartbeat.MonitorTest do
       {:ok, _} = Exq.Heartbeat.Monitor.start_link(Keyword.put(@opts, :node_id, "1"))
 
       spawn(fn ->
-        Redix.command(:testredis, ["DEBUG", "SLEEP", "2"])
+        Pool.command(:testredis, ["DEBUG", "SLEEP", "2"])
       end)
 
       Process.sleep(2000)
-      Redix.command(:testredis, ["FLUSHALL"])
+      Pool.command(:testredis, ["FLUSHALL"])
       Process.sleep(1000)
       assert alive_nodes(redis) == ["1"]
     end)
@@ -127,13 +123,13 @@ defmodule Exq.Heartbeat.MonitorTest do
 
   defp alive_nodes(redis) do
     {:ok, nodes} =
-      Redix.command(redis, ["ZRANGEBYSCORE", "#{Config.get(:namespace)}:heartbeats", "0", "+inf"])
+      Pool.command(redis, ["ZRANGEBYSCORE", "#{Config.get(:namespace)}:heartbeats", "0", "+inf"])
 
     Enum.sort(nodes)
   end
 
   defp working(redis, node_id) do
-    Redix.command(redis, [
+    Pool.command(redis, [
       "LPUSH",
       Exq.Redis.JobQueue.backup_queue_key(Config.get(:namespace), node_id, "default"),
       "{}"
@@ -141,7 +137,7 @@ defmodule Exq.Heartbeat.MonitorTest do
   end
 
   defp queue_length(redis, node_id) do
-    Redix.command(redis, [
+    Pool.command(redis, [
       "LLEN",
       Exq.Redis.JobQueue.backup_queue_key(Config.get(:namespace), node_id, "default")
     ])

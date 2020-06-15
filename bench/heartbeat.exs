@@ -36,20 +36,19 @@ spawn(fn ->
   LoadGenerator.generate(controller)
 end)
 
-workers =
-  for _i <- 1..50 do
-    id = UUID.uuid4()
-    Agent.update(:agent, fn _ -> id end)
+for _i <- 1..50 do
+  id = UUID.uuid4()
+  Agent.update(:agent, fn _ -> id end)
 
-    {:ok, worker} =
-      Exq.start_link(
-        name: String.to_atom(id),
-        concurrency: 10,
-        heartbeat_enable: true,
-        heartbeat_interval: 1000
-      )
+  {:ok, worker} =
+    Exq.start_link(
+      name: String.to_atom(id),
+      concurrency: 10,
+      heartbeat_enable: true,
+      heartbeat_interval: 1000
+    )
 
-    worker
-  end
+  worker
+end
 
 Process.sleep(:infinity)
