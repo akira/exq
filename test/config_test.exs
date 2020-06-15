@@ -148,7 +148,10 @@ defmodule Exq.ConfigTest do
       middleware: middleware,
       default_middleware: default_middleware,
       mode: mode,
-      shutdown_timeout: shutdown_timeout
+      shutdown_timeout: shutdown_timeout,
+      heartbeat_enable: true,
+      heartbeat_interval: 500,
+      missed_heartbeats_allowed: 3
     ] = server_opts
 
     assert scheduler_enable == true
@@ -181,6 +184,18 @@ defmodule Exq.ConfigTest do
 
     assert server_opts[:queues] == ["default", "test1"]
     assert server_opts[:concurrency] == [{"default", 1000, 0}, {"test1", 2000, 0}]
+
+    Mix.Config.persist(
+      exq: [queues: [{"default", "1000"}, {"test1", "infinite"}, {"test2", "infinity"}]]
+    )
+
+    {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
+
+    assert server_opts[:concurrency] == [
+             {"default", 1000, 0},
+             {"test1", :infinity, 0},
+             {"test2", :infinity, 0}
+           ]
   end
 
   test "api redis_worker_opts" do

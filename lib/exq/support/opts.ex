@@ -88,6 +88,17 @@ defmodule Exq.Support.Opts do
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
     default_middleware = Config.get(:middleware)
 
+    heartbeat_enable =
+      Coercion.to_boolean(Keyword.get(opts, :heartbeat_enable, Config.get(:heartbeat_enable)))
+
+    heartbeat_interval =
+      Coercion.to_integer(opts[:heartbeat_interval] || Config.get(:heartbeat_interval))
+
+    missed_heartbeats_allowed =
+      Coercion.to_integer(
+        opts[:missed_heartbeats_allowed] || Config.get(:missed_heartbeats_allowed)
+      )
+
     [
       scheduler_enable: scheduler_enable,
       namespace: namespace,
@@ -105,7 +116,10 @@ defmodule Exq.Support.Opts do
       middleware: middleware,
       default_middleware: default_middleware,
       mode: :default,
-      shutdown_timeout: shutdown_timeout
+      shutdown_timeout: shutdown_timeout,
+      heartbeat_enable: heartbeat_enable,
+      heartbeat_interval: heartbeat_interval,
+      missed_heartbeats_allowed: missed_heartbeats_allowed
     ]
   end
 
@@ -124,27 +138,27 @@ defmodule Exq.Support.Opts do
   end
 
   defp get_config_concurrency() do
-    case Config.get(:concurrency) do
-      x when is_atom(x) ->
-        x
-
-      x when is_integer(x) ->
-        x
-
-      x when is_binary(x) ->
-        case x |> String.trim() |> String.downcase() do
-          "infinity" -> :infinity
-          x -> Coercion.to_integer(x)
-        end
-    end
+    cast_concurrency(Config.get(:concurrency))
   end
 
   defp get_concurrency(queue_configs, per_queue_concurrency) do
     Enum.map(queue_configs, fn queue_config ->
       case queue_config do
-        {queue, concurrency} -> {queue, concurrency, 0}
+        {queue, concurrency} -> {queue, cast_concurrency(concurrency), 0}
         queue -> {queue, per_queue_concurrency, 0}
       end
     end)
+  end
+
+  defp cast_concurrency(:infinity), do: :infinity
+  defp cast_concurrency(:infinite), do: :infinity
+  defp cast_concurrency(x) when is_integer(x), do: x
+
+  defp cast_concurrency(x) when is_binary(x) do
+    case x |> String.trim() |> String.downcase() do
+      "infinity" -> :infinity
+      "infinite" -> :infinity
+      x -> Coercion.to_integer(x)
+    end
   end
 end

@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+- exq.run mix task starts dependent apps as well
+
+
+## [0.13.5] - 2020-01-01
+
+### Added
+- Queue adapter for mock testing @ananthakumaran and @samidarko
+
 ## [0.13.4] - 2019-11-3
 
 ### Fixed

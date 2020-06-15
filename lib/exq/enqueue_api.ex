@@ -19,7 +19,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `queue` - Name of queue to use
         * `worker` - Worker module to target
         * `args` - Array of args to send to worker
-        * `options` - job options, for example [max_retries:  `Integer`]
+        * `options` - job options, for example [max_retries: `Integer`, jid: `String`]
 
       Returns:
       * `{:ok, jid}` if the job was enqueued successfully, with `jid` = Job ID.
@@ -42,7 +42,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `time` - Time to enqueue
         * `worker` - Worker module to target
         * `args` - Array of args to send to worker
-        * `options` - job options, for example [max_retries:  `Integer`]
+        * `options` - job options, for example [max_retries: `Integer`, jid: `String`]
 
       """
       def enqueue_at(pid, queue, time, worker, args),

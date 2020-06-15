@@ -110,6 +110,10 @@ defmodule MiddlewareTest do
   defmodule StubServer do
     use GenServer
 
+    def init(args) do
+      {:ok, args}
+    end
+
     def handle_cast(_msg, state) do
       {:noreply, state}
     end
