@@ -54,7 +54,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
       end
 
       @doc """
-      Schedule a job to be enqueued at in the future given by offset in milliseconds.
+      Schedule a job to be enqueued at in the future given by offset in seconds.
 
       Expected args:
         * `pid` - PID for Exq Manager or Enqueuer to handle this
