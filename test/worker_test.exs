@@ -130,7 +130,7 @@ defmodule WorkerTest do
       {:keep_state, data}
     end
 
-    def connected(:cast, {:job_terminated, _, _, _}, data) do
+    def connected(:cast, {:job_terminated, _queue, _success}, data) do
       send(:workertest, :job_terminated)
       {:keep_state, data}
     end

@@ -122,7 +122,7 @@ defmodule Exq.Manager.Server do
               pid: nil,
               node_id: nil,
               namespace: nil,
-              work_table: nil,
+              dequeuers: nil,
               queues: nil,
               poll_timeout: nil,
               scheduler_poll_timeout: nil,
@@ -135,8 +135,8 @@ defmodule Exq.Manager.Server do
     GenServer.start_link(__MODULE__, opts, name: server_name(opts[:name]))
   end
 
-  def job_terminated(exq, namespace, queue, job_serialized) do
-    GenServer.cast(exq, {:job_terminated, namespace, queue, job_serialized})
+  def job_terminated(exq, queue, success) do
+    GenServer.cast(exq, {:job_terminated, queue, success})
     :ok
   end
 
@@ -151,11 +151,11 @@ defmodule Exq.Manager.Server do
     # Cleanup stale stats
     GenServer.cast(self(), :cleanup_host_stats)
 
-    # Setup queues
-    work_table = setup_queues(opts)
+    # Setup dequeues
+    dequeuers = add_dequeuers(%{}, opts[:concurrency])
 
     state = %State{
-      work_table: work_table,
+      dequeuers: dequeuers,
       redis: opts[:redis],
       stats: opts[:stats],
       workers_sup: opts[:workers_sup],
@@ -221,9 +221,15 @@ defmodule Exq.Manager.Server do
     {:noreply, state, 0}
   end
 
-  def handle_cast({:job_terminated, _namespace, queue, _job_serialized}, state) do
-    update_worker_count(state.work_table, queue, -1)
-    {:noreply, state, 0}
+  def handle_cast({:job_terminated, queue, success}, state) do
+    dequeuers =
+      if success do
+        maybe_call_dequeuer(state.dequeuers, queue, :processed)
+      else
+        maybe_call_dequeuer(state.dequeuers, queue, :failed)
+      end
+
+    {:noreply, %{state | dequeuers: dequeuers}, 0}
   end
 
   def handle_info(:timeout, state) do
@@ -245,36 +251,54 @@ defmodule Exq.Manager.Server do
   @doc """
   Dequeue jobs and dispatch to workers
   """
-  def dequeue_and_dispatch(state), do: dequeue_and_dispatch(state, available_queues(state))
-  def dequeue_and_dispatch(state, []), do: {state, state.poll_timeout}
+  def dequeue_and_dispatch(state) do
+    case available_queues(state) do
+      {[], state} ->
+        {state, state.poll_timeout}
 
-  def dequeue_and_dispatch(state, queues) do
-    rescue_timeout({state, state.poll_timeout}, fn ->
-      jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
+      {queues, state} ->
+        rescue_timeout({state, state.poll_timeout}, fn ->
+          jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
 
-      job_results = jobs |> Enum.map(fn potential_job -> dispatch_job(state, potential_job) end)
+          {state, job_results} =
+            Enum.reduce(jobs, {state, []}, fn potential_job, {state, results} ->
+              {state, result} = dispatch_job(state, potential_job)
+              {state, [result | results]}
+            end)
 
-      cond do
-        Enum.any?(job_results, fn status -> elem(status, 1) == :dispatch end) ->
-          {state, 0}
+          cond do
+            Enum.any?(job_results, fn status -> elem(status, 1) == :dispatch end) ->
+              {state, 0}
 
-        Enum.any?(job_results, fn status -> elem(status, 0) == :error end) ->
-          Logger.error("Redis Error #{Kernel.inspect(job_results)}}.  Backing off...")
-          {state, state.poll_timeout * @backoff_mult}
+            Enum.any?(job_results, fn status -> elem(status, 0) == :error end) ->
+              Logger.error("Redis Error #{Kernel.inspect(job_results)}}.  Backing off...")
+              {state, state.poll_timeout * @backoff_mult}
 
-        true ->
-          {state, state.poll_timeout}
-      end
-    end)
+            true ->
+              {state, state.poll_timeout}
+          end
+        end)
+    end
   end
 
   @doc """
   Returns list of active queues with free workers
   """
   def available_queues(state) do
-    Enum.filter(state.queues, fn q ->
-      [{_, concurrency, worker_count}] = :ets.lookup(state.work_table, q)
-      worker_count < concurrency
+    Enum.reduce(state.queues, {[], state}, fn q, {queues, state} ->
+      {available, dequeuers} =
+        Map.get_and_update!(state.dequeuers, q, fn {module, state} ->
+          {:ok, available, state} = module.available?(state)
+          {available, {module, state}}
+        end)
+
+      state = %{state | dequeuers: dequeuers}
+
+      if available do
+        {[q | queues], state}
+      else
+        {queues, state}
+      end
     end)
   end
 
@@ -285,14 +309,14 @@ defmodule Exq.Manager.Server do
   def dispatch_job(state, potential_job) do
     case potential_job do
       {:ok, {:none, _queue}} ->
-        {:ok, :none}
+        {state, {:ok, :none}}
 
       {:ok, {job, queue}} ->
-        dispatch_job(state, job, queue)
-        {:ok, :dispatch}
+        state = dispatch_job(state, job, queue)
+        {state, {:ok, :dispatch}}
 
       {status, reason} ->
-        {:error, {status, reason}}
+        {state, {:error, {status, reason}}}
     end
   end
 
@@ -314,10 +338,10 @@ defmodule Exq.Manager.Server do
       )
 
     Exq.Worker.Server.work(worker)
-    update_worker_count(state.work_table, queue, 1)
+    %{state | dequeuers: maybe_call_dequeuer(state.dequeuers, queue, :dispatched)}
   end
 
-  # Setup queues from options / configs.
+  # Setup dequeuers from options / configs.
 
   # The following is done:
   #  * Sets up queues data structure with proper concurrency settings
@@ -326,41 +350,49 @@ defmodule Exq.Manager.Server do
   #  * Returns list of queues and work table
   # TODO: Refactor the way queues are setup
 
-  defp setup_queues(opts) do
-    work_table = :ets.new(:work_table, [:set, :public])
-
-    Enum.each(opts[:concurrency], fn queue_concurrency ->
-      :ets.insert(work_table, queue_concurrency)
-      GenServer.cast(self(), {:re_enqueue_backup, elem(queue_concurrency, 0)})
+  defp add_dequeuers(dequeuers, specs) do
+    Enum.into(specs, dequeuers, fn {queue, concurrency, 0} ->
+      GenServer.cast(self(), {:re_enqueue_backup, queue})
+      {:ok, state} = Exq.Dequeue.Local.init(%{queue: queue}, %{concurrency: concurrency})
+      {queue, {Exq.Dequeue.Local, state}}
     end)
+  end
 
-    work_table
+  defp remove_dequeuers(dequeuers, queues) do
+    Enum.reduce(queues, dequeuers, fn queue, dequeuers ->
+      maybe_call_dequeuer(dequeuers, queue, :stop)
+      |> Map.delete(queue)
+    end)
+  end
+
+  defp maybe_call_dequeuer(dequeuers, queue, method) do
+    if Map.has_key?(dequeuers, queue) do
+      Map.update!(dequeuers, queue, fn {module, state} ->
+        {:ok, state} = apply(module, method, [state])
+        {module, state}
+      end)
+    else
+      dequeuers
+    end
   end
 
   defp add_queue(state, queue, concurrency \\ Config.get(:concurrency)) do
     queue_concurrency = {queue, concurrency, 0}
-    :ets.insert(state.work_table, queue_concurrency)
-    GenServer.cast(self(), {:re_enqueue_backup, queue})
-    updated_queues = [queue | state.queues]
-    %{state | queues: updated_queues}
+
+    %{
+      state
+      | queues: [queue | state.queues],
+        dequeuers: add_dequeuers(state.dequeuers, [queue_concurrency])
+    }
   end
 
   defp remove_queue(state, queue) do
-    :ets.delete(state.work_table, queue)
     updated_queues = List.delete(state.queues, queue)
-    %{state | queues: updated_queues}
+    %{state | queues: updated_queues, dequeuers: remove_dequeuers(state.dequeuers, [queue])}
   end
 
   defp remove_all_queues(state) do
-    true = :ets.delete_all_objects(state.work_table)
-    %{state | queues: []}
-  end
-
-  defp update_worker_count(work_table, queue, delta) do
-    :ets.update_counter(work_table, queue, {3, delta})
-  rescue
-    # The queue has been unsubscribed
-    _error in ArgumentError -> :ok
+    %{state | queues: [], dequeuers: remove_dequeuers(state.dequeuers, state.queues)}
   end
 
   @doc """
