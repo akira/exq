@@ -304,7 +304,6 @@ defmodule Exq.Manager.Server do
           job,
           state.pid,
           queue,
-          state.work_table,
           state.stats,
           state.namespace,
           state.node_id,

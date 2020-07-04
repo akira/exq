@@ -159,7 +159,6 @@ defmodule WorkerTest do
     Process.register(self(), :workertest)
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args} }"
 
-    work_table = :ets.new(:work_table, [:set, :public])
     {:ok, stub_server} = WorkerTest.MockServer.start_link()
     {:ok, mock_stats_server} = GenServer.start_link(WorkerTest.MockStatsServer, %{})
     {:ok, middleware} = GenServer.start_link(Exq.Middleware.Server, [])
@@ -173,7 +172,6 @@ defmodule WorkerTest do
       job,
       stub_server,
       "default",
-      work_table,
       mock_stats_server,
       "exq",
       "localhost",
