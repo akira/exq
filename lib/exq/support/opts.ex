@@ -83,7 +83,7 @@ defmodule Exq.Support.Opts do
     metadata = Exq.Worker.Metadata.server_name(opts[:name])
 
     queue_configs = opts[:queues] || Config.get(:queues)
-    per_queue_concurrency = opts[:concurrency] || get_config_concurrency()
+    per_queue_concurrency = cast_concurrency(opts[:concurrency] || Config.get(:concurrency))
     queues = get_queues(queue_configs)
     concurrency = get_concurrency(queue_configs, per_queue_concurrency)
     default_middleware = Config.get(:middleware)
@@ -137,28 +137,25 @@ defmodule Exq.Support.Opts do
     end)
   end
 
-  defp get_config_concurrency() do
-    cast_concurrency(Config.get(:concurrency))
-  end
-
   defp get_concurrency(queue_configs, per_queue_concurrency) do
     Enum.map(queue_configs, fn queue_config ->
       case queue_config do
-        {queue, concurrency} -> {queue, cast_concurrency(concurrency), 0}
-        queue -> {queue, per_queue_concurrency, 0}
+        {queue, concurrency} -> {queue, cast_concurrency(concurrency)}
+        queue -> {queue, per_queue_concurrency}
       end
     end)
   end
 
-  defp cast_concurrency(:infinity), do: :infinity
-  defp cast_concurrency(:infinite), do: :infinity
-  defp cast_concurrency(x) when is_integer(x), do: x
+  def cast_concurrency({module, options}), do: {module, options}
+  def cast_concurrency(:infinity), do: {Exq.Dequeue.Local, %{concurrency: :infinity}}
+  def cast_concurrency(:infinite), do: {Exq.Dequeue.Local, %{concurrency: :infinity}}
+  def cast_concurrency(x) when is_integer(x), do: {Exq.Dequeue.Local, %{concurrency: x}}
 
-  defp cast_concurrency(x) when is_binary(x) do
+  def cast_concurrency(x) when is_binary(x) do
     case x |> String.trim() |> String.downcase() do
-      "infinity" -> :infinity
-      "infinite" -> :infinity
-      x -> Coercion.to_integer(x)
+      "infinity" -> {Exq.Dequeue.Local, %{concurrency: :infinity}}
+      "infinite" -> {Exq.Dequeue.Local, %{concurrency: :infinity}}
+      x -> {Exq.Dequeue.Local, %{concurrency: Coercion.to_integer(x)}}
     end
   end
 end

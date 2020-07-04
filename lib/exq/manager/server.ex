@@ -111,6 +111,7 @@ defmodule Exq.Manager.Server do
   require Logger
   use GenServer
   alias Exq.Support.Config
+  alias Exq.Support.Opts
   alias Exq.Redis.JobQueue
 
   @backoff_mult 10
@@ -351,10 +352,10 @@ defmodule Exq.Manager.Server do
   # TODO: Refactor the way queues are setup
 
   defp add_dequeuers(dequeuers, specs) do
-    Enum.into(specs, dequeuers, fn {queue, concurrency, 0} ->
+    Enum.into(specs, dequeuers, fn {queue, {module, opts}} ->
       GenServer.cast(self(), {:re_enqueue_backup, queue})
-      {:ok, state} = Exq.Dequeue.Local.init(%{queue: queue}, %{concurrency: concurrency})
-      {queue, {Exq.Dequeue.Local, state}}
+      {:ok, state} = module.init(%{queue: queue}, opts)
+      {queue, {module, state}}
     end)
   end
 
@@ -377,7 +378,7 @@ defmodule Exq.Manager.Server do
   end
 
   defp add_queue(state, queue, concurrency \\ Config.get(:concurrency)) do
-    queue_concurrency = {queue, concurrency, 0}
+    queue_concurrency = {queue, Opts.cast_concurrency(concurrency)}
 
     %{
       state
