@@ -369,8 +369,10 @@ defmodule Exq.Manager.Server do
   defp maybe_call_dequeuer(dequeuers, queue, method) do
     if Map.has_key?(dequeuers, queue) do
       Map.update!(dequeuers, queue, fn {module, state} ->
-        {:ok, state} = apply(module, method, [state])
-        {module, state}
+        case apply(module, method, [state]) do
+          {:ok, state} -> {module, state}
+          :ok -> {module, nil}
+        end
       end)
     else
       dequeuers
