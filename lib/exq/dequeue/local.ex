@@ -6,7 +6,7 @@ defmodule Exq.Dequeue.Local do
   end
 
   @impl true
-  def init(%{queue: queue}, options) do
+  def init(_, options) do
     {:ok, %State{max: Keyword.fetch!(options, :concurrency)}}
   end
 
