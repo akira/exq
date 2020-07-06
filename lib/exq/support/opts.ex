@@ -147,15 +147,15 @@ defmodule Exq.Support.Opts do
   end
 
   def cast_concurrency({module, options}), do: {module, options}
-  def cast_concurrency(:infinity), do: {Exq.Dequeue.Local, %{concurrency: :infinity}}
-  def cast_concurrency(:infinite), do: {Exq.Dequeue.Local, %{concurrency: :infinity}}
-  def cast_concurrency(x) when is_integer(x), do: {Exq.Dequeue.Local, %{concurrency: x}}
+  def cast_concurrency(:infinity), do: {Exq.Dequeue.Local, [concurrency: :infinity]}
+  def cast_concurrency(:infinite), do: {Exq.Dequeue.Local, [concurrency: :infinity]}
+  def cast_concurrency(x) when is_integer(x), do: {Exq.Dequeue.Local, [concurrency: x]}
 
   def cast_concurrency(x) when is_binary(x) do
     case x |> String.trim() |> String.downcase() do
-      "infinity" -> {Exq.Dequeue.Local, %{concurrency: :infinity}}
-      "infinite" -> {Exq.Dequeue.Local, %{concurrency: :infinity}}
-      x -> {Exq.Dequeue.Local, %{concurrency: Coercion.to_integer(x)}}
+      "infinity" -> {Exq.Dequeue.Local, [concurrency: :infinity]}
+      "infinite" -> {Exq.Dequeue.Local, [concurrency: :infinity]}
+      x -> {Exq.Dequeue.Local, [concurrency: Coercion.to_integer(x)]}
     end
   end
 end

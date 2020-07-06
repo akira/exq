@@ -167,7 +167,7 @@ defmodule Exq.ConfigTest do
     assert metadata == Exq.Worker.Metadata
     assert queues == ["default"]
     assert redis == Exq.Redis.Client
-    assert concurrency == [{"default", {Exq.Dequeue.Local, %{concurrency: 100}}}]
+    assert concurrency == [{"default", {Exq.Dequeue.Local, [concurrency: 100]}}]
     assert middleware == Exq.Middleware.Server
 
     assert default_middleware == [
@@ -185,8 +185,8 @@ defmodule Exq.ConfigTest do
     assert server_opts[:queues] == ["default", "test1"]
 
     assert server_opts[:concurrency] == [
-             {"default", {Exq.Dequeue.Local, %{concurrency: 1000}}},
-             {"test1", {Exq.Dequeue.Local, %{concurrency: 2000}}}
+             {"default", {Exq.Dequeue.Local, [concurrency: 1000]}},
+             {"test1", {Exq.Dequeue.Local, [concurrency: 2000]}}
            ]
 
     Mix.Config.persist(
@@ -202,10 +202,10 @@ defmodule Exq.ConfigTest do
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:concurrency] == [
-             {"default", {Exq.Dequeue.Local, %{concurrency: 1000}}},
+             {"default", {Exq.Dequeue.Local, [concurrency: 1000]}},
              {
                "test1",
-               {Exq.Dequeue.Local, %{concurrency: :infinity}}
+               {Exq.Dequeue.Local, [concurrency: :infinity]}
              },
              {
                "test2",
@@ -248,7 +248,7 @@ defmodule Exq.ConfigTest do
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:namespace] == "test"
-    assert server_opts[:concurrency] == [{"default", {Exq.Dequeue.Local, %{concurrency: 333}}}]
+    assert server_opts[:concurrency] == [{"default", {Exq.Dequeue.Local, [concurrency: 333]}}]
     assert server_opts[:poll_timeout] == 17
     assert server_opts[:scheduler_poll_timeout] == 123
     assert server_opts[:scheduler_enable] == true
@@ -267,7 +267,7 @@ defmodule Exq.ConfigTest do
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
     assert server_opts[:concurrency] == [
-             {"default", {Exq.Dequeue.Local, %{concurrency: :infinity}}}
+             {"default", {Exq.Dequeue.Local, [concurrency: :infinity]}}
            ]
   end
 end
