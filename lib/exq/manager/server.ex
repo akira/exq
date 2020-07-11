@@ -258,27 +258,34 @@ defmodule Exq.Manager.Server do
         {state, state.poll_timeout}
 
       {queues, state} ->
-        rescue_timeout({state, state.poll_timeout}, fn ->
-          jobs = Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
+        result =
+          rescue_timeout(:timeout, fn ->
+            Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
+          end)
 
-          {state, job_results} =
-            Enum.reduce(jobs, {state, []}, fn potential_job, {state, results} ->
-              {state, result} = dispatch_job(state, potential_job)
-              {state, [result | results]}
-            end)
+        case result do
+          :timeout ->
+            {state, state.poll_timeout}
 
-          cond do
-            Enum.any?(job_results, fn status -> elem(status, 1) == :dispatch end) ->
-              {state, 0}
+          jobs ->
+            {state, job_results} =
+              Enum.reduce(jobs, {state, []}, fn potential_job, {state, results} ->
+                {state, result} = dispatch_job(state, potential_job)
+                {state, [result | results]}
+              end)
 
-            Enum.any?(job_results, fn status -> elem(status, 0) == :error end) ->
-              Logger.error("Redis Error #{Kernel.inspect(job_results)}}.  Backing off...")
-              {state, state.poll_timeout * @backoff_mult}
+            cond do
+              Enum.any?(job_results, fn status -> elem(status, 1) == :dispatch end) ->
+                {state, 0}
 
-            true ->
-              {state, state.poll_timeout}
-          end
-        end)
+              Enum.any?(job_results, fn status -> elem(status, 0) == :error end) ->
+                Logger.error("Redis Error #{Kernel.inspect(job_results)}}.  Backing off...")
+                {state, state.poll_timeout * @backoff_mult}
+
+              true ->
+                {state, state.poll_timeout}
+            end
+        end
     end
   end
 
