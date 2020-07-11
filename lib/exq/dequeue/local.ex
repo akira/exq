@@ -2,6 +2,8 @@ defmodule Exq.Dequeue.Local do
   @behaviour Exq.Dequeue.Behaviour
 
   defmodule State do
+    @moduledoc false
+
     defstruct max: nil, current: 0
   end
 
