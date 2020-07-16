@@ -44,6 +44,8 @@ defmodule Exq.Redis.JobQueue do
           ["LPUSH", queue_key(namespace, queue), job_serialized]
         ])
 
+      Redix.stop(redis, 1000)
+
       case response do
         {:ok, [%Redix.Error{}, %Redix.Error{}]} = error -> error
         {:ok, [%Redix.Error{}, _]} = error -> error
@@ -73,7 +75,10 @@ defmodule Exq.Redis.JobQueue do
     score = Time.time_to_score(time)
 
     try do
-      case Connection.zadd(redis, scheduled_queue, score, job_serialized) do
+      result = Connection.zadd(redis, scheduled_queue, score, job_serialized)
+      Redix.stop(redis, 1000)
+
+      case result do
         {:ok, _} -> {:ok, jid}
         other -> other
       end
