@@ -184,6 +184,10 @@ defmodule Exq.Redis.Connection do
   defp handle_response({:error, %{message: "NOSCRIPT" <> _rest}} = error, _) do
     error
   end
+  
+  defp handle_response({:error, %Redix.ConnectionError{reason: :disconnected}} = error, _) do
+    error
+  end
 
   defp handle_response({:error, message} = error, _) do
     Logger.error(inspect(message))
