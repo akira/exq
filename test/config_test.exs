@@ -173,7 +173,8 @@ defmodule Exq.ConfigTest do
     assert default_middleware == [
              Exq.Middleware.Stats,
              Exq.Middleware.Job,
-             Exq.Middleware.Manager
+             Exq.Middleware.Manager,
+             Exq.Middleware.Telemetry
            ]
 
     assert mode == :default
