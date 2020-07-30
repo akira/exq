@@ -397,7 +397,7 @@ For an implementation example, see sineed's demo app illustrating  [Sidekiq to E
 If you would like to exclusively send some jobs from Sidekiq to Exq as your migration strategy, you should create queue(s) that are exclusively listened to only in Exq (and configure those in the queue section in the Exq config). Make sure they are not configured to be listened to in Sidekiq, otherwise Sidekiq will also take jobs off that queue. You can still Enqueue jobs to that queue in Sidekiq even though they are not being monitored:
 
 ```ruby
-Side::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' => ['foo', 'bar'])
+Sidekiq::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' => ['foo', 'bar'])
 ```
 
 ## Security
