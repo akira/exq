@@ -14,6 +14,7 @@ defmodule Exq.Redis.JobQueue do
   require Logger
 
   alias Exq.Redis.Connection
+  alias Exq.Redis.Script
   alias Exq.Support.Job
   alias Exq.Support.Config
   alias Exq.Support.Time
@@ -123,19 +124,22 @@ defmodule Exq.Redis.JobQueue do
 
   def re_enqueue_backup(redis, namespace, node_id, queue) do
     resp =
-      redis
-      |> Connection.rpoplpush(
-        backup_queue_key(namespace, node_id, queue),
-        queue_key(namespace, queue)
+      Script.eval!(
+        redis,
+        :mlpop_rpush,
+        [backup_queue_key(namespace, node_id, queue), queue_key(namespace, queue)],
+        [10]
       )
 
     case resp do
-      {:ok, job} ->
-        if String.valid?(job) do
+      {:ok, [remaining, moved]} ->
+        if moved > 0 do
           Logger.info(
-            "Re-enqueueing job from backup for node_id [#{node_id}] and queue [#{queue}]"
+            "Re-enqueued #{moved} job(s) from backup for node_id [#{node_id}] and queue [#{queue}]"
           )
+        end
 
+        if remaining > 0 do
           re_enqueue_backup(redis, namespace, node_id, queue)
         end
 

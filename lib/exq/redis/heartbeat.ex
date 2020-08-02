@@ -46,16 +46,18 @@ defmodule Exq.Redis.Heartbeat do
           JobQueue.queue_key(namespace, queue),
           sorted_set_key(namespace)
         ],
-        [node_id, current_score]
+        [node_id, current_score, 10]
       )
 
     case resp do
-      {:ok, job} ->
-        if String.valid?(job) do
+      {:ok, [remaining, moved]} ->
+        if moved > 0 do
           Logger.info(
-            "Re-enqueueing job from backup for node_id [#{node_id}] and queue [#{queue}]"
+            "Re-enqueued #{moved} job(s) from backup for node_id [#{node_id}] and queue [#{queue}]"
           )
+        end
 
+        if remaining > 0 do
           re_enqueue_backup(redis, namespace, node_id, queue, current_score)
         end
 
