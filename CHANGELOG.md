@@ -5,8 +5,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-- exq.run mix task starts dependent apps as well
 
+## [0.14.0] - 2020-08-08
+
+### Added
+- Node heartbeat functionality for dynamic environments #392 by @ananthakumaran (disabled by default).
+- Exq telemetry events #414 by @hez
+- Allow custom job IDs #417 by @bradediger
+
+### Changed
+- Don't log Redis disconnects #420 by @isaacsanders
+
+### Fixed
+- exq.run mix task starts dependent apps as well #408 by @ananthakumaran
+- Cast queue level concurrency #401 by @ananthakumaran
+- Fix documentation typo #423 by @LionsHead
+- Fix conflicting unit in docs #419 by @JamesFerguson
 
 ## [0.13.5] - 2020-01-01
 
