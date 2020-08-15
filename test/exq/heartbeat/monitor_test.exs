@@ -51,6 +51,36 @@ defmodule Exq.Heartbeat.MonitorTest do
     assert queue_length(redis, "3") == {:ok, 0}
   end
 
+  test "re-enqueues more than 10 orphaned jobs from dead node's backup queue" do
+    {:ok, _} = Exq.Stats.Server.start_link(@opts)
+    redis = :testredis
+
+    servers =
+      for i <- 1..5 do
+        {:ok, heartbeat} =
+          Exq.Heartbeat.Server.start_link(Keyword.put(@opts, :node_id, to_string(i)))
+
+        {:ok, monitor} =
+          Exq.Heartbeat.Monitor.start_link(Keyword.put(@opts, :node_id, to_string(i)))
+
+        %{heartbeat: heartbeat, monitor: monitor}
+      end
+
+    for i <- 1..15 do
+      assert {:ok, ^i} = working(redis, "3")
+    end
+
+    Process.sleep(1000)
+    assert alive_nodes(redis) == ["1", "2", "3", "4", "5"]
+    assert queue_length(redis, "3") == {:ok, 15}
+    server = Enum.at(servers, 2)
+    :ok = GenServer.stop(server.heartbeat)
+    Process.sleep(2000)
+
+    assert alive_nodes(redis) == ["1", "2", "4", "5"]
+    assert queue_length(redis, "3") == {:ok, 0}
+  end
+
   test "can handle connection failure" do
     with_application_env(:exq, :redis_timeout, 500, fn ->
       {:ok, _} = Exq.Stats.Server.start_link(@opts)
