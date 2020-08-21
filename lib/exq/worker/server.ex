@@ -9,7 +9,6 @@ defmodule Exq.Worker.Server do
     * `job_serialized` - Full JSON payload of the Job.
     * `manager` - Manager process pid.
     * `queue` - The queue the job came from.
-    * `:work_table` - In process work ets table (TODO: Remove).
     * `stats` - Stats process pid.
     * `namespace` - Redis namespace
     * `host` - Host name
@@ -27,7 +26,6 @@ defmodule Exq.Worker.Server do
               manager: nil,
               queue: nil,
               namespace: nil,
-              work_table: nil,
               stats: nil,
               host: nil,
               redis: nil,
@@ -41,7 +39,6 @@ defmodule Exq.Worker.Server do
         job_serialized,
         manager,
         queue,
-        work_table,
         stats,
         namespace,
         host,
@@ -51,8 +48,7 @@ defmodule Exq.Worker.Server do
       ) do
     GenServer.start_link(
       __MODULE__,
-      {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware,
-       metadata},
+      {job_serialized, manager, queue, stats, namespace, host, redis, middleware, metadata},
       []
     )
   end
@@ -68,17 +64,13 @@ defmodule Exq.Worker.Server do
   ## gen server callbacks
   ## ===========================================================
 
-  def init(
-        {job_serialized, manager, queue, work_table, stats, namespace, host, redis, middleware,
-         metadata}
-      ) do
+  def init({job_serialized, manager, queue, stats, namespace, host, redis, middleware, metadata}) do
     {
       :ok,
       %State{
         job_serialized: job_serialized,
         manager: manager,
         queue: queue,
-        work_table: work_table,
         stats: stats,
         namespace: namespace,
         host: host,

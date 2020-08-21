@@ -9,19 +9,18 @@ defmodule Exq.Middleware.Manager do
   end
 
   def after_processed_work(pipeline) do
-    pipeline |> notify
+    pipeline |> notify(true)
   end
 
   def after_failed_work(pipeline) do
-    pipeline |> notify
+    pipeline |> notify(false)
   end
 
-  defp notify(%Pipeline{assigns: assigns} = pipeline) do
+  defp notify(%Pipeline{assigns: assigns} = pipeline, success) do
     Manager.job_terminated(
       assigns.manager,
-      assigns.namespace,
       assigns.queue,
-      assigns.job_serialized
+      success
     )
 
     pipeline

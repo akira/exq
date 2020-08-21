@@ -130,7 +130,7 @@ defmodule WorkerTest do
       {:keep_state, data}
     end
 
-    def connected(:cast, {:job_terminated, _, _, _}, data) do
+    def connected(:cast, {:job_terminated, _queue, _success}, data) do
       send(:workertest, :job_terminated)
       {:keep_state, data}
     end
@@ -158,8 +158,6 @@ defmodule WorkerTest do
   def start_worker({class, args}) do
     Process.register(self(), :workertest)
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args} }"
-
-    work_table = :ets.new(:work_table, [:set, :public])
 
     {:ok, stub_server} =
       start_supervised(%{
@@ -198,7 +196,6 @@ defmodule WorkerTest do
            job,
            stub_server,
            "default",
-           work_table,
            mock_stats_server,
            "exq",
            "localhost",
