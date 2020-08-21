@@ -207,6 +207,22 @@ defmodule JobQueueTest do
     assert_dequeue_job(["default"], false)
   end
 
+  test "scheduler_dequeue dequeues more than 10 jobs " do
+    now = DateTime.utc_now()
+
+    for _ <- 1..15 do
+      JobQueue.enqueue_at(:testredis, "test", "default", now, MyWorker, [], [])
+    end
+
+    assert JobQueue.scheduler_dequeue(:testredis, "test") == 15
+
+    for _ <- 1..15 do
+      assert_dequeue_job(["default"], true)
+    end
+
+    assert_dequeue_job(["default"], false)
+  end
+
   test "full_key" do
     assert JobQueue.full_key("exq", "k1") == "exq:k1"
     assert JobQueue.full_key("", "k1") == "k1"

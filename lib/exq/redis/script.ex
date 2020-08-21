@@ -12,6 +12,19 @@ defmodule Exq.Redis.Script do
   end
 
   @scripts %{
+    scheduler_dequeue:
+      Prepare.script("""
+      local schedule_queue = KEYS[1]
+      local limit, max_score, namespace_prefix = tonumber(ARGV[1]), tonumber(ARGV[2]), ARGV[3]
+      local jobs = redis.call('ZRANGEBYSCORE', schedule_queue, 0, max_score, 'LIMIT', 0, limit)
+      for _, job in ipairs(jobs) do
+        local job_queue = cjson.decode(job)['queue']
+        redis.call('ZREM', schedule_queue, job)
+        redis.call('SADD', namespace_prefix .. 'queues', job_queue)
+        redis.call('LPUSH', namespace_prefix .. 'queue:' .. job_queue, job)
+      end
+      return #jobs
+      """),
     mlpop_rpush:
       Prepare.script("""
       local from, to = KEYS[1], KEYS[2]
