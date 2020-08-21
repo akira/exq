@@ -15,6 +15,7 @@ defmodule Exq.Support.Config do
     scheduler_enable: true,
     concurrency: 100,
     scheduler_poll_timeout: 200,
+    scheduler_page_size: 10,
     poll_timeout: 100,
     genserver_timeout: 5000,
     shutdown_timeout: 5000,

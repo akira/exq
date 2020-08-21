@@ -103,10 +103,6 @@ defmodule Exq.Redis.Connection do
     q(redis, ["LPOP", key])
   end
 
-  def rpoplpush(redis, key, backup) do
-    q(redis, ["RPOPLPUSH", key, backup])
-  end
-
   def zadd(redis, set, score, member) do
     q(redis, ["ZADD", set, score, member])
   end
@@ -184,7 +180,7 @@ defmodule Exq.Redis.Connection do
   defp handle_response({:error, %{message: "NOSCRIPT" <> _rest}} = error, _) do
     error
   end
-  
+
   defp handle_response({:error, %Redix.ConnectionError{reason: :disconnected}} = error, _) do
     error
   end

@@ -12,6 +12,35 @@ defmodule Exq.Redis.Script do
   end
 
   @scripts %{
+    scheduler_dequeue:
+      Prepare.script("""
+      local schedule_queue = KEYS[1]
+      local limit, max_score, namespace_prefix = tonumber(ARGV[1]), tonumber(ARGV[2]), ARGV[3]
+      local jobs = redis.call('ZRANGEBYSCORE', schedule_queue, 0, max_score, 'LIMIT', 0, limit)
+      for _, job in ipairs(jobs) do
+        local job_queue = cjson.decode(job)['queue']
+        redis.call('ZREM', schedule_queue, job)
+        redis.call('SADD', namespace_prefix .. 'queues', job_queue)
+        redis.call('LPUSH', namespace_prefix .. 'queue:' .. job_queue, job)
+      end
+      return #jobs
+      """),
+    mlpop_rpush:
+      Prepare.script("""
+      local from, to = KEYS[1], KEYS[2]
+      local limit = tonumber(ARGV[1])
+      local length = redis.call('LLEN', from)
+      local value = nil
+      local moved = 0
+      while limit > 0 and length > 0 do
+        value = redis.call('LPOP', from)
+        redis.call('RPUSH', to, value)
+        limit = limit - 1
+        length = length - 1
+        moved = moved + 1
+      end
+      return {length, moved}
+      """),
     heartbeat_re_enqueue_backup:
       Prepare.script("""
       local function contains(table, element)
@@ -24,12 +53,22 @@ defmodule Exq.Redis.Script do
       end
 
       local backup_queue_key, queue_key, heartbeat_key = KEYS[1], KEYS[2], KEYS[3]
-      local node_id, expected_score = ARGV[1], ARGV[2]
+      local node_id, expected_score, limit = ARGV[1], ARGV[2], tonumber(ARGV[3])
       local node_ids = redis.call('ZRANGEBYSCORE', heartbeat_key, expected_score, expected_score)
       if contains(node_ids, node_id) then
-        return redis.call('RPOPLPUSH', backup_queue_key, queue_key)
+        local length = redis.call('LLEN', backup_queue_key)
+        local value = nil
+        local moved = 0
+        while limit > 0 and length > 0 do
+          value = redis.call('LPOP', backup_queue_key)
+          redis.call('RPUSH', queue_key, value)
+          limit = limit - 1
+          length = length - 1
+          moved = moved + 1
+        end
+        return {length, moved}
       else
-        return nil
+        return {0, 0}
       end
       """)
   }

@@ -20,10 +20,17 @@ defmodule JobQueueTest do
     jobs = JobQueue.dequeue(:testredis, "test", @host, queues)
     result = jobs |> Enum.reject(fn {:ok, {status, _}} -> status == :none end)
 
-    if is_boolean(expected_result) do
-      assert expected_result == !Enum.empty?(result)
-    else
-      assert expected_result == Enum.count(result)
+    cond do
+      is_boolean(expected_result) ->
+        assert expected_result == !Enum.empty?(result)
+
+      is_integer(expected_result) ->
+        assert expected_result == Enum.count(result)
+
+      is_map(expected_result) ->
+        [{:ok, {job_string, _queue}}] = result
+        job = Jason.decode!(job_string)
+        assert expected_result == Map.take(job, Map.keys(expected_result))
     end
   end
 
@@ -43,14 +50,37 @@ defmodule JobQueueTest do
   end
 
   test "backup queue" do
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
-    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
-    assert_dequeue_job(["default"], true)
-    assert_dequeue_job(["default"], true)
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [2], [])
+    assert_dequeue_job(["default"], %{"args" => [1]})
+    assert_dequeue_job(["default"], %{"args" => [2]})
     assert_dequeue_job(["default"], false)
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [3], [])
+    JobQueue.enqueue(:testredis, "test", "default", MyWorker, [4], [])
     JobQueue.re_enqueue_backup(:testredis, "test", @host, "default")
-    assert_dequeue_job(["default"], true)
-    assert_dequeue_job(["default"], true)
+    assert_dequeue_job(["default"], %{"args" => [1]})
+    assert_dequeue_job(["default"], %{"args" => [2]})
+    assert_dequeue_job(["default"], %{"args" => [3]})
+    assert_dequeue_job(["default"], %{"args" => [4]})
+    assert_dequeue_job(["default"], false)
+  end
+
+  test "backup queue re enqueues all jobs" do
+    for i <- 1..15 do
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [i], [])
+      assert_dequeue_job(["default"], %{"args" => [i]})
+    end
+
+    for i <- 16..30 do
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [i], [])
+    end
+
+    JobQueue.re_enqueue_backup(:testredis, "test", @host, "default")
+
+    for i <- 1..30 do
+      assert_dequeue_job(["default"], %{"args" => [i]})
+    end
+
     assert_dequeue_job(["default"], false)
   end
 
@@ -174,6 +204,22 @@ defmodule JobQueueTest do
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], true)
     assert_dequeue_job(["default"], true)
+    assert_dequeue_job(["default"], false)
+  end
+
+  test "scheduler_dequeue dequeues more than 10 jobs " do
+    now = DateTime.utc_now()
+
+    for _ <- 1..15 do
+      JobQueue.enqueue_at(:testredis, "test", "default", now, MyWorker, [], [])
+    end
+
+    assert JobQueue.scheduler_dequeue(:testredis, "test") == 15
+
+    for _ <- 1..15 do
+      assert_dequeue_job(["default"], true)
+    end
+
     assert_dequeue_job(["default"], false)
   end
 

@@ -3,7 +3,6 @@
 [![Travis Build Status](https://img.shields.io/travis/akira/exq.svg)](https://travis-ci.org/akira/exq)
 [![Coveralls Coverage](https://img.shields.io/coveralls/akira/exq.svg)](https://coveralls.io/github/akira/exq)
 [![Hex.pm Version](https://img.shields.io/hexpm/v/exq.svg)](https://hex.pm/packages/exq)
-[![Deps Status](https://beta.hexfaktor.org/badge/all/github/akira/exq.svg?branch=master)](https://beta.hexfaktor.org/github/akira/exq)
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 * Exq uses Redis as a store for background processing jobs.
@@ -66,7 +65,7 @@ Add exq to your mix.exs deps (replace version with the latest hex.pm package ver
   defp deps do
     [
       # ... other deps
-      {:exq, "~> 0.13.5"}
+      {:exq, "~> 0.14.0"}
     ]
   end
 ```
@@ -397,7 +396,7 @@ For an implementation example, see sineed's demo app illustrating  [Sidekiq to E
 If you would like to exclusively send some jobs from Sidekiq to Exq as your migration strategy, you should create queue(s) that are exclusively listened to only in Exq (and configure those in the queue section in the Exq config). Make sure they are not configured to be listened to in Sidekiq, otherwise Sidekiq will also take jobs off that queue. You can still Enqueue jobs to that queue in Sidekiq even though they are not being monitored:
 
 ```ruby
-Side::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' => ['foo', 'bar'])
+Sidekiq::Client.push('queue' => 'elixir_queue', 'class' => 'ElixirWorker', 'args' => ['foo', 'bar'])
 ```
 
 ## Security

@@ -159,26 +159,51 @@ defmodule WorkerTest do
     Process.register(self(), :workertest)
     job = "{ \"queue\": \"default\", \"class\": \"#{class}\", \"args\": #{args} }"
 
-    {:ok, stub_server} = WorkerTest.MockServer.start_link()
-    {:ok, mock_stats_server} = GenServer.start_link(WorkerTest.MockStatsServer, %{})
-    {:ok, middleware} = GenServer.start_link(Exq.Middleware.Server, [])
-    {:ok, metadata} = Exq.Worker.Metadata.start_link(%{})
+    {:ok, stub_server} =
+      start_supervised(%{
+        id: WorkerTest.MockServer,
+        start: {WorkerTest.MockServer, :start_link, []}
+      })
+
+    {:ok, mock_stats_server} =
+      start_supervised(%{
+        id: WorkerTest.MockStatsServer,
+        start: {GenServer, :start_link, [WorkerTest.MockStatsServer, %{}]}
+      })
+
+    {:ok, middleware} =
+      start_supervised(%{
+        id: Exq.Middleware.Server,
+        start: {GenServer, :start_link, [Exq.Middleware.Server, []]}
+      })
+
+    {:ok, metadata} =
+      start_supervised(%{
+        id: Exq.Worker.Metadata,
+        start: {Exq.Worker.Metadata, :start_link, [%{}]}
+      })
+
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Stats)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Job)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Manager)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Logger)
 
-    Exq.Worker.Server.start_link(
-      job,
-      stub_server,
-      "default",
-      mock_stats_server,
-      "exq",
-      "localhost",
-      stub_server,
-      middleware,
-      metadata
-    )
+    start_supervised(%{
+      id: Exq.Worker.Server,
+      start:
+        {Exq.Worker.Server, :start_link,
+         [
+           job,
+           stub_server,
+           "default",
+           mock_stats_server,
+           "exq",
+           "localhost",
+           stub_server,
+           middleware,
+           metadata
+         ]}
+    })
   end
 
   test "execute valid job with perform" do

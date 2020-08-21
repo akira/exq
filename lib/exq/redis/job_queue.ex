@@ -14,6 +14,7 @@ defmodule Exq.Redis.JobQueue do
   require Logger
 
   alias Exq.Redis.Connection
+  alias Exq.Redis.Script
   alias Exq.Support.Job
   alias Exq.Support.Config
   alias Exq.Support.Time
@@ -123,19 +124,22 @@ defmodule Exq.Redis.JobQueue do
 
   def re_enqueue_backup(redis, namespace, node_id, queue) do
     resp =
-      redis
-      |> Connection.rpoplpush(
-        backup_queue_key(namespace, node_id, queue),
-        queue_key(namespace, queue)
+      Script.eval!(
+        redis,
+        :mlpop_rpush,
+        [backup_queue_key(namespace, node_id, queue), queue_key(namespace, queue)],
+        [10]
       )
 
     case resp do
-      {:ok, job} ->
-        if String.valid?(job) do
+      {:ok, [remaining, moved]} ->
+        if moved > 0 do
           Logger.info(
-            "Re-enqueueing job from backup for node_id [#{node_id}] and queue [#{queue}]"
+            "Re-enqueued #{moved} job(s) from backup for node_id [#{node_id}] and queue [#{queue}]"
           )
+        end
 
+        if remaining > 0 do
           re_enqueue_backup(redis, namespace, node_id, queue)
         end
 
@@ -153,51 +157,33 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def scheduler_dequeue(redis, namespace, max_score) do
-    queues = schedule_queues(namespace)
-    commands = Enum.map(queues, &["ZRANGEBYSCORE", &1, 0, max_score])
-    resp = Connection.qp(redis, commands)
-
-    case resp do
-      {:error, reason} ->
-        [{:error, reason}]
-
-      {:ok, responses} ->
-        queues
-        |> Enum.zip(responses)
-        |> Enum.reduce(0, fn {queue, response}, acc ->
-          case response do
-            jobs when is_list(jobs) ->
-              deq_count = scheduler_dequeue_requeue(jobs, redis, namespace, queue, 0)
-              deq_count + acc
-
-            %Redix.Error{} = reason ->
-              Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
-              acc
-          end
-        end)
-    end
+    schedule_queues(namespace)
+    |> Enum.map(
+      &do_scheduler_dequeue(redis, namespace, &1, max_score, Config.get(:scheduler_page_size), 0)
+    )
+    |> Enum.sum()
   end
 
-  def scheduler_dequeue_requeue([], _redis, _namespace, _schedule_queue, count), do: count
+  defp do_scheduler_dequeue(redis, namespace, queue, max_score, limit, acc) do
+    case Script.eval!(redis, :scheduler_dequeue, [queue], [
+           limit,
+           max_score,
+           full_key(namespace, "")
+         ]) do
+      {:ok, count} ->
+        if count == limit do
+          do_scheduler_dequeue(redis, namespace, queue, max_score, limit, count + acc)
+        else
+          count + acc
+        end
 
-  def scheduler_dequeue_requeue([job_serialized | t], redis, namespace, schedule_queue, count) do
-    resp = Connection.zrem(redis, schedule_queue, job_serialized)
+      {:error, reason} ->
+        Logger.warn(
+          "Error dequeueing jobs from scheduler queue #{queue} - #{Kernel.inspect(reason)}"
+        )
 
-    count =
-      case resp do
-        {:ok, 1} ->
-          enqueue(redis, namespace, job_serialized)
-          count + 1
-
-        {:ok, _} ->
-          count
-
-        {:error, reason} ->
-          Logger.error("Redis error scheduler dequeue #{Kernel.inspect(reason)}}.")
-          count
-      end
-
-    scheduler_dequeue_requeue(t, redis, namespace, schedule_queue, count)
+        0
+    end
   end
 
   def full_key("", key), do: key
