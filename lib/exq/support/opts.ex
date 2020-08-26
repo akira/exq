@@ -16,9 +16,8 @@ defmodule Exq.Support.Opts do
     opts = [{:redis, redis} | opts]
 
     redis_opts = redis_opts(opts)
-    connection_opts = connection_opts(opts)
     server_opts = server_opts(mode, opts)
-    {redis_opts, connection_opts, server_opts}
+    {redis_opts, server_opts}
   end
 
   def redis_client_name(name) do
@@ -27,14 +26,33 @@ defmodule Exq.Support.Opts do
   end
 
   def redis_opts(opts \\ []) do
+    redis_options = opts[:redis_options] || Config.get(:redis_options)
+    socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
+
+    redis_options =
+      Keyword.merge(
+        [name: opts[:redis], socket_opts: socket_opts],
+        redis_options
+      )
+
     if url = opts[:url] || Config.get(:url) do
-      url
+      [url, redis_options]
     else
-      host = opts[:host] || Config.get(:host)
-      port = Coercion.to_integer(opts[:port] || Config.get(:port))
-      database = Coercion.to_integer(opts[:database] || Config.get(:database))
-      password = opts[:password] || Config.get(:password)
-      [host: host, port: port, database: database, password: password]
+      if Keyword.has_key?(redis_options, :sentinel) do
+        [redis_options]
+      else
+        host = opts[:host] || Config.get(:host)
+        port = Coercion.to_integer(opts[:port] || Config.get(:port))
+        database = Coercion.to_integer(opts[:database] || Config.get(:database))
+        password = opts[:password] || Config.get(:password)
+
+        [
+          Keyword.merge(
+            [host: host, port: port, database: database, password: password],
+            redis_options
+          )
+        ]
+      end
     end
   end
 
@@ -42,23 +60,8 @@ defmodule Exq.Support.Opts do
    Return {redis_module, redis_args, gen_server_opts}
   """
   def redis_worker_opts(opts) do
-    {redis_opts, connection_opts, opts} = conform_opts(opts)
-
-    if is_binary(redis_opts) do
-      {Redix, [redis_opts, connection_opts], opts}
-    else
-      {Redix, [Keyword.merge(redis_opts, connection_opts)], opts}
-    end
-  end
-
-  def connection_opts(opts \\ []) do
-    redis_options = opts[:redis_options] || Config.get(:redis_options)
-    socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
-
-    Keyword.merge(
-      [name: opts[:redis], socket_opts: socket_opts],
-      redis_options
-    )
+    {redis_opts, opts} = conform_opts(opts)
+    {Redix, redis_opts, opts}
   end
 
   defp server_opts(:default, opts) do

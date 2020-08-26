@@ -38,11 +38,15 @@ defmodule Exq.ConfigTest do
     )
 
     [
-      host: host,
-      port: port,
-      database: database,
-      password: password
-    ] = Exq.Support.Opts.redis_opts()
+      [
+        host: host,
+        port: port,
+        database: database,
+        password: password,
+        name: Exq.Redis,
+        socket_opts: []
+      ]
+    ] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
 
     assert host == "127.0.0.1"
     assert port == 6379
@@ -51,7 +55,7 @@ defmodule Exq.ConfigTest do
 
     System.put_env("REDIS_URL", "redis_url")
     Mix.Config.persist(exq: [url: {:system, "REDIS_URL"}])
-    redis_opts = Exq.Support.Opts.redis_opts()
+    [redis_opts, _] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts == "redis_url"
   end
 
@@ -59,7 +63,7 @@ defmodule Exq.ConfigTest do
     Mix.Config.persist(exq: [url: {:system, "REDIS_URL", "default_redis_url"}])
 
     redis_opts = Exq.Support.Opts.redis_opts()
-    assert redis_opts == "default_redis_url"
+    assert ["default_redis_url", _] = redis_opts
   end
 
   test "Raises an ArgumentError when supplied with an invalid port" do
@@ -74,8 +78,16 @@ defmodule Exq.ConfigTest do
   test "redis_opts" do
     Mix.Config.persist(exq: [host: "127.0.0.1", port: 6379, password: '', database: 0])
 
-    [host: host, port: port, database: database, password: password] =
-      Exq.Support.Opts.redis_opts()
+    [
+      [
+        host: host,
+        port: port,
+        database: database,
+        password: password,
+        name: Exq.Redis,
+        socket_opts: []
+      ]
+    ] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
 
     assert host == "127.0.0.1"
     assert port == 6379
@@ -83,12 +95,12 @@ defmodule Exq.ConfigTest do
     assert database == 0
 
     Mix.Config.persist(exq: [host: '127.1.1.1', password: 'password'])
-    redis_opts = Exq.Support.Opts.redis_opts()
+    [redis_opts] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts[:host] == '127.1.1.1'
     assert redis_opts[:password] == 'password'
 
     Mix.Config.persist(exq: [password: "binary_password"])
-    redis_opts = Exq.Support.Opts.redis_opts()
+    [redis_opts] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts[:password] == "binary_password"
 
     Mix.Config.persist(exq: [password: nil])
@@ -96,23 +108,26 @@ defmodule Exq.ConfigTest do
     assert redis_opts[:password] == nil
 
     Mix.Config.persist(exq: [url: "redis_url"])
-    redis_opts = Exq.Support.Opts.redis_opts()
+    [redis_opts, _] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts == "redis_url"
-  end
 
-  test "connection_opts" do
-    Mix.Config.persist(exq: [redis_options: [backoff_initial: 100, sync_connect: true]])
+    Mix.Config.persist(
+      exq: [url: "redis_url", redis_options: [backoff_initial: 100, sync_connect: true]]
+    )
 
     [
-      name: client_name,
-      socket_opts: [],
-      backoff_initial: backoff_initial,
-      sync_connect: sync_connect
-    ] = Exq.Support.Opts.connection_opts()
+      "redis_url",
+      [
+        name: client_name,
+        socket_opts: [],
+        backoff_initial: backoff_initial,
+        sync_connect: sync_connect
+      ]
+    ] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
 
     assert backoff_initial == 100
     assert sync_connect == true
-    assert client_name == nil
+    assert client_name == Exq.Redis
   end
 
   test "default redis_worker_opts" do
