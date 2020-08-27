@@ -75,10 +75,26 @@ defmodule Exq.Support.Opts do
   end
 
   defp mask_password(options) do
-    if Keyword.has_key?(options, :password) do
-      Keyword.update!(options, :password, fn
-        nil -> nil
-        _ -> "*****"
+    options =
+      if Keyword.has_key?(options, :password) do
+        Keyword.update!(options, :password, fn
+          nil -> nil
+          _ -> "*****"
+        end)
+      else
+        options
+      end
+
+    options =
+      if Keyword.has_key?(options, :sentinel) do
+        Keyword.update!(options, :sentinel, &mask_password/1)
+      else
+        options
+      end
+
+    if Keyword.has_key?(options, :sentinels) do
+      Keyword.update!(options, :sentinels, fn sentinels ->
+        Enum.map(sentinels, &mask_password/1)
       end)
     else
       options

@@ -182,6 +182,43 @@ defmodule Exq.ConfigTest do
 
     assert "[\"redis_url\", [sentinel: [sentinels: [[host: \"127.0.0.1\", port: 6666]], group: \"exq\"], database: 0, password: nil, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
+
+    Mix.Config.persist(
+      exq: [
+        redis_options: [
+          sentinel: [
+            sentinels: [[host: "127.0.0.1", port: 6666]],
+            password: "password",
+            group: "exq"
+          ],
+          database: 0,
+          timeout: 5000,
+          name: Exq.Redis.Client,
+          socket_opts: []
+        ]
+      ]
+    )
+
+    assert "[\"redis_url\", [sentinel: [sentinels: [[host: \"127.0.0.1\", port: 6666]], password: \"*****\", group: \"exq\"], database: 0, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]]" ==
+             Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
+
+    Mix.Config.persist(
+      exq: [
+        redis_options: [
+          sentinel: [
+            sentinels: [[host: "127.0.0.1", port: 6666, password: "password"]],
+            group: "exq"
+          ],
+          database: 0,
+          timeout: 5000,
+          name: Exq.Redis.Client,
+          socket_opts: []
+        ]
+      ]
+    )
+
+    assert "[\"redis_url\", [sentinel: [sentinels: [[host: \"127.0.0.1\", port: 6666, password: \"*****\"]], group: \"exq\"], database: 0, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]]" ==
+             Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
   end
 
   test "default redis_worker_opts" do
