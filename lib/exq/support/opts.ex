@@ -25,6 +25,16 @@ defmodule Exq.Support.Opts do
     "#{name}.Redis.Client" |> String.to_atom()
   end
 
+  def redis_inspect_opts(opts \\ []) do
+    args = redis_opts(opts)
+
+    case args do
+      [url, options] -> [url, mask_password(options)]
+      [options] -> [mask_password(options)]
+    end
+    |> inspect()
+  end
+
   def redis_opts(opts \\ []) do
     redis_options = opts[:redis_options] || Config.get(:redis_options)
     socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
@@ -62,6 +72,17 @@ defmodule Exq.Support.Opts do
   def redis_worker_opts(opts) do
     {redis_opts, opts} = conform_opts(opts)
     {Redix, redis_opts, opts}
+  end
+
+  defp mask_password(options) do
+    if Keyword.has_key?(options, :password) do
+      Keyword.update!(options, :password, fn
+        nil -> nil
+        _ -> "*****"
+      end)
+    else
+      options
+    end
   end
 
   defp server_opts(:default, opts) do
