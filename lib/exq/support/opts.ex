@@ -16,9 +16,8 @@ defmodule Exq.Support.Opts do
     opts = [{:redis, redis} | opts]
 
     redis_opts = redis_opts(opts)
-    connection_opts = connection_opts(opts)
     server_opts = server_opts(mode, opts)
-    {redis_opts, connection_opts, server_opts}
+    {redis_opts, server_opts}
   end
 
   def redis_client_name(name) do
@@ -26,15 +25,44 @@ defmodule Exq.Support.Opts do
     "#{name}.Redis.Client" |> String.to_atom()
   end
 
+  def redis_inspect_opts(opts \\ []) do
+    args = redis_opts(opts)
+
+    case args do
+      [url, options] -> [url, mask_password(options)]
+      [options] -> [mask_password(options)]
+    end
+    |> inspect()
+  end
+
   def redis_opts(opts \\ []) do
+    redis_options = opts[:redis_options] || Config.get(:redis_options)
+    socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
+
+    redis_options =
+      Keyword.merge(
+        [name: opts[:redis], socket_opts: socket_opts],
+        redis_options
+      )
+
     if url = opts[:url] || Config.get(:url) do
-      url
+      [url, redis_options]
     else
-      host = opts[:host] || Config.get(:host)
-      port = Coercion.to_integer(opts[:port] || Config.get(:port))
-      database = Coercion.to_integer(opts[:database] || Config.get(:database))
-      password = opts[:password] || Config.get(:password)
-      [host: host, port: port, database: database, password: password]
+      if Keyword.has_key?(redis_options, :sentinel) do
+        [redis_options]
+      else
+        host = opts[:host] || Config.get(:host)
+        port = Coercion.to_integer(opts[:port] || Config.get(:port))
+        database = Coercion.to_integer(opts[:database] || Config.get(:database))
+        password = opts[:password] || Config.get(:password)
+
+        [
+          Keyword.merge(
+            [host: host, port: port, database: database, password: password],
+            redis_options
+          )
+        ]
+      end
     end
   end
 
@@ -42,23 +70,35 @@ defmodule Exq.Support.Opts do
    Return {redis_module, redis_args, gen_server_opts}
   """
   def redis_worker_opts(opts) do
-    {redis_opts, connection_opts, opts} = conform_opts(opts)
-
-    if is_binary(redis_opts) do
-      {Redix, [redis_opts, connection_opts], opts}
-    else
-      {Redix, [Keyword.merge(redis_opts, connection_opts)], opts}
-    end
+    {redis_opts, opts} = conform_opts(opts)
+    {Redix, redis_opts, opts}
   end
 
-  def connection_opts(opts \\ []) do
-    redis_options = opts[:redis_options] || Config.get(:redis_options)
-    socket_opts = opts[:socket_opts] || Config.get(:socket_opts) || []
+  defp mask_password(options) do
+    options =
+      if Keyword.has_key?(options, :password) do
+        Keyword.update!(options, :password, fn
+          nil -> nil
+          _ -> "*****"
+        end)
+      else
+        options
+      end
 
-    Keyword.merge(
-      [name: opts[:redis], socket_opts: socket_opts],
-      redis_options
-    )
+    options =
+      if Keyword.has_key?(options, :sentinel) do
+        Keyword.update!(options, :sentinel, &mask_password/1)
+      else
+        options
+      end
+
+    if Keyword.has_key?(options, :sentinels) do
+      Keyword.update!(options, :sentinels, fn sentinels ->
+        Enum.map(sentinels, &mask_password/1)
+      end)
+    else
+      options
+    end
   end
 
   defp server_opts(:default, opts) do

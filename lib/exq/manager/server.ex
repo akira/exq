@@ -436,13 +436,13 @@ defmodule Exq.Manager.Server do
         )
     catch
       err, reason ->
-        opts = Exq.Support.Opts.redis_opts(opts) |> List.wrap() |> List.delete(:password)
+        opts = Exq.Support.Opts.redis_inspect_opts(opts)
 
         raise """
         \n\n\n#{String.duplicate("=", 100)}
         ERROR! Could not connect to Redis!
 
-        Configuration passed in: #{inspect(opts)}
+        Configuration passed in: #{opts}
         Error: #{inspect(err)}
         Reason: #{inspect(reason)}
 
