@@ -16,8 +16,8 @@ defmodule Exq.Middleware.Logger do
   end
 
   def after_failed_work(pipeline) do
-    Logger.info(to_string(pipeline.assigns.error_message))
-    Logger.info("#{log_context(pipeline)} fail: #{formatted_diff(delta(pipeline))}")
+    Logger.warn(to_string(pipeline.assigns.error_message))
+    Logger.warn("#{log_context(pipeline)} fail: #{formatted_diff(delta(pipeline))}")
     pipeline
   end
 
