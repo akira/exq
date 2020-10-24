@@ -17,7 +17,7 @@
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm", "69b09adddc4f74a40716ae54d140f93beb0fb8978d8636eaded0c31b6f099f16"},
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [:rebar3], [], "hexpm", "7a4c8e1115a2732a67d7624e28cf6c9f30c66711a9e92928e745c255887ba465"},
   "nimble_parsec": {:hex, :nimble_parsec, "0.5.0", "90e2eca3d0266e5c53f8fbe0079694740b9c91b6747f2b7e3c5d21966bba8300", [:mix], [], "hexpm", "5c040b8469c1ff1b10093d3186e2e10dbe483cd73d79ec017993fb3985b8a9b3"},
-  "poison": {:hex, :poison, "2.1.0", "f583218ced822675e484648fa26c933d621373f01c6c76bd00005d7bd4b82e27", [:mix], [], "hexpm", "002caaf939b97c84533ef0f621d3ed414ed703fcd03c91ec0dd62043df102c63"},
+  "poison": {:hex, :poison, "4.0.1", "bcb755a16fac91cad79bfe9fc3585bb07b9331e50cfe3420a24bcc2d735709ae", [:mix], [], "hexpm", "ba8836feea4b394bb718a161fc59a288fe0109b5006d6bdf97b6badfcf6f0f25"},
   "ranch": {:hex, :ranch, "1.7.0", "9583f47160ca62af7f8d5db11454068eaa32b56eeadf984d4f46e61a076df5f2", [:rebar3], [], "hexpm", "59f7501c3a56125b2fc5684c3048fac9d043c0bf4d173941b12ca927949af189"},
   "redix": {:hex, :redix, "0.10.2", "a9eabf47898aa878650df36194aeb63966d74f5bd69d9caa37babb32dbb93c5d", [:mix], [{:telemetry, "~> 0.4.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "251b329893b8f6bb115fc0e30df7f12ee641b1e4547d760cf0909416a209f9bd"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.1", "28a4d65b7f59893bc2c7de786dec1e1555bd742d336043fe644ae956c3497fbe", [:make, :rebar], [], "hexpm", "4f8805eb5c8a939cf2359367cb651a3180b27dfb48444846be2613d79355d65e"},
