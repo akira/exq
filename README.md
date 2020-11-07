@@ -236,7 +236,7 @@ iex -S mix
 You can run Exq standalone from the command line, to run it:
 
 ```
-> mix exq.run
+> mix do app.start, exq.run
 ```
 
 ## Workers
