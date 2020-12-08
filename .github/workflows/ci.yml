@@ -30,6 +30,7 @@ jobs:
           - elixir: 1.10.4
             otp: 23.0
     steps:
+      - run: sudo apt-get install redis-server -y
       - uses: actions/checkout@v2
       - uses: actions/setup-elixir@v1
         with:
