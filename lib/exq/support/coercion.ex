@@ -39,4 +39,18 @@ defmodule Exq.Support.Coercion do
     raise ArgumentError,
       message: "Failed to parse #{inspect(value)} into a boolean."
   end
+
+  def to_module(class) when is_atom(class) do
+    to_module(to_string(class))
+  end
+
+  def to_module("Elixir." <> class) do
+    to_module(class)
+  end
+
+  def to_module(class) do
+    target = String.replace(class, "::", ".")
+    [mod | _func_or_empty] = Regex.split(~r/\//, target)
+    String.to_atom("Elixir.#{mod}")
+  end
 end

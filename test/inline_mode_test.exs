@@ -12,6 +12,7 @@ defmodule InlineModeTest do
   describe "inline mode" do
     test "enqueue should return the correct value" do
       assert {:ok, _} = Exq.enqueue(Exq, "low", EchoWorker, [1])
+      assert {:ok, _} = Exq.enqueue(Exq, "low", "InlineModeTest.EchoWorker", [1])
     end
 
     test "enqueue_at should return the correct value" do

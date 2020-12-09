@@ -6,13 +6,10 @@ defmodule Exq.Middleware.Job do
 
   def before_work(pipeline) do
     job = Exq.Support.Job.decode(pipeline.assigns.job_serialized)
-    target = String.replace(job.class, "::", ".")
-    [mod | _func_or_empty] = Regex.split(~r/\//, target)
-    module = String.to_atom("Elixir.#{mod}")
 
     pipeline
     |> assign(:job, job)
-    |> assign(:worker_module, module)
+    |> assign(:worker_module, Exq.Support.Coercion.to_module(job.class))
   end
 
   def after_processed_work(pipeline) do

@@ -2,6 +2,7 @@ defmodule Exq.Mock do
   alias Exq.Support.Config
   alias Exq.Adapters.Queue.Redis
   alias Exq.Support.Job
+  alias Exq.Support.Coercion
   use GenServer
   @timeout 30000
 
@@ -106,7 +107,7 @@ defmodule Exq.Mock do
       :inline ->
         runnable = fn ->
           job = to_job(args)
-          apply(job.class, :perform, job.args)
+          apply(Coercion.to_module(job.class), :perform, job.args)
           {:ok, job.jid}
         end
 
