@@ -172,8 +172,8 @@ defmodule Exq.Worker.Server do
     Process.flag(:trap_exit, true)
     worker = self()
 
-    pid =
-      spawn_link(fn ->
+    {:ok, pid} =
+      Task.start_link(fn ->
         :ok = Metadata.associate(metadata, self(), job)
         result = apply(worker_module, :perform, job.args)
         GenServer.cast(worker, {:done, result})
