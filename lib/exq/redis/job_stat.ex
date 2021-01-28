@@ -64,7 +64,7 @@ defmodule Exq.Redis.JobStat do
     :ok
   end
 
-  def remove_process_commands(namespace, process_info, serialized_process \\ nil) do
+  def remove_process_commands(namespace, process_info, _) do
     name = supervisor_worker_name(namespace, process_info)
     [
       ["HINCRBY", name, "busy", "-1"],
