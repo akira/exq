@@ -111,6 +111,7 @@ defmodule Exq.Manager.Server do
   require Logger
   use GenServer
   alias Exq.Support.Config
+  alias Exq.Support.Time
   alias Exq.Support.Opts
   alias Exq.Redis.JobQueue
 
@@ -129,7 +130,8 @@ defmodule Exq.Manager.Server do
               scheduler_poll_timeout: nil,
               workers_sup: nil,
               middleware: nil,
-              metadata: nil
+              metadata: nil,
+              started_at: nil
   end
 
   def start_link(opts \\ []) do
@@ -149,9 +151,6 @@ defmodule Exq.Manager.Server do
   ## ===========================================================
 
   def init(opts) do
-    # Cleanup stale stats
-    GenServer.cast(self(), :cleanup_host_stats)
-
     # Setup dequeues
     dequeuers = add_dequeuers(%{}, opts[:concurrency])
 
@@ -168,10 +167,16 @@ defmodule Exq.Manager.Server do
       queues: opts[:queues],
       pid: self(),
       poll_timeout: opts[:poll_timeout],
-      scheduler_poll_timeout: opts[:scheduler_poll_timeout]
+      scheduler_poll_timeout: opts[:scheduler_poll_timeout],
+      started_at: Time.unix_seconds
     }
 
     check_redis_connection(opts)
+
+    # Cleanup stale stats
+    rescue_timeout(fn ->
+      Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id, state.pid)
+    end)
     {:ok, state, 0}
   end
 
@@ -206,17 +211,6 @@ defmodule Exq.Manager.Server do
   def handle_cast({:re_enqueue_backup, queue}, state) do
     rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)
-    end)
-
-    {:noreply, state, 0}
-  end
-
-  @doc """
-  Cleanup host stats on boot
-  """
-  def handle_cast(:cleanup_host_stats, state) do
-    rescue_timeout(fn ->
-      Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id)
     end)
 
     {:noreply, state, 0}

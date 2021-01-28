@@ -65,7 +65,9 @@ defmodule Exq.Serializers.JsonSerializer do
 
     %Exq.Support.Process{
       pid: Map.get(deserialized, "pid"),
-      host: Map.get(deserialized, "host"),
+      hostname: Map.get(deserialized, "hostname"),
+      queues: Map.get(deserialized, "queues"),
+      concurrency: Map.get(deserialized, "concurrency"),
       job: Map.get(deserialized, "job"),
       started_at: Map.get(deserialized, "started_at")
     }
@@ -78,7 +80,9 @@ defmodule Exq.Serializers.JsonSerializer do
       Enum.into(
         [
           pid: formatted_pid,
-          host: process.host,
+          hostname: process.hostname,
+          queues: process.queues,
+          concurrency: process.concurrency,
           job: process.job,
           started_at: process.started_at
         ],

@@ -1,6 +1,7 @@
 defmodule ExqTest do
   use ExUnit.Case
   alias Exq.Redis.JobQueue
+  alias Exq.Redis.Connection
   import ExqTestUtil
 
   defmodule PerformWorker do
@@ -332,7 +333,7 @@ defmodule ExqTest do
 
     # Clear processes for this node
     host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
-    Exq.Stats.Server.cleanup_host_stats(ExqP.Stats, "test", host)
+    Exq.Stats.Server.cleanup_host_stats(ExqP.Stats, "test", host, self())
 
     # Check that process has been cleared
     processes = Exq.Redis.JobStat.processes(state.redis, "test")
@@ -480,6 +481,16 @@ defmodule ExqTest do
 
     assert JobQueue.failed_size(:testredis, "test") == 1
     stop_process(sup)
+  end
+
+  test "Simple stop" do
+    {:ok, sup} = Exq.start_link([])
+    Exq.stop(sup)
+  end
+
+  test "Stop by name" do
+    {:ok, _sup} = Exq.start_link([name: CustomManager])
+    Exq.stop(CustomManager)
   end
 
   defp enqueue_fail_job(count) do

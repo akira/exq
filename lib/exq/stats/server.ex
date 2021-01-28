@@ -24,10 +24,10 @@ defmodule Exq.Stats.Server do
   @doc """
   Add in progress worker process
   """
-  def add_process(stats, namespace, worker, host, job_serialized) do
+  def add_process(stats, namespace, worker, hostname, job_serialized) do
     process_info = %Process{
       pid: worker,
-      host: host,
+      hostname: hostname,
       job: Exq.Support.Config.serializer().decode_job(job_serialized),
       started_at: Time.unix_seconds()
     }
@@ -65,8 +65,8 @@ defmodule Exq.Stats.Server do
   @doc """
   Cleanup stats on boot. This includes cleaning up busy workers.
   """
-  def cleanup_host_stats(stats, namespace, host) do
-    GenServer.call(stats, {:cleanup_host_stats, namespace, host})
+  def cleanup_host_stats(stats, namespace, host, master_pid) do
+    GenServer.call(stats, {:cleanup_host_stats, namespace, host, master_pid})
     :ok
   end
 
@@ -104,9 +104,9 @@ defmodule Exq.Stats.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:cleanup_host_stats, namespace, host}, _from, state) do
+  def handle_call({:cleanup_host_stats, namespace, host, master_pid}, _from, state) do
     try do
-      JobStat.cleanup_processes(state.redis, namespace, host)
+      JobStat.cleanup_processes(state.redis, namespace, host, master_pid)
     rescue
       e -> Logger.error("Error cleaning up processes -  #{Kernel.inspect(e)}")
     end

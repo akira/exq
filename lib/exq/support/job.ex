@@ -3,6 +3,7 @@ defmodule Exq.Support.Job do
   Serializable Job format used by Exq
   """
 
+  @derive Jason.Encoder
   defstruct error_message: nil,
             error_class: nil,
             failed_at: nil,

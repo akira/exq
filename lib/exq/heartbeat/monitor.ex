@@ -78,7 +78,7 @@ defmodule Exq.Heartbeat.Monitor do
     end)
 
     if state.stats do
-      :ok = Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, node_id)
+      :ok = Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, node_id, self())
     end
 
     _ = Heartbeat.unregister(state.redis, state.namespace, node_id)
