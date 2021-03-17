@@ -1,14 +1,16 @@
 defmodule Exq.Support.Mode do
   @moduledoc """
-  This module defines several modes in which Exq can be used. These modes are:
+  This module defines several modes in which Exq can be used.
 
+  These modes are:
   * `default` - starts the default processes
   * `enqueuer` - starts processes which are responsible for job enqueueing
   * `api` - starts processes which are responsible for API usage
+
   """
 
   @doc """
-  Returns child list for the main Exq supervisor
+  Returns child list for the main Exq supervisor.
   """
 
   import Exq.Support.Opts, only: [redis_worker_opts: 1]

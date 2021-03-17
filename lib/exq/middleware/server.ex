@@ -1,7 +1,9 @@
 defmodule Exq.Middleware.Server do
   @moduledoc """
   Middleware Server is responsible for storing middleware chain that is evaluated
-  when performing particular job. Middleware chain defaults to Stats, Job and Manager middlewares.
+  when performing particular job.
+
+  Middleware chain defaults to Stats, Job and Manager middlewares.
 
   To push new middleware you must create module with common interface. Interface is similar to `Plug`
   implementation. It has three functions, every function receives `Exq.Middlewares.Pipeline` structure
@@ -12,60 +14,58 @@ defmodule Exq.Middleware.Server do
 
   For example, here is a valid middleware module:
 
-  ```elixir
-    defmodule MyMiddleware do
-      @behaiour Exq.Middleware.Behaviour
+      defmodule MyMiddleware do
+        @behaiour Exq.Middleware.Behaviour
 
-      def before_work(pipeline) do
-        # some functionality goes here...
-        pipeline
-      end
+        def before_work(pipeline) do
+          # some functionality goes here...
+          pipeline
+        end
 
-      def after_processed_work(pipeline) do
-        # some functionality goes here...
-        pipeline
-      end
+        def after_processed_work(pipeline) do
+          # some functionality goes here...
+          pipeline
+        end
 
-      def after_failed_work(pipeline) do
-        # some functionality goes here...
-        pipeline
+        def after_failed_work(pipeline) do
+          # some functionality goes here...
+          pipeline
+        end
       end
-    end
-  ```
 
   To add this module to middleware chain:
 
-  ```elixir
-    Exq.Middleware.Server.push(middleware_server_pid, MyMiddleware)
-  ```
+      Exq.Middleware.Server.push(middleware_server_pid, MyMiddleware)
+
   """
 
   use GenServer
 
   @doc """
-  Starts middleware server
+  Starts middleware server.
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, default_middleware(opts), name: server_name(opts[:name]))
   end
 
   @doc """
-  Adds specified `middleware` module into the end of middleware list. `middleware` should have
-  `Exq.Middleware.Behaviour` behaviour
+  Adds specified `middleware` module into the end of middleware list.
+
+  `middleware` should have `Exq.Middleware.Behaviour` behaviour.
   """
   def push(pid, middleware) do
     GenServer.cast(pid, {:push, middleware})
   end
 
   @doc """
-  Retrieves list of middleware modules
+  Retrieves list of middleware modules.
   """
   def all(pid) do
     GenServer.call(pid, :all)
   end
 
   @doc """
-  Returns middleware server name
+  Returns middleware server name.
   """
   def server_name(name) do
     name = name || Exq.Support.Config.get(:name)
@@ -78,7 +78,7 @@ defmodule Exq.Middleware.Server do
   end
 
   ## ===========================================================
-  ## gen server callbacks
+  ## GenServer callbacks
   ## ===========================================================
 
   def handle_cast({:push, middleware}, state) do

@@ -1,8 +1,9 @@
 defmodule Exq.Worker.Metadata do
   @moduledoc """
-  Provides storage functionality for job metadata. The metadata is
-  associated with the worker pid and automatically discarded when the
-  worker process exits.
+  Provides storage functionality for job metadata.
+
+  The metadata is associated with the worker pid and automatically discarded
+  when the worker process exits.
   """
 
   use GenServer
@@ -21,7 +22,7 @@ defmodule Exq.Worker.Metadata do
   end
 
   ## ===========================================================
-  ## gen server callbacks
+  ## GenServer callbacks
   ## ===========================================================
 
   def init(opts) do

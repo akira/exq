@@ -1,6 +1,6 @@
 defmodule Exq.Enqueuer do
   @moduledoc """
-  Enqueuer
+  Enqueuer.
   """
 
   # Mixin EnqueueApi

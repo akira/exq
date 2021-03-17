@@ -1,4 +1,8 @@
 defmodule Exq.Worker.Supervisor do
+  @moduledoc """
+  Supervisor for Exq Worker.
+  """
+
   import Supervisor.Spec
 
   def start_link(opts) do

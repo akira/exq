@@ -1,9 +1,9 @@
 defmodule Exq.Dequeue.Behaviour do
   @moduledoc """
-  Custom concurreny or rate limiting at a queue level can be achieved
-  by implementing the Dequeue behaviour
+  Custom concurrency or rate limiting at a queue level can be achieved
+  by implementing the Dequeue behaviour.
 
-  The following config can be used to customize dequeue behaviour for a queue
+  The following config can be used to customize dequeue behaviour for a queue:
 
       config :exq,
         queues: [{"default", {RateLimiter, options}}]

@@ -1,7 +1,8 @@
 defmodule Exq.Api do
   @moduledoc """
   Interface for retrieving Exq stats.
-  Pid is currently Exq.Api process
+
+  Pid is currently Exq.Api process.
   """
 
   def start_link(opts \\ []) do
@@ -9,13 +10,14 @@ defmodule Exq.Api do
   end
 
   @doc """
-  List of queues with jobs (empty queues are deleted)
+  List of queues with jobs (empty queues are deleted).
 
   Expected args:
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, queues}` - list of queue
+    * `{:ok, queues}` - list of queue
+
   """
   def queues(pid) do
     GenServer.call(pid, :queues)
@@ -29,7 +31,8 @@ defmodule Exq.Api do
     * `queue` - Queue name
 
   Returns:
-  * `{:ok, queues}` - list of queue
+    * `{:ok, queues}` - list of queue
+
   """
   def remove_queue(pid, queue) do
     GenServer.call(pid, {:remove_queue, queue})
@@ -42,7 +45,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, num_busy}` - number of busy workers
+    * `{:ok, num_busy}` - number of busy workers
+
   """
   def busy(pid) do
     GenServer.call(pid, :busy)
@@ -55,7 +59,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, [processes]}`
+    * `{:ok, [processes]}`
+
   """
   def processes(pid) do
     GenServer.call(pid, :processes)
@@ -72,7 +77,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, [{queue, [jobs]}, {queue, [jobs]}]}`
+    * `{:ok, [{queue, [jobs]}, {queue, [jobs]}]}`
+
   """
   def jobs(pid) do
     GenServer.call(pid, :jobs)
@@ -86,7 +92,8 @@ defmodule Exq.Api do
     * `queue` - Queue name
 
   Returns:
-  * `{:ok, [jobs]}`
+    * `{:ok, [jobs]}`
+
   """
   def jobs(pid, queue) do
     GenServer.call(pid, {:jobs, queue})
@@ -99,7 +106,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, [jobs]}`
+    * `{:ok, [jobs]}`
+
   """
   def retries(pid) do
     GenServer.call(pid, :retries)
@@ -112,7 +120,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, [jobs]}`
+    * `{:ok, [jobs]}`
+
   """
   def scheduled(pid) do
     GenServer.call(pid, {:jobs, :scheduled})
@@ -125,7 +134,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, [{job, scheduled_at}]}`
+    * `{:ok, [{job, scheduled_at}]}`
+
   """
   def scheduled_with_scores(pid) do
     GenServer.call(pid, {:jobs, :scheduled_with_scores})
@@ -144,7 +154,8 @@ defmodule Exq.Api do
     * `jid` - Unique identifier for the job
 
   Returns:
-  * `:ok`
+    * `:ok`
+
   """
   def remove_job(pid, queue, jid) do
     GenServer.call(pid, {:remove_job, queue, jid})
@@ -157,7 +168,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, [{queue, num_jobs}, {queue, num_jobs}]}`
+    * `{:ok, [{queue, num_jobs}, {queue, num_jobs}]}`
+
   """
   def queue_size(pid) do
     GenServer.call(pid, :queue_size)
@@ -171,7 +183,8 @@ defmodule Exq.Api do
     * `queue` - The name of the queue to find the number of jobs for
 
   Returns:
-  * `{:ok, num_jobs}`
+    * `{:ok, num_jobs}`
+
   """
   def queue_size(pid, queue) do
     GenServer.call(pid, {:queue_size, queue})
@@ -184,7 +197,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, [jobs]}`
+    * `{:ok, [jobs]}`
+
   """
   def failed(pid) do
     GenServer.call(pid, :failed)
@@ -202,7 +216,8 @@ defmodule Exq.Api do
     * `jid` - Unique identifier for the job
 
   Returns:
-  * `:ok`
+    * `:ok`
+
   """
   def remove_failed(pid, jid) do
     GenServer.call(pid, {:remove_failed, jid})
@@ -219,7 +234,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, num_failed}` - number of failed jobs
+    * `{:ok, num_failed}` - number of failed jobs
+
   """
   def failed_size(pid) do
     GenServer.call(pid, :failed_size)
@@ -237,7 +253,8 @@ defmodule Exq.Api do
     * `jid` - Unique identifier for the job
 
   Returns:
-  * `:ok`
+    * `:ok`
+
   """
   def remove_retry(pid, jid) do
     GenServer.call(pid, {:remove_retry, jid})
@@ -254,7 +271,8 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, num_retry}` - number of jobs to be retried
+    * `{:ok, num_retry}` - number of jobs to be retried
+
   """
   def retry_size(pid) do
     GenServer.call(pid, :retry_size)
@@ -272,7 +290,8 @@ defmodule Exq.Api do
     * `jid` - Unique identifier for the job
 
   Returns:
-  * `:ok`
+    * `:ok`
+
   """
   def remove_scheduled(pid, jid) do
     GenServer.call(pid, {:remove_scheduled, jid})
@@ -289,15 +308,17 @@ defmodule Exq.Api do
     * `pid` - Exq.Api process
 
   Returns:
-  * `{:ok, num_scheduled}` - number of scheduled jobs enqueued
+    * `{:ok, num_scheduled}` - number of scheduled jobs enqueued
+
   """
   def scheduled_size(pid) do
     GenServer.call(pid, :scheduled_size)
   end
 
   @doc """
-  Return stat for given key
-  Examples of keys are `processed`, `failed`
+  Return stat for given key.
+
+  Examples of keys are `processed` and `failed`.
 
   Expected args:
     * `pid` - Exq.Api process
@@ -305,7 +326,8 @@ defmodule Exq.Api do
     * `queue` - Queue name
 
   Returns:
-  * `{:ok, stat}` stat for key
+    * `{:ok, stat}` stat for key
+
   """
   def stats(pid, key) do
     GenServer.call(pid, {:stats, key})

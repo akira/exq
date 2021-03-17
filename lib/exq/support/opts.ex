@@ -1,9 +1,13 @@
 defmodule Exq.Support.Opts do
+  @moduledoc """
+  Exq supported options.
+  """
+
   alias Exq.Support.Coercion
   alias Exq.Support.Config
 
   @doc """
-   Return top supervisor's name default is Exq.Sup
+  Returns top supervisor's name default is `Exq.Sup`.
   """
   def top_supervisor(name) do
     name = name || Config.get(:name)
@@ -67,7 +71,7 @@ defmodule Exq.Support.Opts do
   end
 
   @doc """
-   Return {redis_module, redis_args, gen_server_opts}
+  Returns `{redis_module, redis_args, gen_server_opts}`.
   """
   def redis_worker_opts(opts) do
     {redis_opts, opts} = conform_opts(opts)

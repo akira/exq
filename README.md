@@ -1,7 +1,12 @@
 # Exq
 
+[![CI](https://github.com/akira/exq/actions/workflows/ci.yml/badge.svg)](https://github.com/akira/exq/actions/workflows/ci.yml)
 [![Coveralls Coverage](https://img.shields.io/coveralls/akira/exq.svg)](https://coveralls.io/github/akira/exq)
-[![Hex.pm Version](https://img.shields.io/hexpm/v/exq.svg)](https://hex.pm/packages/exq)
+[![Module Version](https://img.shields.io/hexpm/v/exq.svg)](https://hex.pm/packages/exq)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/exq/)
+[![Total Download](https://img.shields.io/hexpm/dt/exq.svg)](https://hex.pm/packages/exq)
+[![License](https://img.shields.io/hexpm/l/exq.svg)](https://github.com/akira/exq/blob/master/LICENSE)
+[![Last Updated](https://img.shields.io/github/last-commit/akira/exq.svg)](https://github.com/akira/exq/commits/master)
 
 Exq is a job processing library compatible with Resque / Sidekiq for the [Elixir](http://elixir-lang.org) language.
 * Exq uses Redis as a store for background processing jobs.
@@ -39,12 +44,14 @@ Some OTP related documentation to look at:
 
 If you need a durable jobs, retries with exponential backoffs, dynamically scheduled jobs in the future - that are all able to survive application restarts, then an externally backed queueing library such as Exq could be a good fit.
 
-If you are starting a brand new project, I would also take a look at [Faktory](https://github.com/contribsys/faktory). It provides language indepedent queueuing system, which means this logic doesn't have to be implemented across different languages and can use a thin client such as [faktory_worker_ex](https://github.com/cjbottaro/faktory_worker_ex).
+If you are starting a brand new project, I would also take a look at [Faktory](https://github.com/contribsys/faktory). It provides language independent queueing system, which means this logic doesn't have to be implemented across different languages and can use a thin client such as [faktory_worker_ex](https://github.com/cjbottaro/faktory_worker_ex).
 
-## Getting Started:
+## Getting Started
 
-## Pre-requisite:
+### Pre-requisite
+
 This assumes you have an instance of [Redis](http://redis.io/) to use.  The easiest way to install it on OSX is via brew:
+
 ```
 > brew install redis
 ```
@@ -54,27 +61,28 @@ To start it:
 ```
 
 ### Screencast on elixircasts.io:
+
 If you prefer video instructions, check out the screencast on elixircasts.io which details how to install and use the Exq library:
 https://elixircasts.io/elixir-job-processing-with-exq
 
-### Installation:
-Add exq to your mix.exs deps (replace version with the latest hex.pm package version):
+### Installation
+Add `:exq` to your `mix.exs` deps (replace version with the latest hex.pm package version):
 
 ```elixir
-  defp deps do
-    [
-      # ... other deps
-      {:exq, "~> 0.14.0"}
-    ]
-  end
+defp deps do
+  [
+    # ... other deps
+    {:exq, "~> 0.14.0"}
+  ]
+end
 ```
 
 Then run ```mix deps.get```.
 
 
-### Configuration:
+### Configuration
 
-By default, Exq will use configuration from your config.exs file.  You can use this to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a redis url, that is also an option using the `url` config key (in which case you would not need to pass the other redis options).
+By default, Exq will use configuration from your config.exs file.  You can use this to configure your Redis host, port, password, as well as namespace (which helps isolate the data in Redis). If you would like to specify your options as a Redis URL, that is also an option using the `url` config key (in which case you would not need to pass the other Redis options).
 
 Configuration options may optionally be given in the `{:system, "VARNAME"}` format, which will resolve to the runtime environment value.
 
@@ -86,8 +94,8 @@ Other options include:
 * The `shutdown_timeout` is the number of milliseconds to wait for workers to
   finish processing jobs when the application is shutting down. It defaults to
   5000 ms.
-* The `mode` option can be used to control what components of exq are started. This would be useful if you want to only enqueue jobs in one node and run the workers in different node.
-  * `:default` - starts worker, enqueuer and api.
+* The `mode` option can be used to control what components of Exq are started. This would be useful if you want to only enqueue jobs in one node and run the workers in different node.
+  * `:default` - starts worker, enqueuer and API.
   * `:enqueuer` - starts only the enqueuer.
   * `:api` - starts only the api.
   * `[:api, :enqueuer]` - starts both enqueuer and api.
@@ -110,7 +118,7 @@ config :exq,
   shutdown_timeout: 5000
 ```
 
-### Concurrency:
+### Concurrency
 
 Exq supports concurrency setting per queue.  You can specify the same ```concurrency``` option to apply to each queue or specify it based on a per queue basis.
 
@@ -136,7 +144,7 @@ config :exq,
 ```
 
 
-### Job Retries:
+### Job Retries
 
 Exq will automatically retry failed job. It will use an exponential backoff timing similar to Sidekiq or delayed_job to retry failed jobs. It can be configured via these settings:
 
@@ -151,7 +159,7 @@ config :exq,
 
 Note that ```scheduler_enable``` has to be set to ```true``` and ```max_retries``` should be greater than ```0```.
 
-### Dead Jobs:
+### Dead Jobs
 
 Any job that has failed more than ```max_retries``` times will be
 moved to dead jobs queue. Dead jobs could be manually re-enqueued via
@@ -165,17 +173,17 @@ config :exq,
 ```
 
 
-### OTP Application:
+### OTP Application
 
 You can add Exq into your OTP application list, and it will start an instance of Exq along with your application startup.  It will use the configuration from your ```config.exs``` file.
 
 ```elixir
-  def application do
-    [
-      applications: [:logger, :exq],
-      #other stuff...
-    ]
-  end
+def application do
+  [
+    applications: [:logger, :exq],
+    #other stuff...
+  ]
+end
 ```
 
 When using Exq through OTP, it will register a process under the name ```Elixir.Exq``` - you can use this atom where expecting a process name in the Exq module.
@@ -190,22 +198,21 @@ config :exq,
 ```
 
 ```elixir
-    # Define workers and child supervisors to be supervised
-    children = [
-      # Start the Ecto repository
-      supervisor(MyApp.Repo, []),
-      # Start the endpoint when the application starts
-      supervisor(MyApp.Endpoint, []),
-      supervisor(Exq, []),
-    ]
+# Define workers and child supervisors to be supervised
+children = [
+  # Start the Ecto repository
+  supervisor(MyApp.Repo, []),
+  # Start the endpoint when the application starts
+  supervisor(MyApp.Endpoint, []),
+  supervisor(Exq, []),
+]
 ```
 
-### Sentinel:
+### Sentinel
 
 Exq uses [Redix](https://github.com/whatyouhide/redix) client for
 communication with redis server. The client can be configured to use
 sentinel via `redis_options`. Note: you need to have Redix 0.9.0+.
-
 
 ```elixir
 config :exq
@@ -220,26 +227,29 @@ config :exq
 ```
 
 
-## Using iex:
-If you'd like to try Exq out on the iex console, you can do this by typing
-```
-mix deps.get
-```
-and then
-```
-iex -S mix
+## Using IEx
+
+If you'd like to try Exq out on the iex console, you can do this by typing:
+
+```bash
+> mix deps.get
 ```
 
-### Standalone Exq:
+and then:
+
+```bash
+> iex -S mix
+```
+
+### Standalone Exq
 
 You can run Exq standalone from the command line, to run it:
 
-```
+```bash
 > mix do app.start, exq.run
 ```
 
 ## Workers
-
 
 ### Enqueuing jobs:
 
@@ -266,27 +276,26 @@ You can also enqueue jobs without starting workers:
 {:ok, ack} = Exq.Enqueuer.enqueue(Exq.Enqueuer, "default", MyWorker, [])
 
 ```
-You can also schedule jobs to start at a future time:
-You need to make sure scheduler_enable is set to true
 
-Schedule a job to start in 5 mins
+You can also schedule jobs to start at a future time. You need to make sure scheduler_enable is set to true.
+
+Schedule a job to start in 5 mins:
+
 ```elixir
 {:ok, ack} = Exq.enqueue_in(Exq, "default", 300, MyWorker, ["arg1", "arg2"])
 ```
-Schedule a job to start at 8am 2015-12-25 UTC
+Schedule a job to start at 8am 2015-12-25 UTC:
+
 ```elixir
 time = Timex.now() |> Timex.shift(days: 8)
 {:ok, ack} = Exq.enqueue_at(Exq, "default", time, MyWorker, ["arg1", "arg2"])
 ```
 
-### Creating Workers:
+### Creating Workers
 
-To create a worker, create an elixir module matching the worker name that will be
-enqueued.  To process a job with "MyWorker", create a MyWorker module.  Note that the perform also needs to
-match the number of arguments as well.
+To create a worker, create an elixir module matching the worker name that will be enqueued. To process a job with "MyWorker", create a MyWorker module.  Note that the perform also needs to match the number of arguments as well.
 
 Here is an example of a worker:
-
 
 ```elixir
 defmodule MyWorker do
@@ -296,16 +305,19 @@ end
 ```
 
 We could enqueue a job to this worker:
+
 ```elixir
 {:ok, jid} = Exq.enqueue(Exq, "default", MyWorker, [])
 ```
 
 The 'perform' method will be called with matching args. For example:
+
 ```elixir
 {:ok, jid} = Exq.enqueue(Exq, "default", "MyWorker", [arg1, arg2])
 ```
 
 Would match:
+
 ```elixir
 defmodule MyWorker do
   def perform(arg1, arg2) do
@@ -326,43 +338,51 @@ defmodule MyWorker do
 end
 ```
 
-### Dynamic queue subscriptions:
+### Dynamic queue subscriptions
 
-The list of queues that are being monitored by Exq is determined by the config.exs file or the parameters passed to Exq.start_link.  However, we can also dynamically add and remove queue subscriptions after exq has started.
+The list of queues that are being monitored by Exq is determined by the ```config.exs``` file or the parameters passed to Exq.start_link.  However, we can also dynamically add and remove queue subscriptions after Exq has started.
 
 To subscribe to a new queue:
+
 ```elixir
 # last arg is optional and is the max concurrency for the queue
 :ok = Exq.subscribe(Exq, "new_queue_name", 10)
 ```
 
 To unsubscribe from a queue:
+
 ```elixir
 :ok = Exq.unsubscribe(Exq, "queue_to_unsubscribe")
 ```
 
 To unsubscribe from all queues:
+
 ```elixir
 :ok = Exq.unsubscribe_all(Exq)
 ```
 
 ## Middleware Support
 
-If you'd like to customize worker execution and/or create plugins like Sidekiq/Resque have, Exq supports custom middleware. The first step would be to define the middleware in config.exs and add your middleware into the chain:
+If you'd like to customize worker execution and/or create plugins like Sidekiq/Resque have, Exq supports custom middleware. The first step would be to define the middleware in ```config.exs``` and add your middleware into the chain:
+
 ```elixir
-  middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
-    Exq.Middleware.Logger]
+middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
+  Exq.Middleware.Logger]
 ```
+
 You can then create a module that implements the middleware behavior and defines `before_work`,  `after_processed_work` and `after_failed_work` functions.  You can also halt execution of the chain as well. For a simple example of middleware implementation, see the [Exq Logger Middleware](https://github.com/akira/exq/blob/master/lib/exq/middleware/logger.ex).
 
 ## Using with Phoenix and Ecto
 
 If you would like to use Exq alongside Phoenix and Ecto, add `:exq` to your mix.exs application list:
+
 ```elixir
-  def application do
-    [mod: {Chat, []},
-     applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq]]
-  end
+def application do
+  [
+    mod: {Chat, []},
+    applications: [:phoenix, :phoenix_html, :cowboy, :logger, :exq]
+  ]
+end
 ```
 
 Assuming you will be accessing the database from Exq workers, you will want to lower the concurrency level for those workers, as they are using a finite pool of connections and can potentially back up and time out. You can lower this through the ```concurrency``` setting, or perhaps use a different queue for database workers that have a lower concurrency just for that queue. Inside your worker, you would then be able to use the Repo to work with the database:
@@ -377,9 +397,10 @@ end
 
 ## Using alongside Sidekiq / Resque
 
-To use alongside Sidekiq / Resque, make sure your namespaces as configured in exq match the namespaces you are using in Sidekiq. By default, exq will use the ```exq``` namespace, so you will have to change that.
+To use alongside Sidekiq / Resque, make sure your namespaces as configured in Exq match the namespaces you are using in Sidekiq. By default, Exq will use the ```exq``` namespace, so you will have to change that.
 
 Another option is to modify Sidekiq to use the Exq namespace in the sidekiq initializer in your ruby project:
+
 ```ruby
 Sidekiq.configure_server do |config|
   config.redis = { url: 'redis://127.0.0.1:6379', namespace: 'exq' }
@@ -414,6 +435,7 @@ Exq identifies each node using an identifier. By default machine's hostname is u
 config :exq,
    node_identifier: MyApp.CustomNodeIdentifier
 ```
+
 ```elixir
 defmodule MyApp.CustomNodeIdentifier do
   @behaviour Exq.NodeIdentifier.Behaviour
@@ -431,7 +453,7 @@ Same node recovery is straightforward and works well if the number of worker nod
 
 Heartbeat mechanism helps in these cases. Each node registers a heartbeat at regular interval. If any node misses 5 consecutive heartbeats, it will be considered dead and all the in-progress jobs belong to that node will be re-enqueued.
 
-This feature is disabled by default and can be enabled using the following config.
+This feature is disabled by default and can be enabled using the following config:j
 
 ```elixir
 config :exq,
@@ -440,7 +462,7 @@ config :exq,
     missed_heartbeats_allowed: 5
 ```
 
-## Web UI:
+## Web UI
 
 Exq has a separate repo, exq_ui which provides with a Web UI to monitor your workers:
 
@@ -448,7 +470,7 @@ Exq has a separate repo, exq_ui which provides with a Web UI to monitor your wor
 
 See https://github.com/akira/exq_ui for more details.
 
-## Starting Exq manually:
+## Starting Exq manually
 
 Typically, Exq will start as part of the application along with the configuration you have set.  However, you can also start Exq manually and set your own configuration per instance.
 
@@ -458,8 +480,7 @@ Here is an example of how to start Exq manually:
 {:ok, sup} = Exq.start_link
 ```
 
-To connect with custom configuration options (if you need multiple instances of Exq for example), you can pass in options
-under start_link:
+To connect with custom configuration options (if you need multiple instances of Exq for example), you can pass in options under start_link:
 
 ```elixir
 {:ok, sup} = Exq.start_link([host: "127.0.0.1", port: 6379, namespace: "x"])
@@ -473,7 +494,7 @@ By default, Exq will register itself under the ```Elixir.Exq``` atom.  You can c
 
 ## Testing
 
-`Exq.Mock` module provides few options to test your workers.
+`Exq.Mock` module provides few options to test your workers:
 
 ```elixir
 # change queue_adapter in config/test.exs
@@ -485,25 +506,20 @@ Exq.Mock.start_link(mode: :redis)
 ```
 
 `Exq.Mock` currently supports three modes. The default mode can provided
-on the `Exq.Mock.start_link` call. The mode could be overriden for
+on the `Exq.Mock.start_link` call. The mode could be overridden for
 each test by calling `Exq.Mock.set_mode(:fake)`
 
 ### redis
 
-This could be used for integration testing. Doesn't support `async:
-true` option.
+This could be used for integration testing. Doesn't support `async: true` option.
 
 ### fake
 
-The jobs get enqueued in a local queue and never get
-executed. `Exq.Mock.jobs()` returns all the jobs. Supports `async:
-true` option.
+The jobs get enqueued in a local queue and never get executed. `Exq.Mock.jobs()` returns all the jobs. Supports `async: true` option.
 
 ### inline
 
 The jobs get executed in the same process. Supports `async: true` option.
-
-
 
 ## Donation
 
@@ -529,62 +545,29 @@ mix test --no-start
 ```
 
 To run the full suite, including failure conditions (can have some false negatives):
+
 ```
 mix test --trace --include failure_scenarios:true --no-start
 ```
-## Maintainers:
+
+## Maintainers
+
 Anantha Kumaran / @ananthakumaran (Lead)
 
-## Contributors:
+## Contributors
 
-Justin McNally (j-mcnally) (structtv)
+Justin McNally (j-mcnally) (structtv), zhongwencool (zhongwencool), Joe Webb (ImJoeWebb), Chelsea Robb (chelsea), Nick Sanders (nicksanders), Nick Gal (nickgal), Ben Wilson (benwilson512), Mike Lawlor (disbelief), colbyh (colbyh), Udo Kramer (optikfluffel), Andreas Franzén (triptec),Josh Kalderimis (joshk), Daniel Perez (tuvistavie), Victor Rodrigues (rodrigues), Denis Tataurov (sineed), Joe Honzawa (Joe-noh), Aaron Jensen (aaronjensen), Andrew Vy (andrewvy), David Le (dl103), Roman Smirnov (romul), Thomas Athanas (typicalpixel), Wen Li (wli0503), Akshay (akki91), Rob Gilson (D1plo1d), edmz (edmz), and Benjamin Tan Wei Hao (benjamintanweihao).
 
-zhongwencool (zhongwencool)
+## Copyright and License
 
-Joe Webb (ImJoeWebb)
+Copyright (c) 2014 Alex Kira
 
-Chelsea Robb (chelsea)
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
-Nick Sanders (nicksanders)
-
-Nick Gal (nickgal)
-
-Ben Wilson (benwilson512)
-
-Mike Lawlor (disbelief)
-
-colbyh (colbyh)
-
-Udo Kramer (optikfluffel)
-
-Andreas Franzén (triptec)
-
-Josh Kalderimis (joshk)
-
-Daniel Perez (tuvistavie)
-
-Victor Rodrigues (rodrigues)
-
-Denis Tataurov (sineed)
-
-Joe Honzawa (Joe-noh)
-
-Aaron Jensen (aaronjensen)
-
-Andrew Vy (andrewvy)
-
-David Le (dl103)
-
-Roman Smirnov (romul)
-
-Thomas Athanas (typicalpixel)
-
-Wen Li (wli0503)
-
-Akshay (akki91)
-
-Rob Gilson (D1plo1d)
-
-edmz (edmz)
-
-Benjamin Tan Wei Hao (benjamintanweihao)
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

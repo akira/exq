@@ -1,6 +1,8 @@
 defmodule Exq.Adapters.Queue.Mock do
   @moduledoc """
-  Mock queue. Designed to be used when testing your application.
+  Mock queue.
+
+  Designed to be used when testing your application.
   """
 
   @behaviour Exq.Adapters.Queue
