@@ -1,31 +1,103 @@
-on: [pull_request, push]
+name: Test
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+
 jobs:
-  test:
+  check_duplicate_runs:
+    name: Check for duplicate runs
+    continue-on-error: true
     runs-on: ubuntu-latest
-    env:
-      MIX_ENV: test
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          concurrent_skipping: always
+          cancel_others: true
+          skip_after_successful_duplicate: true
+          paths_ignore: '["**/README.md", "**/CHANGELOG.md", "**/LICENSE"]'
+          do_not_skip: '["pull_request"]'
+
+  test:
+    name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
+    runs-on: ubuntu-18.04
+    needs: check_duplicate_runs
+    if: ${{ needs.check_duplicate_runs.outputs.should_skip != 'true' }}
+
     strategy:
       matrix:
-        include:
-          - elixir: 1.6
-            otp: 20.3
-          - elixir: 1.7
-            otp: 21.3
-          - elixir: 1.8.2
-            otp: 21.3
-          - elixir: 1.9.4
-            otp: 22.2
-          - elixir: 1.10.4
-            otp: 23.0
+        elixir:
+        - "1.6"
+        - "1.7"
+        - "1.8.2"
+        - "1.9.4"
+        - "1.10.4"
+        - "1.11.3"
+        otp:
+        - "20.3"
+        - "21.3"
+        - "22.2"
+        - "23.0"
+        exclude:
+        - elixir: "1.6"
+          otp: "21.3"
+        - elixir: "1.6"
+          otp: "22.2"
+        - elixir: "1.6"
+          otp: "23.0"
+        - elixir: "1.10.4"
+          otp: "20.3"
+        - elixir: "1.11.3"
+          otp: "20.3"
+
     steps:
-      - run: sudo apt-get install redis-server -y
-      - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
-      - run: mix deps.get
-      - run: mix compile --force --warnings-as-errors
-      - run: mix coveralls.github --no-start
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up Elixir
+      uses: erlef/setup-elixir@v1
+      with:
+        elixir-version: ${{ matrix.elixir }}
+        otp-version: ${{ matrix.otp }}
+
+    - name: Set up Redis Server
+      run: sudo apt-get install redis-server -y
+
+    - name: Restore deps cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          deps
+          _build
+        key: ${{ runner.os }}-deps-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}-git-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-deps-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          ${{ runner.os }}-deps-${{ matrix.otp }}-${{ matrix.elixir }}
+
+    - name: Install package dependencies
+      run: mix deps.get
+
+    - name: Remove compiled application files
+      run: mix clean
+
+    - name: Compile dependencies
+      run: mix compile
+      env:
+        MIX_ENV: test
+
+    - name: Compile dependencies
+      run: mix compile --force --warnings-as-errors
+      if: matrix.elixir != '1.11.3'
+      env:
+        MIX_ENV: test
+
+    - name: Run unit tests
+      run: mix coveralls.github --no-start
+      env:
+        MIX_ENV: test
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
