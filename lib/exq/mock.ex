@@ -16,7 +16,8 @@ defmodule Exq.Mock do
   @doc """
   Start Mock server
 
-  * `mode` - The default mode that's used for all tests. See `set_mode/1` for details.
+    * `mode` - The default mode that's used for all tests. See `set_mode/1` for details.
+
   """
   def start_link(options \\ []) do
     queue_adapter = Config.get(:queue_adapter)
@@ -35,16 +36,17 @@ defmodule Exq.Mock do
   @doc """
   Set the mode for current test
 
-  * `:redis` - jobs get enqueued and processed via redis.
-  * `:fake` - jobs get enqueued in a local queue
-  * `:inline` - jobs get executed in the same process
+    * `:redis` - jobs get enqueued and processed via redis.
+    * `:fake` - jobs get enqueued in a local queue
+    * `:inline` - jobs get executed in the same process
+
   """
   def set_mode(mode) when mode in [:redis, :inline, :fake] do
     GenServer.call(__MODULE__, {:mode, self(), mode}, @timeout)
   end
 
   @doc """
-  List of enqueued jobs
+  List of enqueued jobs.
 
   This only works if the mode is set to `:fake`
   """

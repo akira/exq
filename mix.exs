@@ -1,32 +1,22 @@
 defmodule Exq.Mixfile do
   use Mix.Project
 
+  @source_url "https://github.com/akira/exq"
+  @version "0.14.0"
+
   def project do
     [
       app: :exq,
-      version: "0.14.0",
+      version: @version,
       elixir: "~> 1.6",
       elixirc_paths: ["lib"],
-      package: [
-        maintainers: [
-          "Alex Kira",
-          "zhongwencool",
-          "Anantha Kumaran"
-        ],
-        links: %{"GitHub" => "https://github.com/akira/exq"},
-        licenses: ["Apache 2.0"],
-        files: ~w(lib test) ++ ~w(LICENSE mix.exs README.md)
-      ],
-      description: """
-      Exq is a job processing library compatible with Resque / Sidekiq for the Elixir language.
-      """,
-      deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      docs: [extras: ["README.md"]]
+      deps: deps(),
+      docs: docs(),
+      package: package()
     ]
   end
 
-  # Configuration for the OTP application
   def application do
     [
       mod: {Exq, []},
@@ -34,8 +24,6 @@ defmodule Exq.Mixfile do
     ]
   end
 
-  # Returns the list of dependencies in the format:
-  # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
   defp deps do
     [
       {:elixir_uuid, ">= 1.2.0"},
@@ -46,10 +34,32 @@ defmodule Exq.Mixfile do
       {:flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
 
       # docs
-      {:ex_doc, "~> 0.19", only: :dev},
-      {:earmark, "~> 1.0", only: :dev},
-      {:benchee, "~> 1.0", only: :dev},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:benchee, "~> 1.0", only: :dev, runtime: false},
       {:ranch, "~> 1.6", only: :test, override: true}
+    ]
+  end
+
+  defp package do
+    [
+      description: """
+      Exq is a job processing library compatible with Resque / Sidekiq for the
+      Elixir language.
+      """,
+      maintainers: ["Alex Kira", "zhongwencool", "Anantha Kumaran"],
+      licenses: ["Apache-2.0"],
+      files: ~w(lib test) ++ ~w(LICENSE mix.exs CHANGELOG.md README.md),
+      links: %{"GitHub" => @source_url}
+    ]
+  end
+
+  defp docs do
+    [
+      extras: ["CHANGELOG.md", "README.md"],
+      main: "readme",
+      formatters: ["html"],
+      source_url: @source_url,
+      source_ref: "v#{@version}"
     ]
   end
 end

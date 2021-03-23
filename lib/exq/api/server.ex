@@ -1,6 +1,6 @@
 defmodule Exq.Api.Server do
   @moduledoc """
-  The Api deals with getting current stats for the UI / API.
+  The API deals with getting current stats for the UI / API.
   """
 
   alias Exq.Support.Config
@@ -18,7 +18,7 @@ defmodule Exq.Api.Server do
   end
 
   ## ===========================================================
-  ## gen server callbacks
+  ## GenServer callbacks
   ## ===========================================================
 
   def init(opts) do

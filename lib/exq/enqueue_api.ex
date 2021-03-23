@@ -22,8 +22,9 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `options` - job options, for example [max_retries: `Integer`, jid: `String`]
 
       Returns:
-      * `{:ok, jid}` if the job was enqueued successfully, with `jid` = Job ID.
-      * `{:error, reason}` if there was an error enqueueing job
+        * `{:ok, jid}` if the job was enqueued successfully, with `jid` = Job ID.
+        * `{:error, reason}` if there was an error enqueueing job
+
       """
       def enqueue(pid, queue, worker, args),
         do: enqueue(pid, queue, worker, args, @default_options)

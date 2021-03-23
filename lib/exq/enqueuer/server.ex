@@ -1,7 +1,8 @@
 defmodule Exq.Enqueuer.Server do
   @moduledoc """
-  The Enqueuer is responsible for enqueueing jobs into Redis. It can
-  either be called directly by the client, or instantiated as a standalone process.
+  The Enqueuer is responsible for enqueueing jobs into Redis.
+
+  It can either be called directly by the client, or instantiated as a standalone process.
 
   It supports enqueuing immediate jobs, or scheduling jobs in the future.
 
@@ -11,6 +12,7 @@ defmodule Exq.Enqueuer.Server do
     * `:queues` - Array of currently active queues (TODO: Remove, I suspect it's not needed).
     * `:redis` - pid of Redis process.
     * `:scheduler_poll_timeout` - How often to poll Redis for scheduled / retry jobs.
+
   """
 
   require Logger
@@ -27,7 +29,7 @@ defmodule Exq.Enqueuer.Server do
   end
 
   ## ===========================================================
-  ## gen server callbacks
+  ## GenServer callbacks
   ## ===========================================================
 
   def init(opts) do

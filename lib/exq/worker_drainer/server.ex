@@ -1,9 +1,10 @@
 defmodule Exq.WorkerDrainer.Server do
   @moduledoc """
   The WorkerDrainer server is responsible for gracefully draining
-  workers when the application is shutting down. When shutdown starts
-  it instructs the Manager to stop accepting new jobs and then waits
-  for all currently in progress jobs to complete.
+  workers when the application is shutting down.
+
+  When shutdown starts it instructs the Manager to stop accepting new jobs and
+  then waits for all currently in progress jobs to complete.
 
   If the jobs do not complete within an allowed timeout the WorkerDrainer
   will shut down, allowing the rest of the supervision tree (including the
@@ -11,7 +12,6 @@ defmodule Exq.WorkerDrainer.Server do
 
   The length of the grace period can be configured with the
   `shutdown_timeout` option, which defaults to 5000 ms.
-
   """
 
   use GenServer
@@ -26,7 +26,7 @@ defmodule Exq.WorkerDrainer.Server do
   end
 
   ## ===========================================================
-  ## gen server callbacks
+  ## GenServer callbacks
   ## ===========================================================
 
   def start_link(opts \\ []) do
@@ -56,7 +56,7 @@ defmodule Exq.WorkerDrainer.Server do
   end
 
   ## ===========================================================
-  ## functions
+  ## Internal Functions
   ## ===========================================================
 
   defp drain_workers(state) do

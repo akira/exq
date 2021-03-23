@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 - Queue adapter for mock testing @ananthakumaran and @samidarko
 
-## [0.13.4] - 2019-11-3
+## [0.13.4] - 2019-11-03
 
 ### Fixed
 - Remove unnecessary serialization of enqueue calls #390 by @ananthakumaran and @sb8244
@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Configuration for Mix Format by @chulkilee.
 - Use :microsecond vs :microseconds by @KalvinHom.
 
-## Changed
+### Changed
 - Redis options are now passed in via `redis_options` by @ryansch and @ananthakumaran.
 - Removed redix_sentinel dependency, now supported by new Redix version by @ananthakumaran.
 
@@ -112,5 +112,3 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 - Redis Sentinel support by @ananthakumaran.
 - Make redis module name and start_link args configurable @ananthakumaran.
-
-

@@ -1,6 +1,6 @@
 defmodule Exq.Support.Job do
   @moduledoc """
-  Serializable Job format used by Exq
+  Serializable Job format used by Exq.
   """
 
   defstruct error_message: nil,

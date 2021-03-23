@@ -1,4 +1,8 @@
 defmodule Exq.Support.Time do
+  @moduledoc """
+  Helper functions for data and time.
+  """
+
   import DateTime, only: [utc_now: 0, to_unix: 2, from_unix!: 2]
 
   def offset_from_now(offset) do

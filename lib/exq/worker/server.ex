@@ -1,17 +1,18 @@
 defmodule Exq.Worker.Server do
   @moduledoc """
-  Worker process is responsible for the parsing and execution of a Job. It then
-  broadcasts results to Stats / Manager.
+  Worker process is responsible for the parsing and execution of a Job.
 
-  Currently uses the `terminate` callback to track job success/failure .
+  It then broadcasts results to Stats / Manager.
+
+  Currently uses the `terminate` callback to track job success/failure.
 
   ## Initialization:
-    * `job_serialized` - Full JSON payload of the Job.
-    * `manager` - Manager process pid.
-    * `queue` - The queue the job came from.
-    * `stats` - Stats process pid.
-    * `namespace` - Redis namespace
-    * `host` - Host name
+  * `job_serialized` - Full JSON payload of the Job.
+  * `manager` - Manager process pid.
+  * `queue` - The queue the job came from.
+  * `stats` - Stats process pid.
+  * `namespace` - Redis namespace
+  * `host` - Host name
 
   Expects :work message after initialization to kickoff work.
   """
@@ -61,7 +62,7 @@ defmodule Exq.Worker.Server do
   end
 
   ## ===========================================================
-  ## gen server callbacks
+  ## GenServer callbacks
   ## ===========================================================
 
   def init({job_serialized, manager, queue, stats, namespace, host, redis, middleware, metadata}) do
@@ -85,8 +86,8 @@ defmodule Exq.Worker.Server do
   Kickoff work associated with worker.
 
   This step handles:
-    * Parsing of JSON object
-    * Preparation of target module
+  * Parsing of JSON object
+  * Preparation of target module
 
   Calls :dispatch to then call target module.
   """
@@ -104,7 +105,7 @@ defmodule Exq.Worker.Server do
   end
 
   @doc """
-  Dispatch work to the target module (call :perform method of target)
+  Dispatch work to the target module (call :perform method of target).
   """
   def handle_cast(:dispatch, state) do
     dispatch_work(
@@ -117,7 +118,7 @@ defmodule Exq.Worker.Server do
   end
 
   @doc """
-  Worker done with normal termination message
+  Worker done with normal termination message.
   """
   def handle_cast({:done, result}, state) do
     state =

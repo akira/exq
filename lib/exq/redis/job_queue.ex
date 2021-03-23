@@ -9,6 +9,7 @@ defmodule Exq.Redis.JobQueue do
     * Fetching scheduling jobs and moving them to current job list
     * Retrying or failing a job
     * Re-hydrating jobs from a backup queue
+
   """
 
   require Logger

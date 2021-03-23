@@ -6,20 +6,19 @@ defmodule Exq.Middleware.Telemetry do
   ### Exq telemetry events
 
   The middleware emit three events, same as what `:telemetry.span/3` emits.
-
-  - `[:exq, :job, :start]` - Is invoked whenever a job starts.
+  * `[:exq, :job, :start]` - Is invoked whenever a job starts.
 
       ** Measurements **
 
       - `system_time` (integer) - System time when the job started
 
-  - `[:exq, :job, :stop]` - Is invoked whenever a job completes successfully.
+  * `[:exq, :job, :stop]` - Is invoked whenever a job completes successfully.
 
       ** Measurements **
 
       - `duration` (integer) - Duration of the job execution in native unit
 
-  - `[:exq, :job, :exception]` - Is invoked whenever a job fails.
+  * `[:exq, :job, :exception]` - Is invoked whenever a job fails.
 
       ** Measurements **
 
@@ -35,47 +34,45 @@ defmodule Exq.Middleware.Telemetry do
 
   ** Metadata **
 
-  Each event has the following common metadata
+  Each event has the following common metadata:
+  * `enqueued_at` (`DateTime.t/0`) - datetime the job was enqueued
+  * `queue` (`String.t/0`) - the name of the queue the job was executed in
+  * `class` (`String.t/0`) - the job's class
+  * `jid` (`String.t/0`) - the job's jid
+  * `retry_count` (integer) - number of times this job has failed so far
 
-  - `enqueued_at` (`DateTime.t/0`) - datetime the job was enqueued
-  - `queue` (`String.t/0`) - the name of the queue the job was executed in
-  - `class` (`String.t/0`) - the job's class
-  - `jid` (`String.t/0`) - the job's jid
-  - `retry_count` (integer) - number of times this job has failed so far
 
+  ### Examples
 
-  ### Example:
+      defmodule MyApp.Application do
+        def start(_type, _args) do
+          children = [
+            # .....
+            {Telemetry.Metrics.ConsoleReporter, metrics: metrics()}
+          ]
 
-  ```
-  defmodule MyApp.Application do
-    def start(_type, _args) do
-      children = [
-        # .....
-        {Telemetry.Metrics.ConsoleReporter, metrics: metrics()}
-      ]
+          opts = [strategy: :one_for_one, name: MyApp.Supervisor]
+          Supervisor.start_link(children, opts)
+        end
 
-      opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-      Supervisor.start_link(children, opts)
-    end
+        defp metrics do
+          [
+            counter("exq.job.stop.duration"),
+            counter("exq.job.exception.duration"),
+            distribution("exq.job.stop.duration",
+              buckets: [0.1, 0.2, 0.3, 0.5, 0.75, 1, 2, 3, 5, 10],
+              unit: {:native, :millisecond}
+            ),
+            distribution("exq.job.exception.duration",
+              buckets: [0.1, 0.2, 0.3, 0.5, 0.75, 1, 2, 3, 5, 10],
+              unit: {:native, :millisecond}
+            ),
+            summary("exq.job.stop.duration", unit: {:native, :millisecond}),
+            summary("exq.job.exception.duration", unit: {:native, :millisecond})
+          ]
+        end
+      end
 
-    defp metrics do
-      [
-        counter("exq.job.stop.duration"),
-        counter("exq.job.exception.duration"),
-        distribution("exq.job.stop.duration",
-          buckets: [0.1, 0.2, 0.3, 0.5, 0.75, 1, 2, 3, 5, 10],
-          unit: {:native, :millisecond}
-        ),
-        distribution("exq.job.exception.duration",
-          buckets: [0.1, 0.2, 0.3, 0.5, 0.75, 1, 2, 3, 5, 10],
-          unit: {:native, :millisecond}
-        ),
-        summary("exq.job.stop.duration", unit: {:native, :millisecond}),
-        summary("exq.job.exception.duration", unit: {:native, :millisecond})
-      ]
-    end
-  end
-  ```
   """
 
   @behaviour Exq.Middleware.Behaviour

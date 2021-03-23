@@ -1,8 +1,9 @@
 defmodule Exq.Adapters.Queue do
   @moduledoc ~S"""
-  Behaviour for creating Exq queue adapters
+  Behaviour for creating Exq queue adapters.
 
   ## Example
+
       defmodule Exq.Adapters.Queue.CustomAdapter do
         @behaviour Exq.Adapters.Queue
         def enqueue(pid, queue, worker, args, options) do
@@ -17,6 +18,7 @@ defmodule Exq.Adapters.Queue do
           enqueue_in_somehow(pid, queue, offset, worker, args, options)
         end
       end
+
   """
 
   @typedoc "The GenServer name"

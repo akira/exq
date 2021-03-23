@@ -1,8 +1,10 @@
 defmodule Exq.Middleware.Pipeline do
   @moduledoc """
   Pipeline is a structure that is used as an argument in functions of module with
-  `Exq.Middleware.Behaviour` behaviour. This structure must be returned by particular function
-  to be used in the next middleware based on defined middleware chain.
+  `Exq.Middleware.Behaviour` behaviour.
+
+  This structure must be returned by particular function to be used in the next
+  middleware based on defined middleware chain.
 
   Pipeline contains the following options:
 
@@ -18,6 +20,7 @@ defmodule Exq.Middleware.Pipeline do
       - Exq.Middleware.Logger: Will NOT record job as done or failed with timestamp
       - Exq.Middleware.Manager: Will NOT update worker counter
       - Exq.Middleware.Stats: Will NOT remove job from processes queue
+
   """
 
   defstruct assigns: %{},

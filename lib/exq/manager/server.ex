@@ -1,6 +1,6 @@
 defmodule Exq.Manager.Server do
   @moduledoc """
-  The Manager module is the main orchestrator for the system
+  The Manager module is the main orchestrator for the system.
 
   It is also the entry point Pid process used by the client to interact
   with the Exq system.
@@ -74,7 +74,7 @@ defmodule Exq.Manager.Server do
     3. Uses the JobQueue module to fetch jobs. The JobQueue module does this through
        a single MULT RPOPLPUSH command issued to Redis with the targeted queue.
 
-       This command atomicaly pops an item off the queue and stores the item in a backup queue.
+       This command atomically pops an item off the queue and stores the item in a backup queue.
        The backup queue is keyed off the queue and node id, so each node would
        have their own backup queue.
 
