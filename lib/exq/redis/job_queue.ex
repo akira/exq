@@ -250,12 +250,14 @@ defmodule Exq.Redis.JobQueue do
     offset = Config.backoff().offset(job)
     time = Time.offset_from_now(offset)
     Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
-    enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
+
+    {:ok, _jid} =
+      enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
   end
 
   def retry_job(redis, namespace, job) do
     remove_retry(redis, namespace, job.jid)
-    enqueue(redis, namespace, Job.encode(job))
+    {:ok, _jid} = enqueue(redis, namespace, Job.encode(job))
   end
 
   def fail_job(redis, namespace, job, error) do
