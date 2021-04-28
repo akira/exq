@@ -150,7 +150,9 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def remove_job_from_backup(redis, namespace, node_id, queue, job_serialized) do
-    Connection.lrem!(redis, backup_queue_key(namespace, node_id, queue), job_serialized)
+    Connection.lrem!(redis, backup_queue_key(namespace, node_id, queue), job_serialized, 1,
+      retry_on_connection_error: 3
+    )
   end
 
   def scheduler_dequeue(redis, namespace) do
