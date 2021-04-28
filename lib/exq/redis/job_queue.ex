@@ -75,7 +75,9 @@ defmodule Exq.Redis.JobQueue do
     score = Time.time_to_score(time)
 
     try do
-      case Connection.zadd(redis, scheduled_queue, score, job_serialized) do
+      case Connection.zadd(redis, scheduled_queue, score, job_serialized,
+             retry_on_connection_error: 3
+           ) do
         {:ok, _} -> {:ok, jid}
         other -> other
       end
@@ -280,7 +282,7 @@ defmodule Exq.Redis.JobQueue do
       ["ZREMRANGEBYRANK", key, 0, -Config.get(:dead_max_jobs) - 1]
     ]
 
-    Connection.qp!(redis, commands)
+    Connection.qp!(redis, commands, retry_on_connection_error: 3)
   end
 
   def queue_size(redis, namespace) do

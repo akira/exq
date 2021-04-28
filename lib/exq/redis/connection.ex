@@ -104,8 +104,8 @@ defmodule Exq.Redis.Connection do
     q(redis, ["LPOP", key])
   end
 
-  def zadd(redis, set, score, member) do
-    q(redis, ["ZADD", set, score, member])
+  def zadd(redis, set, score, member, options \\ []) do
+    q(redis, ["ZADD", set, score, member], options)
   end
 
   def zadd!(redis, set, score, member) do
