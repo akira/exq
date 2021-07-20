@@ -5,6 +5,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2021-07-19
+
+### Added
+- Add dequeue behavior for ability to implement things like concurrency control #421 by @ananthakumaran
+- Api Module Documentation #440 by @kevin-j-m
+
+### Changed
+- Use Lua script to schedule job for better performance and memory leak fix #427 by @ananthakumaran
+- Logging fixes #429 by @rraub
+- Relax poison dependency #431 by @ananthakumaran
+- Use github actions instead of Travis #433 by @ananthakumaran
+- Use the same same module conversion logic in mock as well #434 by @ananthakumaran
+- use Task instead of spawn_link for starting workers #436 by @mitchellhenke
+
+### Fixed
+- re-enqueue unfinished jobs to the begining of queue on restart #424 by @ananthakumaran
+- Fix for sentinel 0.11.0+ #428 by @ananthakumaran
+- Fixes for generated HTML docs by #442 @kianmeng
+
 
 ## [0.14.0] - 2020-08-08
 
