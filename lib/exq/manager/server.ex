@@ -113,6 +113,7 @@ defmodule Exq.Manager.Server do
   alias Exq.Support.Config
   alias Exq.Support.Opts
   alias Exq.Redis.JobQueue
+  alias Exq.Support.Redis
 
   @backoff_mult 10
 
@@ -204,7 +205,7 @@ defmodule Exq.Manager.Server do
   end
 
   def handle_cast({:re_enqueue_backup, queue}, state) do
-    rescue_timeout(fn ->
+    Redis.rescue_timeout(fn ->
       JobQueue.re_enqueue_backup(state.redis, state.namespace, state.node_id, queue)
     end)
 
@@ -215,7 +216,7 @@ defmodule Exq.Manager.Server do
   Cleanup host stats on boot
   """
   def handle_cast(:cleanup_host_stats, state) do
-    rescue_timeout(fn ->
+    Redis.rescue_timeout(fn ->
       Exq.Stats.Server.cleanup_host_stats(state.stats, state.namespace, state.node_id)
     end)
 
@@ -259,9 +260,12 @@ defmodule Exq.Manager.Server do
 
       {queues, state} ->
         result =
-          rescue_timeout(:timeout, fn ->
-            Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
-          end)
+          Redis.rescue_timeout(
+            fn ->
+              Exq.Redis.JobQueue.dequeue(state.redis, state.namespace, state.node_id, queues)
+            end,
+            timeout_return_value: :timeout
+          )
 
         case result do
           :timeout ->
@@ -403,23 +407,6 @@ defmodule Exq.Manager.Server do
 
   defp remove_all_queues(state) do
     %{state | queues: [], dequeuers: remove_dequeuers(state.dequeuers, state.queues)}
-  end
-
-  @doc """
-  Rescue GenServer timeout.
-  """
-  def rescue_timeout(f) do
-    rescue_timeout(nil, f)
-  end
-
-  def rescue_timeout(fail_return, f) do
-    try do
-      f.()
-    catch
-      :exit, {:timeout, info} ->
-        Logger.info("Manager timeout occurred #{Kernel.inspect(info)}")
-        fail_return
-    end
   end
 
   # Check Redis connection using PING and raise exception with

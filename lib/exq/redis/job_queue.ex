@@ -75,7 +75,9 @@ defmodule Exq.Redis.JobQueue do
     score = Time.time_to_score(time)
 
     try do
-      case Connection.zadd(redis, scheduled_queue, score, job_serialized) do
+      case Connection.zadd(redis, scheduled_queue, score, job_serialized,
+             retry_on_connection_error: 3
+           ) do
         {:ok, _} -> {:ok, jid}
         other -> other
       end
@@ -150,7 +152,9 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def remove_job_from_backup(redis, namespace, node_id, queue, job_serialized) do
-    Connection.lrem!(redis, backup_queue_key(namespace, node_id, queue), job_serialized)
+    Connection.lrem!(redis, backup_queue_key(namespace, node_id, queue), job_serialized, 1,
+      retry_on_connection_error: 3
+    )
   end
 
   def scheduler_dequeue(redis, namespace) do
@@ -248,12 +252,14 @@ defmodule Exq.Redis.JobQueue do
     offset = Config.backoff().offset(job)
     time = Time.offset_from_now(offset)
     Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
-    enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
+
+    {:ok, _jid} =
+      enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
   end
 
   def retry_job(redis, namespace, job) do
     remove_retry(redis, namespace, job.jid)
-    enqueue(redis, namespace, Job.encode(job))
+    {:ok, _jid} = enqueue(redis, namespace, Job.encode(job))
   end
 
   def fail_job(redis, namespace, job, error) do
@@ -276,7 +282,7 @@ defmodule Exq.Redis.JobQueue do
       ["ZREMRANGEBYRANK", key, 0, -Config.get(:dead_max_jobs) - 1]
     ]
 
-    Connection.qp!(redis, commands)
+    Connection.qp!(redis, commands, retry_on_connection_error: 3)
   end
 
   def queue_size(redis, namespace) do

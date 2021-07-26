@@ -6,6 +6,7 @@ defmodule Exq.Redis.Connection do
   require Logger
 
   alias Exq.Support.Config
+  alias Exq.Support.Redis
 
   def flushdb!(redis) do
     {:ok, res} = q(redis, ["flushdb"])
@@ -84,8 +85,8 @@ defmodule Exq.Redis.Connection do
     items
   end
 
-  def lrem!(redis, list, value, count \\ 1) do
-    {:ok, res} = q(redis, ["LREM", list, count, value])
+  def lrem!(redis, list, value, count \\ 1, options \\ []) do
+    {:ok, res} = q(redis, ["LREM", list, count, value], options)
     res
   end
 
@@ -103,8 +104,8 @@ defmodule Exq.Redis.Connection do
     q(redis, ["LPOP", key])
   end
 
-  def zadd(redis, set, score, member) do
-    q(redis, ["ZADD", set, score, member])
+  def zadd(redis, set, score, member, options \\ []) do
+    q(redis, ["ZADD", set, score, member], options)
   end
 
   def zadd!(redis, set, score, member) do
@@ -154,22 +155,37 @@ defmodule Exq.Redis.Connection do
     q(redis, ["ZREM", set, member])
   end
 
-  def q(redis, command) do
-    redis
-    |> Redix.command(command, timeout: Config.get(:redis_timeout))
-    |> handle_response(redis)
+  def q(redis, command, options \\ []) do
+    Redis.with_retry_on_connection_error(
+      fn ->
+        redis
+        |> Redix.command(command, timeout: Config.get(:redis_timeout))
+        |> handle_response(redis)
+      end,
+      Keyword.get(options, :retry_on_connection_error, 0)
+    )
   end
 
-  def qp(redis, command) do
-    redis
-    |> Redix.pipeline(command, timeout: Config.get(:redis_timeout))
-    |> handle_responses(redis)
+  def qp(redis, command, options \\ []) do
+    Redis.with_retry_on_connection_error(
+      fn ->
+        redis
+        |> Redix.pipeline(command, timeout: Config.get(:redis_timeout))
+        |> handle_responses(redis)
+      end,
+      Keyword.get(options, :retry_on_connection_error, 0)
+    )
   end
 
-  def qp!(redis, command) do
-    redis
-    |> Redix.pipeline!(command, timeout: Config.get(:redis_timeout))
-    |> handle_responses(redis)
+  def qp!(redis, command, options \\ []) do
+    Redis.with_retry_on_connection_error(
+      fn ->
+        redis
+        |> Redix.pipeline!(command, timeout: Config.get(:redis_timeout))
+        |> handle_responses(redis)
+      end,
+      Keyword.get(options, :retry_on_connection_error, 0)
+    )
   end
 
   defp handle_response({:error, %{message: "READONLY" <> _rest}} = error, redis) do
