@@ -20,6 +20,8 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Support.Config
   alias Exq.Support.Time
 
+  @default_size 100
+
   def enqueue(redis, namespace, queue, worker, args, options) do
     {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
 
@@ -314,25 +316,63 @@ defmodule Exq.Redis.JobQueue do
     for q <- queues, do: {q, jobs(redis, namespace, q)}
   end
 
-  def jobs(redis, namespace, queue) do
-    Connection.lrange!(redis, queue_key(namespace, queue))
-    |> Enum.map(&Job.decode/1)
+  def jobs(redis, namespace, queue, options \\ []) do
+    range_start = Keyword.get(options, :offset, 0)
+    range_end = range_start + Keyword.get(options, :size, @default_size) - 1
+
+    jobs = Connection.lrange!(redis, queue_key(namespace, queue), range_start, range_end)
+
+    if Keyword.get(options, :raw, false) do
+      jobs
+    else
+      Enum.map(jobs, &Job.decode/1)
+    end
   end
 
-  def scheduled_jobs(redis, namespace, queue) do
-    Connection.zrangebyscore!(redis, full_key(namespace, queue))
-    |> Enum.map(&Job.decode/1)
+  def scheduled_jobs(redis, namespace, queue, options \\ []) do
+    if Keyword.get(options, :score, false) do
+      scheduled_jobs_with_scores(redis, namespace, queue, options)
+    else
+      Connection.zrangebyscorewithlimit!(
+        redis,
+        full_key(namespace, queue),
+        Keyword.get(options, :offset, 0),
+        Keyword.get(options, :size, @default_size)
+      )
+      |> Enum.map(&Job.decode/1)
+    end
   end
 
-  def scheduled_jobs_with_scores(redis, namespace, queue) do
-    Connection.zrangebyscorewithscore!(redis, full_key(namespace, queue))
+  def scheduled_jobs_with_scores(redis, namespace, queue, options \\ []) do
+    Connection.zrangebyscorewithscoreandlimit!(
+      redis,
+      full_key(namespace, queue),
+      Keyword.get(options, :offset, 0),
+      Keyword.get(options, :size, @default_size)
+    )
     |> Enum.chunk_every(2)
     |> Enum.map(fn [job, score] -> {Job.decode(job), score} end)
   end
 
-  def failed(redis, namespace) do
-    Connection.zrange!(redis, failed_queue_key(namespace))
-    |> Enum.map(&Job.decode/1)
+  def failed(redis, namespace, options \\ []) do
+    if Keyword.get(options, :score, false) do
+      Connection.zrangebyscorewithscoreandlimit!(
+        redis,
+        failed_queue_key(namespace),
+        Keyword.get(options, :offset, 0),
+        Keyword.get(options, :size, @default_size)
+      )
+      |> Enum.chunk_every(2)
+      |> Enum.map(fn [job, score] -> {Job.decode(job), score} end)
+    else
+      Connection.zrangebyscorewithlimit!(
+        redis,
+        failed_queue_key(namespace),
+        Keyword.get(options, :offset, 0),
+        Keyword.get(options, :size, @default_size)
+      )
+      |> Enum.map(&Job.decode/1)
+    end
   end
 
   def retry_size(redis, namespace) do
@@ -345,6 +385,10 @@ defmodule Exq.Redis.JobQueue do
 
   def failed_size(redis, namespace) do
     Connection.zcard!(redis, failed_queue_key(namespace))
+  end
+
+  def remove_enqueued_job(redis, namespace, queue, raw_job) do
+    Connection.lrem!(redis, queue_key(namespace, queue), raw_job)
   end
 
   def remove_job(redis, namespace, queue, jid) do

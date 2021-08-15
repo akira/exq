@@ -90,13 +90,17 @@ defmodule Exq.Api do
   Expected args:
     * `pid` - Exq.Api process
     * `queue` - Queue name
+    * `options`
+      - size: (integer) size of list
+      - offset: (integer) start offset of the list
+      - raw: (boolean) whether to deserialize the job
 
   Returns:
     * `{:ok, [jobs]}`
 
   """
-  def jobs(pid, queue) do
-    GenServer.call(pid, {:jobs, queue})
+  def jobs(pid, queue, options \\ []) do
+    GenServer.call(pid, {:jobs, queue, options})
   end
 
   @doc """
@@ -104,13 +108,17 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
+    * `options`
+      - score: (boolean) whether to include job score
+      - size: (integer) size of list
+      - offset: (integer) start offset of the list
 
   Returns:
     * `{:ok, [jobs]}`
 
   """
-  def retries(pid) do
-    GenServer.call(pid, :retries)
+  def retries(pid, options \\ []) do
+    GenServer.call(pid, {:retries, options})
   end
 
   @doc """
@@ -118,13 +126,17 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
+    * `options`
+      - score: (boolean) whether to include job score
+      - size: (integer) size of list
+      - offset: (integer) start offset of the list
 
   Returns:
     * `{:ok, [jobs]}`
 
   """
-  def scheduled(pid) do
-    GenServer.call(pid, {:jobs, :scheduled})
+  def scheduled(pid, options \\ []) do
+    GenServer.call(pid, {:jobs, :scheduled, options})
   end
 
   @doc """
@@ -157,8 +169,25 @@ defmodule Exq.Api do
     * `:ok`
 
   """
+  @deprecated "use remove_enqueued_job/3"
   def remove_job(pid, queue, jid) do
     GenServer.call(pid, {:remove_job, queue, jid})
+  end
+
+  @doc """
+  Removes a job from the queue specified.
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `queue` - The name of the queue to remove the job from
+    * `raw_job` - raw json encoded job value
+
+  Returns:
+    * `:ok`
+
+  """
+  def remove_enqueued_job(pid, queue, raw_job) do
+    GenServer.call(pid, {:remove_enqueued_job, queue, raw_job})
   end
 
   @doc """
@@ -195,13 +224,17 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
+    * `options`
+      - score: (boolean) whether to include job score
+      - size: (integer) size of list
+      - offset: (integer) start offset of the list
 
   Returns:
     * `{:ok, [jobs]}`
 
   """
-  def failed(pid) do
-    GenServer.call(pid, :failed)
+  def failed(pid, options \\ []) do
+    GenServer.call(pid, {:failed, options})
   end
 
   def find_failed(pid, jid) do
