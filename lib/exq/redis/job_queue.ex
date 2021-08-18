@@ -320,13 +320,8 @@ defmodule Exq.Redis.JobQueue do
     range_start = Keyword.get(options, :offset, 0)
     range_end = range_start + Keyword.get(options, :size, @default_size) - 1
 
-    jobs = Connection.lrange!(redis, queue_key(namespace, queue), range_start, range_end)
-
-    if Keyword.get(options, :raw, false) do
-      jobs
-    else
-      Enum.map(jobs, &Job.decode/1)
-    end
+    Connection.lrange!(redis, queue_key(namespace, queue), range_start, range_end)
+    |> maybe_decode(options)
   end
 
   def scheduled_jobs(redis, namespace, queue, options \\ []) do
@@ -339,7 +334,7 @@ defmodule Exq.Redis.JobQueue do
         Keyword.get(options, :offset, 0),
         Keyword.get(options, :size, @default_size)
       )
-      |> Enum.map(&Job.decode/1)
+      |> maybe_decode(options)
     end
   end
 
@@ -350,8 +345,7 @@ defmodule Exq.Redis.JobQueue do
       Keyword.get(options, :offset, 0),
       Keyword.get(options, :size, @default_size)
     )
-    |> Enum.chunk_every(2)
-    |> Enum.map(fn [job, score] -> {Job.decode(job), score} end)
+    |> decode_zset_withscores(options)
   end
 
   def failed(redis, namespace, options \\ []) do
@@ -362,8 +356,7 @@ defmodule Exq.Redis.JobQueue do
         Keyword.get(options, :offset, 0),
         Keyword.get(options, :size, @default_size)
       )
-      |> Enum.chunk_every(2)
-      |> Enum.map(fn [job, score] -> {Job.decode(job), score} end)
+      |> decode_zset_withscores(options)
     else
       Connection.zrangebyscorewithlimit!(
         redis,
@@ -371,7 +364,7 @@ defmodule Exq.Redis.JobQueue do
         Keyword.get(options, :offset, 0),
         Keyword.get(options, :size, @default_size)
       )
-      |> Enum.map(&Job.decode/1)
+      |> maybe_decode(options)
     end
   end
 
@@ -399,6 +392,10 @@ defmodule Exq.Redis.JobQueue do
   def remove_retry(redis, namespace, jid) do
     {:ok, job} = find_job(redis, namespace, jid, :retry, false)
     Connection.zrem!(redis, retry_queue_key(namespace), job)
+  end
+
+  def remove_retry_job(redis, namespace, raw_job) do
+    Connection.zrem!(redis, retry_queue_key(namespace), raw_job)
   end
 
   def remove_scheduled(redis, namespace, jid) do
@@ -504,5 +501,26 @@ defmodule Exq.Redis.JobQueue do
       end
 
     %{job | retried_at: timestamp}
+  end
+
+  defp decode_zset_withscores(list, options) do
+    raw? = Keyword.get(options, :raw, false)
+
+    Enum.chunk_every(list, 2)
+    |> Enum.map(fn [job, score] ->
+      if raw? do
+        {job, score}
+      else
+        {Job.decode(job), score}
+      end
+    end)
+  end
+
+  defp maybe_decode(list, options) do
+    if Keyword.get(options, :raw, false) do
+      list
+    else
+      Enum.map(list, &Job.decode/1)
+    end
   end
 end
