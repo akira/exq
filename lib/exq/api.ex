@@ -256,6 +256,10 @@ defmodule Exq.Api do
     GenServer.call(pid, {:remove_failed, jid})
   end
 
+  def remove_failed_jobs(pid, raw_jobs) do
+    GenServer.call(pid, {:remove_failed_jobs, raw_jobs})
+  end
+
   def clear_failed(pid) do
     GenServer.call(pid, :clear_failed)
   end
