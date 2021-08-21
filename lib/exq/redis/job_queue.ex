@@ -403,6 +403,10 @@ defmodule Exq.Redis.JobQueue do
     Connection.zrem!(redis, scheduled_queue_key(namespace), job)
   end
 
+  def remove_scheduled_jobs(redis, namespace, raw_jobs) do
+    Connection.zrem!(redis, scheduled_queue_key(namespace), raw_jobs)
+  end
+
   def list_queues(redis, namespace) do
     Connection.smembers!(redis, full_key(namespace, "queues"))
   end

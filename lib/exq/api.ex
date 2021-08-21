@@ -334,6 +334,10 @@ defmodule Exq.Api do
     GenServer.call(pid, {:remove_scheduled, jid})
   end
 
+  def remove_scheduled_jobs(pid, raw_jobs) do
+    GenServer.call(pid, {:remove_scheduled_jobs, raw_jobs})
+  end
+
   def clear_scheduled(pid) do
     GenServer.call(pid, :clear_scheduled)
   end
