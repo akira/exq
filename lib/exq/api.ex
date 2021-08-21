@@ -169,7 +169,7 @@ defmodule Exq.Api do
     * `:ok`
 
   """
-  @deprecated "use remove_enqueued_job/3"
+  @deprecated "use remove_enqueued_jobs/3"
   def remove_job(pid, queue, jid) do
     GenServer.call(pid, {:remove_job, queue, jid})
   end
@@ -186,8 +186,8 @@ defmodule Exq.Api do
     * `:ok`
 
   """
-  def remove_enqueued_job(pid, queue, raw_job) do
-    GenServer.call(pid, {:remove_enqueued_job, queue, raw_job})
+  def remove_enqueued_jobs(pid, queue, raw_jobs) do
+    GenServer.call(pid, {:remove_enqueued_jobs, queue, raw_jobs})
   end
 
   @doc """

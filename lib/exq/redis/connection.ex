@@ -86,7 +86,14 @@ defmodule Exq.Redis.Connection do
   end
 
   def lrem!(redis, list, value, count \\ 1, options \\ []) do
-    {:ok, res} = q(redis, ["LREM", list, count, value], options)
+    {:ok, res} =
+      if is_list(value) do
+        commands = Enum.map(value, fn v -> ["LREM", list, count, v] end)
+        qp(redis, commands, options)
+      else
+        q(redis, ["LREM", list, count, value], options)
+      end
+
     res
   end
 

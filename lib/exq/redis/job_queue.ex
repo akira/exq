@@ -380,8 +380,8 @@ defmodule Exq.Redis.JobQueue do
     Connection.zcard!(redis, failed_queue_key(namespace))
   end
 
-  def remove_enqueued_job(redis, namespace, queue, raw_job) do
-    Connection.lrem!(redis, queue_key(namespace, queue), raw_job)
+  def remove_enqueued_jobs(redis, namespace, queue, raw_jobs) do
+    Connection.lrem!(redis, queue_key(namespace, queue), raw_jobs)
   end
 
   def remove_job(redis, namespace, queue, jid) do
