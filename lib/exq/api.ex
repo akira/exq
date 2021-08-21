@@ -293,8 +293,8 @@ defmodule Exq.Api do
     GenServer.call(pid, {:remove_retry, jid})
   end
 
-  def remove_retry_job(pid, raw_job) do
-    GenServer.call(pid, {:remove_retry_job, raw_job})
+  def remove_retry_jobs(pid, raw_jobs) do
+    GenServer.call(pid, {:remove_retry_jobs, raw_jobs})
   end
 
   def clear_retries(pid) do

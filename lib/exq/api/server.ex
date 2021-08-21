@@ -145,8 +145,8 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:remove_retry_job, raw_job}, _from, state) do
-    JobQueue.remove_retry_job(state.redis, state.namespace, raw_job)
+  def handle_call({:remove_retry_jobs, raw_jobs}, _from, state) do
+    JobQueue.remove_retry_jobs(state.redis, state.namespace, raw_jobs)
     {:reply, :ok, state}
   end
 

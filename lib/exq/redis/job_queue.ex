@@ -394,8 +394,8 @@ defmodule Exq.Redis.JobQueue do
     Connection.zrem!(redis, retry_queue_key(namespace), job)
   end
 
-  def remove_retry_job(redis, namespace, raw_job) do
-    Connection.zrem!(redis, retry_queue_key(namespace), raw_job)
+  def remove_retry_jobs(redis, namespace, raw_jobs) do
+    Connection.zrem!(redis, retry_queue_key(namespace), raw_jobs)
   end
 
   def remove_scheduled(redis, namespace, jid) do

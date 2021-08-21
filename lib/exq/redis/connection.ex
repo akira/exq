@@ -156,6 +156,11 @@ defmodule Exq.Redis.Connection do
     items
   end
 
+  def zrem!(redis, set, members) when is_list(members) do
+    {:ok, res} = q(redis, ["ZREM", set | members])
+    res
+  end
+
   def zrem!(redis, set, member) do
     {:ok, res} = q(redis, ["ZREM", set, member])
     res
