@@ -1,5 +1,6 @@
 defmodule FakeModeTest do
   use ExUnit.Case, async: true
+  alias Exq.Support.Time
 
   defmodule BrokenWorker do
     def perform(_) do
@@ -13,9 +14,10 @@ defmodule FakeModeTest do
 
   describe "fake mode" do
     test "enqueue" do
+      scheduled_at = DateTime.utc_now()
       assert [] = Exq.Mock.jobs()
       assert {:ok, _} = Exq.enqueue(Exq, "low", BrokenWorker, [1])
-      assert {:ok, _} = Exq.enqueue_at(Exq, "low", DateTime.utc_now(), BrokenWorker, [2])
+      assert {:ok, _} = Exq.enqueue_at(Exq, "low", scheduled_at, BrokenWorker, [2])
       assert {:ok, _} = Exq.enqueue_in(Exq, "low", 300, BrokenWorker, [3])
 
       assert [
@@ -27,14 +29,22 @@ defmodule FakeModeTest do
                %Exq.Support.Job{
                  args: [2],
                  class: FakeModeTest.BrokenWorker,
-                 queue: "low"
+                 queue: "low",
+                 enqueued_at: ^scheduled_at
                },
                %Exq.Support.Job{
                  args: [3],
                  class: FakeModeTest.BrokenWorker,
-                 queue: "low"
+                 queue: "low",
+                 enqueued_at: scheduled_in
                }
              ] = Exq.Mock.jobs()
+
+      scheduled_seconds = Time.unix_seconds(scheduled_in)
+      current_seconds = Time.unix_seconds(DateTime.utc_now())
+
+      assert current_seconds + 290 < scheduled_seconds
+      assert current_seconds + 310 > scheduled_seconds
     end
 
     test "with predetermined job ID" do
