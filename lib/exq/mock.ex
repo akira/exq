@@ -2,6 +2,7 @@ defmodule Exq.Mock do
   alias Exq.Support.Config
   alias Exq.Adapters.Queue.Redis
   alias Exq.Support.Job
+  alias Exq.Support.Time
   alias Exq.Support.Coercion
   use GenServer
   @timeout 30000
@@ -108,7 +109,7 @@ defmodule Exq.Mock do
 
       :inline ->
         runnable = fn ->
-          job = to_job(args)
+          job = to_job(type, args)
           apply(Coercion.to_module(job.class), :perform, job.args)
           {:ok, job.jid}
         end
@@ -116,7 +117,7 @@ defmodule Exq.Mock do
         {:reply, {:ok, runnable}, state}
 
       :fake ->
-        job = to_job(args)
+        job = to_job(type, args)
         state = update_in(state.jobs[owner_pid], &((&1 || []) ++ [job]))
 
         runnable = fn ->
@@ -144,7 +145,7 @@ defmodule Exq.Mock do
     {:noreply, state}
   end
 
-  defp to_job([_pid, queue, worker, args, options]) do
+  defp to_job(_, [_pid, queue, worker, args, options]) do
     %Job{
       jid: Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end),
       queue: queue,
@@ -154,13 +155,19 @@ defmodule Exq.Mock do
     }
   end
 
-  defp to_job([_pid, queue, _time_or_offset, worker, args, options]) do
+  defp to_job(type, [_pid, queue, time_or_offset, worker, args, options]) do
+    scheduled_at =
+      case type do
+        :enqueue_at -> time_or_offset
+        :enqueue_in -> Time.offset_from_now(time_or_offset)
+      end
+
     %Job{
       jid: Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end),
       queue: queue,
       class: worker,
       args: args,
-      enqueued_at: DateTime.utc_now()
+      enqueued_at: scheduled_at
     }
   end
 
