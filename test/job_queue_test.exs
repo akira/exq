@@ -152,6 +152,7 @@ defmodule JobQueueTest do
           jid: UUID.uuid4(),
           error_class: nil,
           error_message: "failed",
+          retried_at: Time.unix_seconds(),
           failed_at: Time.unix_seconds(),
           enqueued_at: Time.unix_seconds(),
           finished_at: nil,

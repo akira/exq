@@ -247,7 +247,9 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def retry_job(redis, namespace, job, retry_count, error) do
-    job = %{job | failed_at: Time.unix_seconds(), retry_count: retry_count, error_message: error}
+    job =
+      %{job | retry_count: retry_count, error_message: error}
+      |> add_failure_timestamp()
 
     offset = Config.backoff().offset(job)
     time = Time.offset_from_now(offset)
@@ -263,13 +265,14 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def fail_job(redis, namespace, job, error) do
-    job = %{
-      job
-      | failed_at: Time.unix_seconds(),
-        retry_count: job.retry_count || 0,
-        error_class: "ExqGenericError",
-        error_message: error
-    }
+    job =
+      %{
+        job
+        | retry_count: job.retry_count || 0,
+          error_class: "ExqGenericError",
+          error_message: error
+      }
+      |> add_failure_timestamp()
 
     job_serialized = Job.encode(job)
     key = failed_queue_key(namespace)
@@ -444,5 +447,18 @@ defmodule Exq.Redis.JobQueue do
     :max_retries
     |> Config.get()
     |> Exq.Support.Coercion.to_integer()
+  end
+
+  defp add_failure_timestamp(job) do
+    timestamp = Time.unix_seconds()
+
+    job =
+      if !job.failed_at do
+        %{job | failed_at: timestamp}
+      else
+        job
+      end
+
+    %{job | retried_at: timestamp}
   end
 end

@@ -5,6 +5,7 @@ defmodule Exq.Support.Job do
 
   defstruct error_message: nil,
             error_class: nil,
+            retried_at: nil,
             failed_at: nil,
             retry: false,
             retry_count: 0,
@@ -29,6 +30,7 @@ defmodule Exq.Support.Job do
       error_message: encode(job.error_message),
       error_class: job.error_class,
       failed_at: job.failed_at,
+      retried_at: job.retried_at,
       retry: job.retry,
       retry_count: job.retry_count,
       processor: job.processor,
