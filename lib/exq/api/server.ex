@@ -110,6 +110,11 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, job}, state}
   end
 
+  def handle_call({:find_failed, score, jid, options}, _from, state) do
+    {:ok, job} = JobStat.find_failed(state.redis, state.namespace, score, jid, options)
+    {:reply, {:ok, job}, state}
+  end
+
   def handle_call({:find_job, queue, jid}, _from, state) do
     response = JobQueue.find_job(state.redis, state.namespace, jid, queue)
     {:reply, response, state}

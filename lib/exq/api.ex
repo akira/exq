@@ -242,6 +242,24 @@ defmodule Exq.Api do
   end
 
   @doc """
+  Find failed job
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `score` - Job score
+    * `jid` - Job jid
+    * `options`
+      - raw: (boolean) whether to deserialize the job
+
+  Returns:
+    * `{:ok, job}`
+
+  """
+  def find_failed(pid, score, jid, options \\ []) do
+    GenServer.call(pid, {:find_failed, score, jid, options})
+  end
+
+  @doc """
   Removes a job in the queue of jobs that have failed and exceeded their retry count.
 
   Expected args:

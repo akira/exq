@@ -90,6 +90,12 @@ defmodule Exq.Redis.JobStat do
     |> JobQueue.search_jobs(jid)
   end
 
+  def find_failed(redis, namespace, score, jid, options) do
+    redis
+    |> Connection.zrangebyscore!(JobQueue.full_key(namespace, "dead"), score, score)
+    |> JobQueue.search_jobs(jid, !Keyword.get(options, :raw, false))
+  end
+
   def remove_queue(redis, namespace, queue) do
     Connection.qp(redis, [
       ["SREM", JobQueue.full_key(namespace, "queues"), queue],
