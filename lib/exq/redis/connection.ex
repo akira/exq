@@ -158,6 +158,18 @@ defmodule Exq.Redis.Connection do
     q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
   end
 
+  def zrevrangebyscorewithlimit!(redis, set, offset, size, min \\ "0", max \\ "+inf") do
+    {:ok, items} = q(redis, ["ZREVRANGEBYSCORE", set, max, min, "LIMIT", offset, size])
+    items
+  end
+
+  def zrevrangebyscorewithscoreandlimit!(redis, set, offset, size, min \\ "0", max \\ "+inf") do
+    {:ok, items} =
+      q(redis, ["ZREVRANGEBYSCORE", set, max, min, "WITHSCORES", "LIMIT", offset, size])
+
+    items
+  end
+
   def zrange!(redis, set, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = q(redis, ["ZRANGE", set, range_start, range_end])
     items

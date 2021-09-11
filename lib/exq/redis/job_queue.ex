@@ -350,7 +350,7 @@ defmodule Exq.Redis.JobQueue do
 
   def failed(redis, namespace, options \\ []) do
     if Keyword.get(options, :score, false) do
-      Connection.zrangebyscorewithscoreandlimit!(
+      Connection.zrevrangebyscorewithscoreandlimit!(
         redis,
         failed_queue_key(namespace),
         Keyword.get(options, :offset, 0),
@@ -358,7 +358,7 @@ defmodule Exq.Redis.JobQueue do
       )
       |> decode_zset_withscores(options)
     else
-      Connection.zrangebyscorewithlimit!(
+      Connection.zrevrangebyscorewithlimit!(
         redis,
         failed_queue_key(namespace),
         Keyword.get(options, :offset, 0),
