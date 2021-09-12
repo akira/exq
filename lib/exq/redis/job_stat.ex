@@ -91,15 +91,15 @@ defmodule Exq.Redis.JobStat do
   end
 
   def find_failed(redis, namespace, score, jid, options) do
-    redis
-    |> Connection.zrangebyscore!(JobQueue.full_key(namespace, "dead"), score, score)
-    |> JobQueue.search_jobs(jid, !Keyword.get(options, :raw, false))
+    find_by_score_and_jid(redis, JobQueue.full_key(namespace, "dead"), score, jid, options)
   end
 
   def find_retry(redis, namespace, score, jid, options) do
-    redis
-    |> Connection.zrangebyscore!(JobQueue.full_key(namespace, "retry"), score, score)
-    |> JobQueue.search_jobs(jid, !Keyword.get(options, :raw, false))
+    find_by_score_and_jid(redis, JobQueue.full_key(namespace, "retry"), score, jid, options)
+  end
+
+  def find_scheduled(redis, namespace, score, jid, options) do
+    find_by_score_and_jid(redis, JobQueue.full_key(namespace, "schedule"), score, jid, options)
   end
 
   def remove_queue(redis, namespace, queue) do
@@ -188,5 +188,11 @@ defmodule Exq.Redis.JobStat do
         {val, _} = Integer.parse(count)
         val
     end
+  end
+
+  defp find_by_score_and_jid(redis, zset, score, jid, options) do
+    redis
+    |> Connection.zrangebyscore!(zset, score, score)
+    |> JobQueue.search_jobs(jid, !Keyword.get(options, :raw, false))
   end
 end

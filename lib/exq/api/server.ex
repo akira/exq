@@ -125,6 +125,11 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, job}, state}
   end
 
+  def handle_call({:find_scheduled, score, jid, options}, _from, state) do
+    {:ok, job} = JobStat.find_scheduled(state.redis, state.namespace, score, jid, options)
+    {:reply, {:ok, job}, state}
+  end
+
   def handle_call({:find_retry, jid}, _from, state) do
     {:ok, job} = JobQueue.find_job(state.redis, state.namespace, jid, :retry)
     {:reply, {:ok, job}, state}
