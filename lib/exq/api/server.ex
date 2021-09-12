@@ -130,6 +130,11 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, job}, state}
   end
 
+  def handle_call({:find_retry, score, jid, options}, _from, state) do
+    {:ok, job} = JobStat.find_retry(state.redis, state.namespace, score, jid, options)
+    {:reply, {:ok, job}, state}
+  end
+
   def handle_call({:remove_queue, queue}, _from, state) do
     JobStat.remove_queue(state.redis, state.namespace, queue)
     {:reply, :ok, state}

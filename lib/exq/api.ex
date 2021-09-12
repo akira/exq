@@ -301,6 +301,24 @@ defmodule Exq.Api do
   end
 
   @doc """
+  Find job in retry queue
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `score` - Job score
+    * `jid` - Job jid
+    * `options`
+      - raw: (boolean) whether to deserialize the job
+
+  Returns:
+    * `{:ok, job}`
+
+  """
+  def find_retry(pid, score, jid, options \\ []) do
+    GenServer.call(pid, {:find_retry, score, jid, options})
+  end
+
+  @doc """
   Removes a job in the retry queue from being enqueued again.
 
   Expected args:
