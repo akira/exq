@@ -96,6 +96,12 @@ defmodule ApiTest do
     assert Enum.count(jobs) == 2
     assert Enum.find(jobs, fn job -> job.jid == jid1 end)
     assert Enum.find(jobs, fn job -> job.jid == jid2 end)
+
+    {:ok, [job]} = Exq.Api.jobs(Exq.Api, "custom", size: 1, offset: 1)
+    assert job.jid == jid1
+
+    {:ok, [json]} = Exq.Api.jobs(Exq.Api, "custom", size: 1, raw: true)
+    assert Jason.decode!(json)["jid"] == jid2
   end
 
   test "failed when empty" do
@@ -103,10 +109,14 @@ defmodule ApiTest do
   end
 
   test "failed with data" do
-    JobQueue.fail_job(:testredis, 'test', %Job{jid: "1234"}, "this is an error")
+    JobQueue.fail_job(:testredis, 'test', %Job{jid: "1"}, "this is an error")
+    JobQueue.fail_job(:testredis, 'test', %Job{jid: "2"}, "this is an error")
     {:ok, jobs} = Exq.Api.failed(Exq.Api)
-    assert Enum.count(jobs) == 1
-    assert Enum.at(jobs, 0).jid == "1234"
+    assert Enum.count(jobs) == 2
+    assert Enum.at(jobs, 0).jid == "2"
+
+    {:ok, [json]} = Exq.Api.failed(Exq.Api, raw: true, size: 1, offset: 1)
+    assert Jason.decode!(json)["jid"] == "1"
   end
 
   test "retry when empty" do
@@ -114,10 +124,14 @@ defmodule ApiTest do
   end
 
   test "retry with data" do
-    JobQueue.retry_job(:testredis, 'test', %Job{jid: "1234"}, 1, "this is an error")
+    JobQueue.retry_job(:testredis, "test", %Job{jid: "1"}, 1, "this is an error")
+    JobQueue.retry_job(:testredis, "test", %Job{jid: "2"}, 1, "this is an error")
     {:ok, jobs} = Exq.Api.retries(Exq.Api)
-    assert Enum.count(jobs) == 1
-    assert Enum.at(jobs, 0).jid == "1234"
+    assert Enum.count(jobs) == 2
+    assert Enum.at(jobs, 0).jid == "1"
+
+    {:ok, [job]} = Exq.Api.retries(Exq.Api, size: 1, raw: true, offset: 1)
+    assert Jason.decode!(job)["jid"] == "2"
   end
 
   test "scheduled when empty" do
@@ -125,10 +139,14 @@ defmodule ApiTest do
   end
 
   test "scheduled with data" do
-    {:ok, jid} = Exq.enqueue_in(Exq, 'custom', 1000, Bogus, [])
+    {:ok, jid1} = Exq.enqueue_in(Exq, 'custom', 1000, Bogus, [])
+    {:ok, jid2} = Exq.enqueue_in(Exq, 'custom', 1000, Bogus, [])
     {:ok, jobs} = Exq.Api.scheduled(Exq.Api)
-    assert Enum.count(jobs) == 1
-    assert Enum.at(jobs, 0).jid == jid
+    assert Enum.count(jobs) == 2
+    assert Enum.at(jobs, 0).jid == jid1
+
+    {:ok, [job]} = Exq.Api.scheduled(Exq.Api, size: 1, raw: true, offset: 1)
+    assert Jason.decode!(job)["jid"] == jid2
   end
 
   test "scheduled with scores and data" do
@@ -171,6 +189,14 @@ defmodule ApiTest do
     {:ok, jid} = Exq.enqueue(Exq, 'custom', Bogus, [])
     Exq.Api.remove_job(Exq.Api, 'custom', jid)
     assert {:ok, nil} = Exq.Api.find_job(Exq.Api, 'custom', jid)
+  end
+
+  test "remove enqueued jobs" do
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [])
+    assert {:ok, 1} = Exq.Api.queue_size(Exq.Api, "custom")
+    {:ok, [job]} = Exq.Api.jobs(Exq.Api, "custom", raw: true)
+    :ok = Exq.Api.remove_enqueued_jobs(Exq.Api, "custom", [job])
+    assert {:ok, 0} = Exq.Api.queue_size(Exq.Api, "custom")
   end
 
   test "remove job in retry queue" do
