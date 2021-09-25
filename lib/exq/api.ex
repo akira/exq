@@ -237,6 +237,7 @@ defmodule Exq.Api do
     GenServer.call(pid, {:failed, options})
   end
 
+  @deprecated "use find_failed/4"
   def find_failed(pid, jid) do
     GenServer.call(pid, {:find_failed, jid})
   end
@@ -270,10 +271,22 @@ defmodule Exq.Api do
     * `:ok`
 
   """
+  @deprecated "use remove_failed_jobs/2"
   def remove_failed(pid, jid) do
     GenServer.call(pid, {:remove_failed, jid})
   end
 
+  @doc """
+  Removes jobs from dead queue.
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `raw_job` - raw json encoded job value
+
+  Returns:
+    * `:ok`
+
+  """
   def remove_failed_jobs(pid, raw_jobs) do
     GenServer.call(pid, {:remove_failed_jobs, raw_jobs})
   end
@@ -296,6 +309,7 @@ defmodule Exq.Api do
     GenServer.call(pid, :failed_size)
   end
 
+  @deprecated "use find_retry/4"
   def find_retry(pid, jid) do
     GenServer.call(pid, {:find_retry, jid})
   end
@@ -329,10 +343,22 @@ defmodule Exq.Api do
     * `:ok`
 
   """
+  @deprecated "use remove_retry_jobs/2"
   def remove_retry(pid, jid) do
     GenServer.call(pid, {:remove_retry, jid})
   end
 
+  @doc """
+  Removes jobs from retry queue.
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `raw_job` - raw json encoded job value
+
+  Returns:
+    * `:ok`
+
+  """
   def remove_retry_jobs(pid, raw_jobs) do
     GenServer.call(pid, {:remove_retry_jobs, raw_jobs})
   end
@@ -355,6 +381,7 @@ defmodule Exq.Api do
     GenServer.call(pid, :retry_size)
   end
 
+  @deprecated "use find_scheduled/4"
   def find_scheduled(pid, jid) do
     GenServer.call(pid, {:find_scheduled, jid})
   end
@@ -388,10 +415,22 @@ defmodule Exq.Api do
     * `:ok`
 
   """
+  @deprecated "use remove_scheduled_jobs/2"
   def remove_scheduled(pid, jid) do
     GenServer.call(pid, {:remove_scheduled, jid})
   end
 
+  @doc """
+  Removes jobs from scheduled queue.
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `raw_job` - raw json encoded job value
+
+  Returns:
+    * `:ok`
+
+  """
   def remove_scheduled_jobs(pid, raw_jobs) do
     GenServer.call(pid, {:remove_scheduled_jobs, raw_jobs})
   end
