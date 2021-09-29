@@ -60,6 +60,13 @@ defmodule ApiTest do
 
     assert {:ok, 1} = Exq.Api.stats(Exq.Api, "failed")
     assert {:ok, 1} = Exq.Api.stats(Exq.Api, "processed")
+    assert {:ok, 1} = Exq.Api.stats(Exq.Api, "processed", Date.to_string(Date.utc_today()))
+
+    assert {:ok, [1, 0]} =
+             Exq.Api.stats(Exq.Api, "failed", [
+               Date.to_string(Date.utc_today()),
+               Date.to_string(Date.utc_today() |> Date.add(-1))
+             ])
   end
 
   test "processes when empty" do

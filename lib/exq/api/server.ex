@@ -40,9 +40,9 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, count}, state}
   end
 
-  def handle_call({:stats, key, date}, _from, state) do
-    count = JobStat.get_count(state.redis, state.namespace, "#{key}:#{date}")
-    {:reply, {:ok, count}, state}
+  def handle_call({:stats, key, dates}, _from, state) do
+    counts = JobStat.get_counts(state.redis, state.namespace, Enum.map(dates, &"#{key}:#{&1}"))
+    {:reply, {:ok, counts}, state}
   end
 
   def handle_call(:queues, _from, state) do

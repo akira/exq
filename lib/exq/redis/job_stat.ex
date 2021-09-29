@@ -174,20 +174,24 @@ defmodule Exq.Redis.JobStat do
   end
 
   def get_count(redis, namespace, key) do
-    case Connection.get!(redis, JobQueue.full_key(namespace, "stat:#{key}")) do
-      :undefined ->
-        0
+    Connection.get!(redis, JobQueue.full_key(namespace, "stat:#{key}"))
+    |> decode_integer()
+  end
 
-      nil ->
-        0
+  def get_counts(redis, namespace, keys) do
+    {:ok, results} =
+      Connection.q(redis, ["MGET" | Enum.map(keys, &JobQueue.full_key(namespace, "stat:#{&1}"))])
 
-      count when is_integer(count) ->
-        count
+    Enum.map(results, &decode_integer/1)
+  end
 
-      count ->
-        {val, _} = Integer.parse(count)
-        val
-    end
+  def decode_integer(:undefined), do: 0
+  def decode_integer(nil), do: 0
+  def decode_integer(count) when is_integer(count), do: count
+
+  def decode_integer(count) when is_binary(count) do
+    {count, _} = Integer.parse(count)
+    count
   end
 
   defp find_by_score_and_jid(redis, zset, score, jid, options) do

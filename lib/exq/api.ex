@@ -471,8 +471,14 @@ defmodule Exq.Api do
     GenServer.call(pid, {:stats, key})
   end
 
+  def stats(pid, key, dates) when is_list(dates) do
+    GenServer.call(pid, {:stats, key, dates})
+  end
+
   def stats(pid, key, date) do
-    GenServer.call(pid, {:stats, key, date})
+    with {:ok, [count]} <- GenServer.call(pid, {:stats, key, [date]}) do
+      {:ok, count}
+    end
   end
 
   def realtime_stats(pid) do
