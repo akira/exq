@@ -14,7 +14,6 @@ defmodule Exq.Support.Mode do
   """
 
   import Exq.Support.Opts, only: [redis_worker_opts: 1]
-  import Supervisor.Spec
 
   def children(opts) do
     {module, args, opts} = redis_worker_opts(opts)
@@ -68,4 +67,19 @@ defmodule Exq.Support.Mode do
   end
 
   def children([:api, :enqueuer], opts), do: children([:enqueuer, :api], opts)
+
+  defp worker(module, args, opts \\ []) do
+    overrides = Keyword.put(opts, :type, :worker)
+    supervisor_child_spec(module, args, overrides)
+  end
+
+  defp supervisor(module, args, opts \\ []) do
+    overrides = Keyword.put(opts, :type, :supervisor)
+    supervisor_child_spec(module, args, overrides)
+  end
+
+  defp supervisor_child_spec(module, args, overrides) do
+    spec = %{id: module, start: {module, :start_link, args}}
+    Supervisor.child_spec(spec, overrides)
+  end
 end
