@@ -30,6 +30,8 @@ defmodule Exq.Manager.Server do
     * `:scheduler_enable` - Whether scheduler / retry process should be enabled. This defaults
       to true.  Note that is you turn this off, job retries will not be enqueued.
     * `:scheduler_poll_timeout` - How often to poll Redis for scheduled / retry jobs.
+    * `:shutdown_timeout` - The number of milliseconds to wait for workers to finish processing jobs
+      when the application is shutting down
 
   ## Redis Options (TODO - move to supervisor after refactor):
     * `:host` - Host name for Redis server (defaults to '127.0.0.1')
@@ -130,7 +132,8 @@ defmodule Exq.Manager.Server do
               scheduler_poll_timeout: nil,
               workers_sup: nil,
               middleware: nil,
-              metadata: nil
+              metadata: nil,
+              shutdown_timeout: nil
   end
 
   def start_link(opts \\ []) do
@@ -169,7 +172,8 @@ defmodule Exq.Manager.Server do
       queues: opts[:queues],
       pid: self(),
       poll_timeout: opts[:poll_timeout],
-      scheduler_poll_timeout: opts[:scheduler_poll_timeout]
+      scheduler_poll_timeout: opts[:scheduler_poll_timeout],
+      shutdown_timeout: opts[:shutdown_timeout]
     }
 
     check_redis_connection(opts)
@@ -346,7 +350,8 @@ defmodule Exq.Manager.Server do
           state.redis,
           state.middleware,
           state.metadata
-        ]
+        ],
+        shutdown_timeout: state.shutdown_timeout
       )
 
     Exq.Worker.Server.work(worker)

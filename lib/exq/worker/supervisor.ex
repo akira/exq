@@ -3,20 +3,14 @@ defmodule Exq.Worker.Supervisor do
   Supervisor for Exq Worker.
   """
 
-  import Supervisor.Spec
+  use DynamicSupervisor
 
   def start_link(opts) do
-    Supervisor.start_link(__MODULE__, opts, name: supervisor_name(opts[:name]))
+    DynamicSupervisor.start_link(__MODULE__, [], name: supervisor_name(opts[:name]))
   end
 
-  def init(opts) do
-    shutdown_timeout = Keyword.get(opts, :shutdown_timeout)
-
-    children = [
-      worker(Exq.Worker.Server, [], restart: :temporary, shutdown: shutdown_timeout)
-    ]
-
-    supervise(children, strategy: :simple_one_for_one)
+  def init([]) do
+    DynamicSupervisor.init(strategy: :one_for_one)
   end
 
   def supervisor_name(name) do
@@ -24,11 +18,20 @@ defmodule Exq.Worker.Supervisor do
     "#{name}.Worker.Sup" |> String.to_atom()
   end
 
-  def start_child(sup, args) do
-    Supervisor.start_child(sup, args)
+  def start_child(sup, args, opts) do
+    shutdown_timeout = Keyword.get(opts, :shutdown_timeout)
+
+    spec = %{
+      id: Exq.Worker.Server,
+      start: {Exq.Worker.Server, :start_link, args},
+      restart: :temporary,
+      shutdown: shutdown_timeout
+    }
+
+    DynamicSupervisor.start_child(sup, spec)
   end
 
   def workers(sup) do
-    Supervisor.which_children(sup)
+    DynamicSupervisor.which_children(sup)
   end
 end
