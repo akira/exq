@@ -146,6 +146,16 @@ defmodule ExqTest do
     stop_process(enq_sup)
   end
 
+  test "enqueue_in with separate enqueuer" do
+    Process.register(self(), :exqtest)
+    {:ok, exq_sup} = Exq.start_link()
+    {:ok, enq_sup} = Exq.start_link(mode: :enqueuer, scheduler_enable: true, name: ExqE)
+    {:ok, _} = Exq.Enqueuer.enqueue_in(ExqE.Enqueuer, "default", 1, ExqTest.PerformWorker, [])
+    assert_receive {:worked}
+    stop_process(exq_sup)
+    stop_process(enq_sup)
+  end
+
   test "enqueue with separate enqueuer and api" do
     Process.register(self(), :exqtest)
     {:ok, exq_sup} = Exq.start_link()
