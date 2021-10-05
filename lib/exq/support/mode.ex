@@ -35,14 +35,7 @@ defmodule Exq.Support.Mode do
       worker(Exq.WorkerDrainer.Server, [opts], shutdown: shutdown_timeout),
       worker(Exq.Enqueuer.Server, [opts]),
       worker(Exq.Api.Server, [opts])
-    ]
-
-    children =
-      if opts[:scheduler_enable] do
-        children ++ [worker(Exq.Scheduler.Server, [opts])]
-      else
-        children
-      end
+    ] |> maybe_add_scheduler(opts)
 
     if opts[:heartbeat_enable] do
       children ++ [worker(Exq.Heartbeat.Server, [opts]), worker(Exq.Heartbeat.Monitor, [opts])]
@@ -52,7 +45,7 @@ defmodule Exq.Support.Mode do
   end
 
   def children(:enqueuer, opts) do
-    [worker(Exq.Enqueuer.Server, [opts])]
+    [worker(Exq.Enqueuer.Server, [opts])] |> maybe_add_scheduler(opts)
   end
 
   def children(:api, opts) do
@@ -63,7 +56,7 @@ defmodule Exq.Support.Mode do
     [
       worker(Exq.Enqueuer.Server, [opts]),
       worker(Exq.Api.Server, [opts])
-    ]
+    ] |> maybe_add_scheduler(opts)
   end
 
   def children([:api, :enqueuer], opts), do: children([:enqueuer, :api], opts)
@@ -81,5 +74,13 @@ defmodule Exq.Support.Mode do
   defp supervisor_child_spec(module, args, overrides) do
     spec = %{id: module, start: {module, :start_link, args}}
     Supervisor.child_spec(spec, overrides)
+  end
+
+  defp maybe_add_scheduler(children, opts) do
+    if opts[:scheduler_enable] do
+      children ++ [worker(Exq.Scheduler.Server, [opts])]
+    else
+      children
+    end
   end
 end
