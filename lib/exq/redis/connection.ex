@@ -86,7 +86,14 @@ defmodule Exq.Redis.Connection do
   end
 
   def lrem!(redis, list, value, count \\ 1, options \\ []) do
-    {:ok, res} = q(redis, ["LREM", list, count, value], options)
+    {:ok, res} =
+      if is_list(value) do
+        commands = Enum.map(value, fn v -> ["LREM", list, count, v] end)
+        qp(redis, commands, options)
+      else
+        q(redis, ["LREM", list, count, value], options)
+      end
+
     res
   end
 
@@ -128,6 +135,11 @@ defmodule Exq.Redis.Connection do
     items
   end
 
+  def zrangebyscorewithlimit!(redis, set, offset, size, min \\ "0", max \\ "+inf") do
+    {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max, "LIMIT", offset, size])
+    items
+  end
+
   def zrangebyscore(redis, set, min \\ "0", max \\ "+inf") do
     q(redis, ["ZRANGEBYSCORE", set, min, max])
   end
@@ -137,13 +149,35 @@ defmodule Exq.Redis.Connection do
     items
   end
 
+  def zrangebyscorewithscoreandlimit!(redis, set, offset, size, min \\ "0", max \\ "+inf") do
+    {:ok, items} = q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES", "LIMIT", offset, size])
+    items
+  end
+
   def zrangebyscorewithscore(redis, set, min \\ "0", max \\ "+inf") do
     q(redis, ["ZRANGEBYSCORE", set, min, max, "WITHSCORES"])
+  end
+
+  def zrevrangebyscorewithlimit!(redis, set, offset, size, min \\ "0", max \\ "+inf") do
+    {:ok, items} = q(redis, ["ZREVRANGEBYSCORE", set, max, min, "LIMIT", offset, size])
+    items
+  end
+
+  def zrevrangebyscorewithscoreandlimit!(redis, set, offset, size, min \\ "0", max \\ "+inf") do
+    {:ok, items} =
+      q(redis, ["ZREVRANGEBYSCORE", set, max, min, "WITHSCORES", "LIMIT", offset, size])
+
+    items
   end
 
   def zrange!(redis, set, range_start \\ "0", range_end \\ "-1") do
     {:ok, items} = q(redis, ["ZRANGE", set, range_start, range_end])
     items
+  end
+
+  def zrem!(redis, set, members) when is_list(members) do
+    {:ok, res} = q(redis, ["ZREM", set | members])
+    res
   end
 
   def zrem!(redis, set, member) do

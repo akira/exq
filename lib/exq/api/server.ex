@@ -40,9 +40,9 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, count}, state}
   end
 
-  def handle_call({:stats, key, date}, _from, state) do
-    count = JobStat.get_count(state.redis, state.namespace, "#{key}:#{date}")
-    {:reply, {:ok, count}, state}
+  def handle_call({:stats, key, dates}, _from, state) do
+    counts = JobStat.get_counts(state.redis, state.namespace, Enum.map(dates, &"#{key}:#{&1}"))
+    {:reply, {:ok, counts}, state}
   end
 
   def handle_call(:queues, _from, state) do
@@ -50,13 +50,13 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, queues}, state}
   end
 
-  def handle_call(:failed, _from, state) do
-    jobs = JobQueue.failed(state.redis, state.namespace)
+  def handle_call({:failed, options}, _from, state) do
+    jobs = JobQueue.failed(state.redis, state.namespace, options)
     {:reply, {:ok, jobs}, state}
   end
 
-  def handle_call(:retries, _from, state) do
-    jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "retry")
+  def handle_call({:retries, options}, _from, state) do
+    jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "retry", options)
     {:reply, {:ok, jobs}, state}
   end
 
@@ -65,8 +65,8 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, jobs}, state}
   end
 
-  def handle_call({:jobs, :scheduled}, _from, state) do
-    jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "schedule")
+  def handle_call({:jobs, :scheduled, options}, _from, state) do
+    jobs = JobQueue.scheduled_jobs(state.redis, state.namespace, "schedule", options)
     {:reply, {:ok, jobs}, state}
   end
 
@@ -75,8 +75,8 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, jobs}, state}
   end
 
-  def handle_call({:jobs, queue}, _from, state) do
-    jobs = JobQueue.jobs(state.redis, state.namespace, queue)
+  def handle_call({:jobs, queue, options}, _from, state) do
+    jobs = JobQueue.jobs(state.redis, state.namespace, queue, options)
     {:reply, {:ok, jobs}, state}
   end
 
@@ -110,6 +110,11 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, job}, state}
   end
 
+  def handle_call({:find_failed, score, jid, options}, _from, state) do
+    {:ok, job} = JobStat.find_failed(state.redis, state.namespace, score, jid, options)
+    {:reply, {:ok, job}, state}
+  end
+
   def handle_call({:find_job, queue, jid}, _from, state) do
     response = JobQueue.find_job(state.redis, state.namespace, jid, queue)
     {:reply, response, state}
@@ -120,8 +125,18 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, job}, state}
   end
 
+  def handle_call({:find_scheduled, score, jid, options}, _from, state) do
+    {:ok, job} = JobStat.find_scheduled(state.redis, state.namespace, score, jid, options)
+    {:reply, {:ok, job}, state}
+  end
+
   def handle_call({:find_retry, jid}, _from, state) do
     {:ok, job} = JobQueue.find_job(state.redis, state.namespace, jid, :retry)
+    {:reply, {:ok, job}, state}
+  end
+
+  def handle_call({:find_retry, score, jid, options}, _from, state) do
+    {:ok, job} = JobStat.find_retry(state.redis, state.namespace, score, jid, options)
     {:reply, {:ok, job}, state}
   end
 
@@ -135,8 +150,18 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
+  def handle_call({:remove_enqueued_jobs, queue, raw_jobs}, _from, state) do
+    JobQueue.remove_enqueued_jobs(state.redis, state.namespace, queue, raw_jobs)
+    {:reply, :ok, state}
+  end
+
   def handle_call({:remove_retry, jid}, _from, state) do
     JobQueue.remove_retry(state.redis, state.namespace, jid)
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:remove_retry_jobs, raw_jobs}, _from, state) do
+    JobQueue.remove_retry_jobs(state.redis, state.namespace, raw_jobs)
     {:reply, :ok, state}
   end
 
@@ -145,8 +170,18 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
+  def handle_call({:remove_scheduled_jobs, raw_jobs}, _from, state) do
+    JobQueue.remove_scheduled_jobs(state.redis, state.namespace, raw_jobs)
+    {:reply, :ok, state}
+  end
+
   def handle_call({:remove_failed, jid}, _from, state) do
     JobStat.remove_failed(state.redis, state.namespace, jid)
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:remove_failed_jobs, raw_jobs}, _from, state) do
+    JobQueue.remove_failed_jobs(state.redis, state.namespace, raw_jobs)
     {:reply, :ok, state}
   end
 
