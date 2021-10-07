@@ -45,6 +45,13 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `args` - Array of args to send to worker
         * `options` - job options, for example [max_retries: `Integer`, jid: `String`]
 
+      If Exq is running in `mode: [:enqueuer]`, then you will need to use the Enqueuer
+      to schedule jobs, for example:
+
+      ```elixir
+      time = Timex.now() |> Timex.shift(days: 8)
+      Exq.Enqueuer.enqueue_at(Exq.Enqueuer, "default", time, MyWorker, ["foo"])
+      ```
       """
       def enqueue_at(pid, queue, time, worker, args),
         do: enqueue_at(pid, queue, time, worker, args, @default_options)
@@ -65,6 +72,12 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `args` - Array of args to send to worker
         * `options` - job options, for example [max_retries:  `Integer`]
 
+      If Exq is running in `mode: [:enqueuer]`, then you will need to use the Enqueuer
+      to schedule jobs, for example:
+
+      ```elixir
+      Exq.Enqueuer.enqueue_in(Exq.Enqueuer, "default", 5000, MyWorker, ["foo"])
+      ```
       """
       def enqueue_in(pid, queue, offset, worker, args),
         do: enqueue_in(pid, queue, offset, worker, args, @default_options)

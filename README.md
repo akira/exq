@@ -274,7 +274,6 @@ You can also enqueue jobs without starting workers:
 {:ok, sup} = Exq.Enqueuer.start_link([port: 6379])
 
 {:ok, ack} = Exq.Enqueuer.enqueue(Exq.Enqueuer, "default", MyWorker, [])
-
 ```
 
 You can also schedule jobs to start at a future time. You need to make sure scheduler_enable is set to true.
@@ -283,12 +282,19 @@ Schedule a job to start in 5 mins:
 
 ```elixir
 {:ok, ack} = Exq.enqueue_in(Exq, "default", 300, MyWorker, ["arg1", "arg2"])
+
+# If using `mode: [:enqueuer]`
+{:ok, ack} = Exq.Enqueuer.enqueue_in(Exq.Enqueuer, "default", 300, MyWorker, ["arg1", "arg2"])
 ```
+
 Schedule a job to start at 8am 2015-12-25 UTC:
 
 ```elixir
 time = Timex.now() |> Timex.shift(days: 8)
 {:ok, ack} = Exq.enqueue_at(Exq, "default", time, MyWorker, ["arg1", "arg2"])
+
+# If using `mode: [:enqueuer]`
+{:ok, ack} = Exq.Enqueuer.enqueue_at(Exq.Enqueuer, "default", time, MyWorker, ["arg1", "arg2"])
 ```
 
 ### Creating Workers
