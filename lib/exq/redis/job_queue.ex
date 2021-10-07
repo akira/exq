@@ -479,6 +479,8 @@ defmodule Exq.Redis.JobQueue do
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
     jid = Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end)
     retry = Keyword.get_lazy(options, :max_retries, fn -> get_max_retries() end)
+    queuing_timeout = Keyword.get(options, :queuing_timeout, :infinity)
+    execution_timeout = Keyword.get(options, :execution_timeout, :infinity)
 
     job = %{
       queue: queue,
@@ -486,7 +488,9 @@ defmodule Exq.Redis.JobQueue do
       class: worker,
       args: args,
       jid: jid,
-      enqueued_at: enqueued_at
+      enqueued_at: enqueued_at,
+      queuing_timeout: queuing_timeout,
+      execution_timeout: execution_timeout
     }
 
     {jid, Config.serializer().encode!(job)}

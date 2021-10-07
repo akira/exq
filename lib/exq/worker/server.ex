@@ -33,7 +33,8 @@ defmodule Exq.Worker.Server do
               middleware: nil,
               pipeline: nil,
               metadata: nil,
-              middleware_state: nil
+              middleware_state: nil,
+              job_pid: nil
   end
 
   def start_link(
@@ -108,13 +109,14 @@ defmodule Exq.Worker.Server do
   Dispatch work to the target module (call :perform method of target).
   """
   def handle_cast(:dispatch, state) do
-    dispatch_work(
-      state.pipeline.assigns.worker_module,
-      state.pipeline.assigns.job,
-      state.metadata
-    )
+    job_pid =
+      dispatch_work(
+        state.pipeline.assigns.worker_module,
+        state.pipeline.assigns.job,
+        state.metadata
+      )
 
-    {:noreply, state}
+    {:noreply, %{state | job_pid: job_pid}}
   end
 
   @doc """
@@ -160,6 +162,19 @@ defmodule Exq.Worker.Server do
     {:stop, :normal, state}
   end
 
+  @impl true
+  def handle_info(:execution_timeout, %{job_pid: job_pid, pipeline: pipeline} = state) do
+    # kill process
+    Process.exit(job_pid, :kill)
+
+    # update retry_count = max retry so this job will not be retried
+    job = state.pipeline.assigns.job
+    job = %{job | retry_count: job.retry}
+    pipeline = %{pipeline | assigns: Map.put(pipeline.assigns, :job, job)}
+
+    {:noreply, %{state | pipeline: pipeline}}
+  end
+
   def handle_info(_info, state) do
     {:noreply, state}
   end
@@ -180,7 +195,12 @@ defmodule Exq.Worker.Server do
         GenServer.cast(worker, {:done, result})
       end)
 
+    if job.execution_timeout != :infinity and job.execution_timeout > 0 do
+      Process.send_after(self(), :execution_timeout, job.execution_timeout * 1000)
+    end
+
     Process.monitor(pid)
+    pid
   end
 
   defp before_work(state) do
