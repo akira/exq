@@ -21,6 +21,7 @@ defmodule Exq.Worker.Server do
   alias Exq.Middleware.Server, as: Middleware
   alias Exq.Middleware.Pipeline
   alias Exq.Worker.Metadata
+  require Logger
 
   defmodule State do
     defstruct job_serialized: nil,
@@ -66,6 +67,7 @@ defmodule Exq.Worker.Server do
   ## GenServer callbacks
   ## ===========================================================
 
+  @impl true
   def init({job_serialized, manager, queue, stats, namespace, host, redis, middleware, metadata}) do
     {
       :ok,
@@ -164,11 +166,13 @@ defmodule Exq.Worker.Server do
 
   @impl true
   def handle_info(:execution_timeout, %{job_pid: job_pid, pipeline: pipeline} = state) do
+    job = state.pipeline.assigns.job
+
     # kill process
+    Logger.error("#{job.class}[#{job.jid}] Execution timeout after #{job.execution_timeout} s")
     Process.exit(job_pid, :kill)
 
     # update retry_count = max retry so this job will not be retried
-    job = state.pipeline.assigns.job
     job = %{job | retry_count: job.retry}
     pipeline = %{pipeline | assigns: Map.put(pipeline.assigns, :job, job)}
 

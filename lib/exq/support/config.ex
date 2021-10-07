@@ -30,6 +30,7 @@ defmodule Exq.Support.Config do
     backoff: Exq.Backoff.SidekiqDefault,
     start_on_application: true,
     middleware: [
+      Exq.Middleware.Timeout,
       Exq.Middleware.Stats,
       Exq.Middleware.Job,
       Exq.Middleware.Manager,
