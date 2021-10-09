@@ -1,6 +1,7 @@
 defmodule ExqTest do
   use ExUnit.Case
   alias Exq.Redis.JobQueue
+  alias Exq.Redis.JobStat
   import ExqTestUtil
 
   defmodule PerformWorker do
@@ -293,6 +294,9 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link(name: ExqP)
     state = :sys.get_state(ExqP)
 
+    host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
+    JobStat.node_ping(:testredis, "test", host, %{}, [], 1)
+
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.SleepWorker, [100, "finished"])
     wait_long()
 
@@ -321,6 +325,9 @@ defmodule ExqTest do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(name: ExqP)
     state = :sys.get_state(ExqP)
+    host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
+
+    JobStat.node_ping(:testredis, "test", host, %{}, [], 1)
 
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.SleepLastWorker, [1000, "started"])
     wait_long()
@@ -331,7 +338,6 @@ defmodule ExqTest do
     assert Enum.count(processes) == 1
 
     # Clear processes for this node
-    host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
     Exq.Stats.Server.cleanup_host_stats(ExqP.Stats, "test", host)
 
     # Check that process has been cleared

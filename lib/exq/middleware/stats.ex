@@ -24,6 +24,7 @@ defmodule Exq.Middleware.Stats do
       assigns.namespace,
       worker_pid,
       assigns.host,
+      assigns.queue,
       assigns.job_serialized
     )
   end

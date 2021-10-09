@@ -68,21 +68,21 @@ defmodule Exq.Serializers.JsonSerializer do
     %Exq.Support.Process{
       pid: Map.get(deserialized, "pid"),
       host: Map.get(deserialized, "host"),
-      job: Map.get(deserialized, "job"),
-      started_at: Map.get(deserialized, "started_at")
+      payload: Map.get(deserialized, "payload"),
+      run_at: Map.get(deserialized, "run_at"),
+      queue: Map.get(deserialized, "queue")
     }
   end
 
   def encode_process(process) do
-    formatted_pid = to_string(:io_lib.format("~p", [process.pid]))
-
     deserialized =
       Enum.into(
         [
-          pid: formatted_pid,
+          pid: process.pid,
           host: process.host,
-          job: process.job,
-          started_at: process.started_at
+          payload: process.payload,
+          run_at: process.run_at,
+          queue: process.queue
         ],
         Map.new()
       )

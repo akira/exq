@@ -30,6 +30,7 @@ defmodule Exq.Support.Mode do
       worker(Exq.Worker.Metadata, [opts]),
       worker(Exq.Middleware.Server, [opts]),
       worker(Exq.Stats.Server, [opts]),
+      worker(Exq.Node.Server, [opts]),
       supervisor(Exq.Worker.Supervisor, [opts]),
       worker(Exq.Manager.Server, [opts]),
       worker(Exq.WorkerDrainer.Server, [opts], shutdown: shutdown_timeout),

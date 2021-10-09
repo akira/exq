@@ -420,12 +420,16 @@ defmodule Exq.Manager.Server do
     try do
       {:ok, _} = Exq.Redis.Connection.q(opts[:redis], ~w(PING))
 
-      :ok =
-        Exq.Redis.Heartbeat.register(
-          opts[:redis],
-          opts[:namespace],
-          Config.node_identifier().node_id()
-        )
+      if Keyword.get(opts, :heartbeat_enable, false) do
+        :ok =
+          Exq.Redis.Heartbeat.register(
+            opts[:redis],
+            opts[:namespace],
+            Config.node_identifier().node_id()
+          )
+      else
+        :ok
+      end
     catch
       err, reason ->
         opts = Exq.Support.Opts.redis_inspect_opts(opts)

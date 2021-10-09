@@ -34,4 +34,9 @@ defmodule Exq.Worker.Supervisor do
   def workers(sup) do
     DynamicSupervisor.which_children(sup)
   end
+
+  def workers_count(sup) do
+    DynamicSupervisor.count_children(sup)
+    |> Map.get(:active)
+  end
 end

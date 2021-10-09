@@ -29,7 +29,13 @@ defmodule JobStatTest do
   end
 
   def create_process_info(host) do
-    process_info = %Process{pid: self(), host: host, job: %Job{}, started_at: Time.unix_seconds()}
+    process_info = %Process{
+      pid: inspect(self()),
+      host: host,
+      payload: %Job{},
+      run_at: Time.unix_seconds()
+    }
+
     serialized = Exq.Support.Process.encode(process_info)
     {process_info, serialized}
   end
@@ -105,16 +111,20 @@ defmodule JobStatTest do
 
   test "add and remove process" do
     namespace = "test"
+    JobStat.node_ping(:testredis, namespace, "host123", %{}, [], 1)
     {process_info, serialized} = create_process_info("host123")
     JobStat.add_process(:testredis, namespace, process_info, serialized)
     assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 1
 
-    JobStat.remove_process(:testredis, namespace, process_info, serialized)
+    JobStat.remove_process(:testredis, namespace, process_info)
     assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 0
   end
 
   test "remove processes on boot" do
     namespace = "test"
+
+    JobStat.node_ping(:testredis, "test", "host123", %{}, [], 1)
+    JobStat.node_ping(:testredis, "test", "host456", %{}, [], 1)
 
     # add processes for multiple hosts
     {local_process, serialized1} = create_process_info("host123")

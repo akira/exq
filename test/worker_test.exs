@@ -87,7 +87,7 @@ defmodule WorkerTest do
       {:noreply, state}
     end
 
-    def handle_cast({:process_terminated, _, _, _}, state) do
+    def handle_cast({:process_terminated, _, _}, state) do
       send(:workertest, :process_terminated)
       {:noreply, state}
     end

@@ -247,6 +247,7 @@ defmodule Exq.ConfigTest do
       metadata: metadata,
       stats: stats,
       name: name,
+      manager: manager,
       scheduler: scheduler,
       queues: queues,
       redis: redis,
@@ -269,6 +270,7 @@ defmodule Exq.ConfigTest do
     assert enqueuer == Exq.Enqueuer
     assert stats == Exq.Stats
     assert name == nil
+    assert manager == Exq
     assert scheduler == Exq.Scheduler
     assert metadata == Exq.Worker.Metadata
     assert queues == ["default"]

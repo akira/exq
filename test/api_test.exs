@@ -44,7 +44,7 @@ defmodule ApiTest do
 
   test "busy processes when processing" do
     Exq.enqueue(Exq, 'custom', Bogus, [])
-    JobStat.add_process(:testredis, "test", %Process{pid: self()})
+    JobStat.node_ping(:testredis, "test", "host1", %{}, [], 1)
     assert {:ok, 1} = Exq.Api.busy(Exq.Api)
   end
 
@@ -74,9 +74,11 @@ defmodule ApiTest do
   end
 
   test "processes with data" do
-    JobStat.add_process(:testredis, "test", %Process{pid: self()})
+    JobStat.node_ping(:testredis, "test", "host1", %{}, [], 1)
+
+    JobStat.add_process(:testredis, "test", %Process{host: "host1", pid: inspect(self())})
     assert {:ok, [processes]} = Exq.Api.processes(Exq.Api)
-    my_pid_str = to_string(:erlang.pid_to_list(self()))
+    my_pid_str = inspect(self())
     assert %Process{pid: ^my_pid_str} = processes
   end
 
