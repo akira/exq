@@ -83,7 +83,7 @@ defmodule Exq.Node.Server do
     %Node{
       hostname: to_string(hostname),
       started_at: Time.unix_seconds(),
-      pid: System.pid(),
+      pid: List.to_string(:os.getpid()),
       identity: node_id
     }
   end
