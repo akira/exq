@@ -4,9 +4,10 @@ defmodule Exq.Node.Server do
   alias Exq.Support.Config
   alias Exq.Support.Time
   alias Exq.Redis.JobStat
+  alias Exq.Support.Node
 
   defmodule State do
-    defstruct [:info, :interval, :namespace, :redis, :node_id, :manager, :workers_sup]
+    defstruct [:node, :interval, :namespace, :redis, :node_id, :manager, :workers_sup]
   end
 
   def start_link(options) do
@@ -18,7 +19,7 @@ defmodule Exq.Node.Server do
         manager: Keyword.fetch!(options, :manager),
         workers_sup: Keyword.fetch!(options, :workers_sup),
         node_id: node_id,
-        info: node_info(node_id),
+        node: build_node(node_id),
         namespace: Keyword.fetch!(options, :namespace),
         redis: Keyword.fetch!(options, :redis),
         interval: 5000
@@ -35,20 +36,19 @@ defmodule Exq.Node.Server do
   def handle_info(
         :ping,
         %{
-          info: info,
+          node: node,
           namespace: namespace,
-          node_id: node_id,
           redis: redis,
           manager: manager,
           workers_sup: workers_sup
         } = state
       ) do
     {:ok, queues} = Exq.subscriptions(manager)
-    info = %{info | queues: queues}
     busy = Exq.Worker.Supervisor.workers_count(workers_sup)
+    node = %{node | queues: queues, busy: busy, quiet: Enum.empty?(queues)}
 
     :ok =
-      JobStat.node_ping(redis, namespace, node_id, info, queues, busy)
+      JobStat.node_ping(redis, namespace, node)
       |> process_signal(state)
 
     :ok = schedule_ping(state.interval)
@@ -77,17 +77,13 @@ defmodule Exq.Node.Server do
     :ok
   end
 
-  defp node_info(node_id) do
+  defp build_node(node_id) do
     {:ok, hostname} = :inet.gethostname()
 
-    %{
+    %Node{
       hostname: to_string(hostname),
       started_at: Time.unix_seconds(),
       pid: System.pid(),
-      tag: "",
-      concurrency: 0,
-      queues: [],
-      labels: [],
       identity: node_id
     }
   end

@@ -35,6 +35,11 @@ defmodule Exq.Api.Server do
     {:reply, {:ok, count}, state}
   end
 
+  def handle_call(:nodes, _from, state) do
+    nodes = JobStat.nodes(state.redis, state.namespace)
+    {:reply, {:ok, nodes}, state}
+  end
+
   def handle_call({:stats, key}, _from, state) do
     count = JobStat.get_count(state.redis, state.namespace, key)
     {:reply, {:ok, count}, state}

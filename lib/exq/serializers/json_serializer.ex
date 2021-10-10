@@ -68,7 +68,9 @@ defmodule Exq.Serializers.JsonSerializer do
     %Exq.Support.Process{
       pid: Map.get(deserialized, "pid"),
       host: Map.get(deserialized, "host"),
-      payload: Map.get(deserialized, "payload"),
+      payload:
+        Map.get(deserialized, "payload")
+        |> Exq.Support.Job.decode(),
       run_at: Map.get(deserialized, "run_at"),
       queue: Map.get(deserialized, "queue")
     }
@@ -88,5 +90,26 @@ defmodule Exq.Serializers.JsonSerializer do
       )
 
     encode!(deserialized)
+  end
+
+  def encode_node(node) do
+    encode!(Map.from_struct(node))
+  end
+
+  def decode_node(serialized) do
+    deserialized = decode!(serialized)
+
+    %Exq.Support.Node{
+      hostname: Map.get(deserialized, "hostname"),
+      identity: Map.get(deserialized, "identity"),
+      started_at: Map.get(deserialized, "started_at"),
+      pid: Map.get(deserialized, "pid"),
+      queues: Map.get(deserialized, "queues"),
+      labels: Map.get(deserialized, "labels"),
+      tag: Map.get(deserialized, "tag"),
+      busy: Map.get(deserialized, "busy"),
+      quiet: Map.get(deserialized, "quiet"),
+      concurrency: Map.get(deserialized, "concurrency")
+    }
   end
 end

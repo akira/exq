@@ -5,7 +5,7 @@ defmodule Exq.Redis.JobStat do
   """
 
   require Logger
-  alias Exq.Support.{Binary, Process, Job, Time}
+  alias Exq.Support.{Binary, Process, Job, Time, Node}
   alias Exq.Redis.{Connection, JobQueue}
 
   def record_processed_commands(namespace, _job, current_date \\ DateTime.utc_now()) do
@@ -68,25 +68,25 @@ defmodule Exq.Redis.JobStat do
     :ok
   end
 
-  def node_ping(redis, namespace, node_id, info, queues, busy) do
-    key = node_info_key(namespace, node_id)
+  def node_ping(redis, namespace, node) do
+    key = node_info_key(namespace, node.identity)
 
     case Connection.qp(
            redis,
            [
              ["MULTI"],
-             ["SADD", nodes_key(namespace), node_id],
+             ["SADD", nodes_key(namespace), node.identity],
              [
                "HMSET",
                key,
                "info",
-               Exq.Serializers.JsonSerializer.encode!(info),
+               Node.encode(node),
                "busy",
-               busy,
+               node.busy,
                "beat",
                Time.unix_seconds(),
                "quiet",
-               Enum.empty?(queues)
+               node.quiet
              ],
              ["EXPIRE", key, 60],
              ["RPOP", "#{key}-signals"],
@@ -103,13 +103,32 @@ defmodule Exq.Redis.JobStat do
     end
   end
 
-  def nodes(redis, namespace) do
+  def node_ids(redis, namespace) do
     Connection.smembers!(redis, nodes_key(namespace))
+  end
+
+  def nodes(redis, namespace) do
+    commands =
+      node_ids(redis, namespace)
+      |> Enum.map(fn node_id -> ["HGET", node_info_key(namespace, node_id), "info"] end)
+
+    if Enum.empty?(commands) do
+      []
+    else
+      Connection.qp!(redis, commands)
+      |> Enum.flat_map(fn result ->
+        if result && result != "" do
+          [Node.decode(result)]
+        else
+          []
+        end
+      end)
+    end
   end
 
   def busy(redis, namespace) do
     commands =
-      nodes(redis, namespace)
+      node_ids(redis, namespace)
       |> Enum.map(fn node_id -> ["HGET", node_info_key(namespace, node_id), "busy"] end)
 
     if Enum.empty?(commands) do
@@ -122,7 +141,7 @@ defmodule Exq.Redis.JobStat do
 
   def processes(redis, namespace) do
     commands =
-      nodes(redis, namespace)
+      node_ids(redis, namespace)
       |> Enum.map(fn node_id -> ["HVALS", workers_key(namespace, node_id)] end)
 
     if Enum.empty?(commands) do
@@ -177,7 +196,7 @@ defmodule Exq.Redis.JobStat do
 
   def clear_processes(redis, namespace) do
     commands =
-      nodes(redis, namespace)
+      node_ids(redis, namespace)
       |> Enum.map(fn node_id -> ["DEL", workers_key(namespace, node_id)] end)
 
     if Enum.empty?(commands) do

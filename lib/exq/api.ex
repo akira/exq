@@ -53,6 +53,14 @@ defmodule Exq.Api do
   end
 
   @doc """
+  List of worker nodes currently running
+  """
+
+  def nodes(pid) do
+    GenServer.call(pid, :nodes)
+  end
+
+  @doc """
   List of processes currently running
 
   Expected args:

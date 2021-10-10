@@ -2,6 +2,7 @@ defmodule ExqTest do
   use ExUnit.Case
   alias Exq.Redis.JobQueue
   alias Exq.Redis.JobStat
+  alias Exq.Support.Node
   import ExqTestUtil
 
   defmodule PerformWorker do
@@ -295,7 +296,7 @@ defmodule ExqTest do
     state = :sys.get_state(ExqP)
 
     host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
-    JobStat.node_ping(:testredis, "test", host, %{}, [], 1)
+    JobStat.node_ping(:testredis, "test", %Node{identity: host, busy: 1})
 
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.SleepWorker, [100, "finished"])
     wait_long()
@@ -327,7 +328,7 @@ defmodule ExqTest do
     state = :sys.get_state(ExqP)
     host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
 
-    JobStat.node_ping(:testredis, "test", host, %{}, [], 1)
+    JobStat.node_ping(:testredis, "test", %Node{identity: host, busy: 1})
 
     {:ok, _} = Exq.enqueue(ExqP, "default", ExqTest.SleepLastWorker, [1000, "started"])
     wait_long()

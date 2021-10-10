@@ -7,6 +7,7 @@ defmodule JobStatTest do
   alias Exq.Support.Process
   alias Exq.Support.Job
   alias Exq.Support.Time
+  alias Exq.Support.Node
 
   defmodule EmptyMethodWorker do
     def perform do
@@ -111,7 +112,7 @@ defmodule JobStatTest do
 
   test "add and remove process" do
     namespace = "test"
-    JobStat.node_ping(:testredis, namespace, "host123", %{}, [], 1)
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host123", busy: 1})
     {process_info, serialized} = create_process_info("host123")
     JobStat.add_process(:testredis, namespace, process_info, serialized)
     assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 1
@@ -123,8 +124,8 @@ defmodule JobStatTest do
   test "remove processes on boot" do
     namespace = "test"
 
-    JobStat.node_ping(:testredis, "test", "host123", %{}, [], 1)
-    JobStat.node_ping(:testredis, "test", "host456", %{}, [], 1)
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host123", busy: 1})
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host456", busy: 1})
 
     # add processes for multiple hosts
     {local_process, serialized1} = create_process_info("host123")
