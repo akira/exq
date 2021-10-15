@@ -126,6 +126,33 @@ defmodule Exq.Redis.JobStat do
     end
   end
 
+  def prune_dead_nodes(redis, namespace) do
+    node_ids = node_ids(redis, namespace)
+
+    commands =
+      node_ids
+      |> Enum.map(fn node_id -> ["HEXISTS", node_info_key(namespace, node_id), "info"] end)
+
+    if Enum.empty?(commands) do
+      []
+    else
+      dead_node_ids =
+        Connection.qp!(redis, commands)
+        |> Enum.zip(node_ids)
+        |> Enum.flat_map(fn {exists, node_id} ->
+          if exists == 0 do
+            [node_id]
+          else
+            []
+          end
+        end)
+
+      if !Enum.empty?(dead_node_ids) do
+        Connection.q(redis, ["SREM", nodes_key(namespace)] ++ dead_node_ids)
+      end
+    end
+  end
+
   def busy(redis, namespace) do
     commands =
       node_ids(redis, namespace)

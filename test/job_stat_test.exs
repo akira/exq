@@ -101,6 +101,18 @@ defmodule JobStatTest do
     assert Connection.get!(:testredis, "test:stat:failed") == "0"
   end
 
+  test "prune dead nodes" do
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host123", busy: 1})
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host456", busy: 1})
+
+    JobStat.prune_dead_nodes(:testredis, "test")
+    assert ["host123", "host456"] == JobStat.node_ids(:testredis, "test") |> Enum.sort()
+    Connection.del!(:testredis, "test:host456")
+    assert ["host123", "host456"] == JobStat.node_ids(:testredis, "test") |> Enum.sort()
+    JobStat.prune_dead_nodes(:testredis, "test")
+    assert ["host123"] == JobStat.node_ids(:testredis, "test")
+  end
+
   test "clear failed" do
     Enum.each([1, 2, 3], fn _ -> enqueue_and_fail_job(:testredis) end)
     assert dead_jobs_count(:testredis) == 3

@@ -7,7 +7,16 @@ defmodule Exq.Node.Server do
   alias Exq.Support.Node
 
   defmodule State do
-    defstruct [:node, :interval, :namespace, :redis, :node_id, :manager, :workers_sup]
+    defstruct [
+      :node,
+      :interval,
+      :namespace,
+      :redis,
+      :node_id,
+      :manager,
+      :workers_sup,
+      ping_count: 0
+    ]
   end
 
   def start_link(options) do
@@ -51,8 +60,12 @@ defmodule Exq.Node.Server do
       JobStat.node_ping(redis, namespace, node)
       |> process_signal(state)
 
+    if Integer.mod(state.ping_count, 10) == 0 do
+      JobStat.prune_dead_nodes(redis, namespace)
+    end
+
     :ok = schedule_ping(state.interval)
-    {:noreply, state}
+    {:noreply, %{state | ping_count: state.ping_count + 1}}
   end
 
   def handle_info(msg, state) do
