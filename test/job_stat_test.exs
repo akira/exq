@@ -102,15 +102,21 @@ defmodule JobStatTest do
   end
 
   test "prune dead nodes" do
-    JobStat.node_ping(:testredis, "test", %Node{identity: "host123", busy: 1})
-    JobStat.node_ping(:testredis, "test", %Node{identity: "host456", busy: 1})
+    namespace = "test"
+    JobStat.node_ping(:testredis, namespace, %Node{identity: "host123", busy: 1})
+    JobStat.node_ping(:testredis, namespace, %Node{identity: "host456", busy: 1})
 
-    JobStat.prune_dead_nodes(:testredis, "test")
-    assert ["host123", "host456"] == JobStat.node_ids(:testredis, "test") |> Enum.sort()
+    {process_info, serialized} = create_process_info("host456")
+    JobStat.add_process(:testredis, namespace, process_info, serialized)
+    assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 1
+
+    JobStat.prune_dead_nodes(:testredis, namespace)
+    assert ["host123", "host456"] == JobStat.node_ids(:testredis, namespace) |> Enum.sort()
     Connection.del!(:testredis, "test:host456")
-    assert ["host123", "host456"] == JobStat.node_ids(:testredis, "test") |> Enum.sort()
-    JobStat.prune_dead_nodes(:testredis, "test")
-    assert ["host123"] == JobStat.node_ids(:testredis, "test")
+    assert ["host123", "host456"] == JobStat.node_ids(:testredis, namespace) |> Enum.sort()
+    JobStat.prune_dead_nodes(:testredis, namespace)
+    assert ["host123"] == JobStat.node_ids(:testredis, namespace)
+    assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 0
   end
 
   test "clear failed" do

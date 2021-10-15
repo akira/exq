@@ -148,7 +148,12 @@ defmodule Exq.Redis.JobStat do
         end)
 
       if !Enum.empty?(dead_node_ids) do
-        Connection.q(redis, ["SREM", nodes_key(namespace)] ++ dead_node_ids)
+        commands = [
+          ["SREM", nodes_key(namespace)] ++ dead_node_ids,
+          ["DEL"] ++ Enum.map(node_ids, &workers_key(namespace, &1))
+        ]
+
+        Connection.qp(redis, commands)
       end
     end
   end
