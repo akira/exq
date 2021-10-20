@@ -9,6 +9,14 @@ defmodule Exq do
   # Mixin Enqueue API
   use Exq.Enqueuer.EnqueueApi
 
+  def child_spec(exq_options \\ []) do
+    %{
+      id: __MODULE__,
+      type: :supervisor,
+      start: {__MODULE__, :start_link, [exq_options]}
+    }
+  end
+
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
