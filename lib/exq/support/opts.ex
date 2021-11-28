@@ -119,6 +119,7 @@ defmodule Exq.Support.Opts do
     shutdown_timeout =
       Coercion.to_integer(opts[:shutdown_timeout] || Config.get(:shutdown_timeout))
 
+    manager = Exq.Manager.Server.server_name(opts[:name])
     enqueuer = Exq.Enqueuer.Server.server_name(opts[:name])
     stats = Exq.Stats.Server.server_name(opts[:name])
     scheduler = Exq.Scheduler.Server.server_name(opts[:name])
@@ -153,6 +154,7 @@ defmodule Exq.Support.Opts do
       metadata: metadata,
       stats: stats,
       name: opts[:name],
+      manager: manager,
       scheduler: scheduler,
       queues: queues,
       redis: opts[:redis],

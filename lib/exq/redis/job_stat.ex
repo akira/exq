@@ -5,7 +5,7 @@ defmodule Exq.Redis.JobStat do
   """
 
   require Logger
-  alias Exq.Support.{Binary, Process, Job, Time}
+  alias Exq.Support.{Binary, Process, Job, Time, Node}
   alias Exq.Redis.{Connection, JobQueue}
 
   def record_processed_commands(namespace, _job, current_date \\ DateTime.utc_now()) do
@@ -44,7 +44,7 @@ defmodule Exq.Redis.JobStat do
 
   def add_process_commands(namespace, process_info, serialized_process \\ nil) do
     serialized = serialized_process || Exq.Support.Process.encode(process_info)
-    [["SADD", JobQueue.full_key(namespace, "processes"), serialized]]
+    [["HSET", workers_key(namespace, process_info.host), process_info.pid, serialized]]
   end
 
   def add_process(redis, namespace, process_info, serialized_process \\ nil) do
@@ -53,35 +53,136 @@ defmodule Exq.Redis.JobStat do
     :ok
   end
 
-  def remove_process_commands(namespace, process_info, serialized_process \\ nil) do
-    serialized = serialized_process || Exq.Support.Process.encode(process_info)
-    [["SREM", JobQueue.full_key(namespace, "processes"), serialized]]
+  def remove_process_commands(namespace, process_info) do
+    [["HDEL", workers_key(namespace, process_info.host), process_info.pid]]
   end
 
-  def remove_process(redis, namespace, process_info, serialized_process \\ nil) do
-    instr = remove_process_commands(namespace, process_info, serialized_process)
+  def remove_process(redis, namespace, process_info) do
+    instr = remove_process_commands(namespace, process_info)
     Connection.qp!(redis, instr)
     :ok
   end
 
   def cleanup_processes(redis, namespace, host) do
-    Connection.smembers!(redis, JobQueue.full_key(namespace, "processes"))
-    |> Enum.map(fn serialized -> {Process.decode(serialized), serialized} end)
-    |> Enum.filter(fn {process, _} -> process.host == host end)
-    |> Enum.each(fn {process, serialized} ->
-      remove_process(redis, namespace, process, serialized)
-    end)
-
+    Connection.del!(redis, workers_key(namespace, host))
     :ok
   end
 
+  def node_ping(redis, namespace, node) do
+    key = node_info_key(namespace, node.identity)
+
+    case Connection.qp(
+           redis,
+           [
+             ["MULTI"],
+             ["SADD", nodes_key(namespace), node.identity],
+             [
+               "HMSET",
+               key,
+               "info",
+               Node.encode(node),
+               "busy",
+               node.busy,
+               "beat",
+               Time.unix_seconds(),
+               "quiet",
+               node.quiet
+             ],
+             ["EXPIRE", key, 60],
+             ["RPOP", "#{key}-signals"],
+             ["EXEC"]
+           ]
+         ) do
+      {:ok, ["OK", "QUEUED", "QUEUED", "QUEUED", "QUEUED", [_, "OK", 1, signal]]} ->
+        signal
+
+      error ->
+        Logger.error("Failed to send node stats. Unexpected error from redis: #{inspect(error)}")
+
+        nil
+    end
+  end
+
+  def node_ids(redis, namespace) do
+    Connection.smembers!(redis, nodes_key(namespace))
+  end
+
+  def nodes(redis, namespace) do
+    commands =
+      node_ids(redis, namespace)
+      |> Enum.map(fn node_id -> ["HGET", node_info_key(namespace, node_id), "info"] end)
+
+    if Enum.empty?(commands) do
+      []
+    else
+      Connection.qp!(redis, commands)
+      |> Enum.flat_map(fn result ->
+        if result && result != "" do
+          [Node.decode(result)]
+        else
+          []
+        end
+      end)
+    end
+  end
+
+  def prune_dead_nodes(redis, namespace) do
+    node_ids = node_ids(redis, namespace)
+
+    commands =
+      node_ids
+      |> Enum.map(fn node_id -> ["HEXISTS", node_info_key(namespace, node_id), "info"] end)
+
+    if Enum.empty?(commands) do
+      []
+    else
+      dead_node_ids =
+        Connection.qp!(redis, commands)
+        |> Enum.zip(node_ids)
+        |> Enum.flat_map(fn {exists, node_id} ->
+          if exists == 0 do
+            [node_id]
+          else
+            []
+          end
+        end)
+
+      if !Enum.empty?(dead_node_ids) do
+        commands = [
+          ["SREM", nodes_key(namespace)] ++ dead_node_ids,
+          ["DEL"] ++ Enum.map(node_ids, &workers_key(namespace, &1))
+        ]
+
+        Connection.qp(redis, commands)
+      end
+    end
+  end
+
   def busy(redis, namespace) do
-    Connection.scard!(redis, JobQueue.full_key(namespace, "processes"))
+    commands =
+      node_ids(redis, namespace)
+      |> Enum.map(fn node_id -> ["HGET", node_info_key(namespace, node_id), "busy"] end)
+
+    if Enum.empty?(commands) do
+      0
+    else
+      Connection.qp!(redis, commands)
+      |> Enum.reduce(0, fn count, sum -> sum + decode_integer(count) end)
+    end
   end
 
   def processes(redis, namespace) do
-    list = Connection.smembers!(redis, JobQueue.full_key(namespace, "processes")) || []
-    Enum.map(list, &Process.decode/1)
+    commands =
+      node_ids(redis, namespace)
+      |> Enum.map(fn node_id -> ["HVALS", workers_key(namespace, node_id)] end)
+
+    if Enum.empty?(commands) do
+      []
+    else
+      Connection.qp!(redis, commands)
+      |> List.flatten()
+      |> Enum.map(&Process.decode/1)
+    end
   end
 
   def find_failed(redis, namespace, jid) do
@@ -126,7 +227,15 @@ defmodule Exq.Redis.JobStat do
   end
 
   def clear_processes(redis, namespace) do
-    Connection.del!(redis, JobQueue.full_key(namespace, "processes"))
+    commands =
+      node_ids(redis, namespace)
+      |> Enum.map(fn node_id -> ["DEL", workers_key(namespace, node_id)] end)
+
+    if Enum.empty?(commands) do
+      0
+    else
+      Connection.qp!(redis, commands)
+    end
   end
 
   def realtime_stats(redis, namespace) do
@@ -198,5 +307,17 @@ defmodule Exq.Redis.JobStat do
     redis
     |> Connection.zrangebyscore!(zset, score, score)
     |> JobQueue.search_jobs(jid, !Keyword.get(options, :raw, false))
+  end
+
+  defp workers_key(namespace, node_id) do
+    JobQueue.full_key(namespace, "#{node_id}:workers")
+  end
+
+  defp nodes_key(namespace) do
+    "#{namespace}:processes"
+  end
+
+  defp node_info_key(namespace, node_id) do
+    "#{namespace}:#{node_id}"
   end
 end

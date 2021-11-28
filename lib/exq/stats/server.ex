@@ -24,12 +24,13 @@ defmodule Exq.Stats.Server do
   @doc """
   Add in progress worker process
   """
-  def add_process(stats, namespace, worker, host, job_serialized) do
+  def add_process(stats, namespace, worker, host, queue, job_serialized) do
     process_info = %Process{
-      pid: worker,
+      pid: inspect(worker),
       host: host,
-      job: Exq.Support.Config.serializer().decode_job(job_serialized),
-      started_at: Time.unix_seconds()
+      queue: queue,
+      payload: Exq.Support.Config.serializer().decode_job(job_serialized),
+      run_at: Time.unix_seconds()
     }
 
     serialized = Exq.Support.Process.encode(process_info)
@@ -41,8 +42,7 @@ defmodule Exq.Stats.Server do
   Remove in progress worker process
   """
   def process_terminated(stats, namespace, process_info) do
-    serialized = Exq.Support.Process.encode(process_info)
-    GenServer.cast(stats, {:process_terminated, namespace, process_info, serialized})
+    GenServer.cast(stats, {:process_terminated, namespace, process_info})
     :ok
   end
 
@@ -163,7 +163,7 @@ defmodule Exq.Stats.Server do
     JobStat.record_failure_commands(namespace, error, job)
   end
 
-  def generate_instructions({:process_terminated, namespace, process, serialized}) do
-    JobStat.remove_process_commands(namespace, process, serialized)
+  def generate_instructions({:process_terminated, namespace, process}) do
+    JobStat.remove_process_commands(namespace, process)
   end
 end

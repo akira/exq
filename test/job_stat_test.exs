@@ -7,6 +7,7 @@ defmodule JobStatTest do
   alias Exq.Support.Process
   alias Exq.Support.Job
   alias Exq.Support.Time
+  alias Exq.Support.Node
 
   defmodule EmptyMethodWorker do
     def perform do
@@ -29,7 +30,13 @@ defmodule JobStatTest do
   end
 
   def create_process_info(host) do
-    process_info = %Process{pid: self(), host: host, job: %Job{}, started_at: Time.unix_seconds()}
+    process_info = %Process{
+      pid: inspect(self()),
+      host: host,
+      payload: %Job{},
+      run_at: Time.unix_seconds()
+    }
+
     serialized = Exq.Support.Process.encode(process_info)
     {process_info, serialized}
   end
@@ -94,6 +101,24 @@ defmodule JobStatTest do
     assert Connection.get!(:testredis, "test:stat:failed") == "0"
   end
 
+  test "prune dead nodes" do
+    namespace = "test"
+    JobStat.node_ping(:testredis, namespace, %Node{identity: "host123", busy: 1})
+    JobStat.node_ping(:testredis, namespace, %Node{identity: "host456", busy: 1})
+
+    {process_info, serialized} = create_process_info("host456")
+    JobStat.add_process(:testredis, namespace, process_info, serialized)
+    assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 1
+
+    JobStat.prune_dead_nodes(:testredis, namespace)
+    assert ["host123", "host456"] == JobStat.node_ids(:testredis, namespace) |> Enum.sort()
+    Connection.del!(:testredis, "test:host456")
+    assert ["host123", "host456"] == JobStat.node_ids(:testredis, namespace) |> Enum.sort()
+    JobStat.prune_dead_nodes(:testredis, namespace)
+    assert ["host123"] == JobStat.node_ids(:testredis, namespace)
+    assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 0
+  end
+
   test "clear failed" do
     Enum.each([1, 2, 3], fn _ -> enqueue_and_fail_job(:testredis) end)
     assert dead_jobs_count(:testredis) == 3
@@ -105,16 +130,20 @@ defmodule JobStatTest do
 
   test "add and remove process" do
     namespace = "test"
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host123", busy: 1})
     {process_info, serialized} = create_process_info("host123")
     JobStat.add_process(:testredis, namespace, process_info, serialized)
     assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 1
 
-    JobStat.remove_process(:testredis, namespace, process_info, serialized)
+    JobStat.remove_process(:testredis, namespace, process_info)
     assert Enum.count(Exq.Redis.JobStat.processes(:testredis, namespace)) == 0
   end
 
   test "remove processes on boot" do
     namespace = "test"
+
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host123", busy: 1})
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host456", busy: 1})
 
     # add processes for multiple hosts
     {local_process, serialized1} = create_process_info("host123")

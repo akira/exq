@@ -5,6 +5,7 @@ defmodule ApiTest do
   alias Exq.Redis.JobQueue
   alias Exq.Support.Process
   alias Exq.Support.Job
+  alias Exq.Support.Node
 
   setup do
     TestRedis.setup()
@@ -38,13 +39,24 @@ defmodule ApiTest do
     assert {:ok, []} = Exq.Api.queues(Exq.Api)
   end
 
+  test "empty node list" do
+    assert {:ok, []} = Exq.Api.nodes(Exq.Api)
+  end
+
+  test "nodes when present" do
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host2", busy: 1})
+    {:ok, nodes} = Exq.Api.nodes(Exq.Api)
+    assert ["host1", "host2"] == Enum.map(nodes, & &1.identity) |> Enum.sort()
+  end
+
   test "busy processes when empty" do
     assert {:ok, 0} = Exq.Api.busy(Exq.Api)
   end
 
   test "busy processes when processing" do
     Exq.enqueue(Exq, 'custom', Bogus, [])
-    JobStat.add_process(:testredis, "test", %Process{pid: self()})
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
     assert {:ok, 1} = Exq.Api.busy(Exq.Api)
   end
 
@@ -74,9 +86,16 @@ defmodule ApiTest do
   end
 
   test "processes with data" do
-    JobStat.add_process(:testredis, "test", %Process{pid: self()})
+    JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
+
+    JobStat.add_process(:testredis, "test", %Process{
+      host: "host1",
+      pid: inspect(self()),
+      payload: %Job{}
+    })
+
     assert {:ok, [processes]} = Exq.Api.processes(Exq.Api)
-    my_pid_str = to_string(:erlang.pid_to_list(self()))
+    my_pid_str = inspect(self())
     assert %Process{pid: ^my_pid_str} = processes
   end
 

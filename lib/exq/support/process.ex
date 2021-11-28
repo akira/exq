@@ -2,7 +2,7 @@ defmodule Exq.Support.Process do
   @moduledoc """
   Struct for in progress worker.
   """
-  defstruct pid: nil, host: nil, job: nil, started_at: nil
+  defstruct pid: nil, host: nil, payload: nil, run_at: nil, queue: nil
 
   alias Exq.Support.Config
 
@@ -13,8 +13,9 @@ defmodule Exq.Support.Process do
     Config.serializer().encode_process(%{
       pid: process.pid,
       host: process.host,
-      job: Exq.Support.Job.encode(process.job),
-      started_at: process.started_at
+      payload: Exq.Support.Job.encode(process.payload),
+      run_at: process.run_at,
+      queue: process.queue
     })
   end
 
