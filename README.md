@@ -198,14 +198,15 @@ config :exq,
 ```
 
 ```elixir
-# Define workers and child supervisors to be supervised
-children = [
-  # Start the Ecto repository
-  supervisor(MyApp.Repo, []),
-  # Start the endpoint when the application starts
-  supervisor(MyApp.Endpoint, []),
-  supervisor(Exq, []),
-]
+def start(_type, _args) do
+  children = [
+    # Start the Ecto repository
+    MyApp.Repo,
+    # Start the endpoint when the application starts
+    MyApp.Endpoint,
+    # Start the EXQ supervisor
+    Exq,
+  ]
 ```
 
 ### Sentinel
