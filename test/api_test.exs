@@ -283,6 +283,14 @@ defmodule ApiTest do
     assert {:ok, nil} = Exq.Api.find_scheduled(Exq.Api, jid)
   end
 
+  test "enqueue jobs in scheduled queue" do
+    {:ok, jid} = Exq.enqueue_in(Exq, "custom", 1000, Bogus, [])
+    {:ok, [raw_job]} = Exq.Api.scheduled(Exq.Api, raw: true)
+    {:ok, 1} = Exq.Api.dequeue_scheduled_jobs(Exq.Api, [raw_job])
+    assert {:ok, nil} = Exq.Api.find_scheduled(Exq.Api, jid)
+    {:ok, 0} = Exq.Api.dequeue_scheduled_jobs(Exq.Api, [raw_job])
+  end
+
   test "remove job in failed queue" do
     JobQueue.fail_job(:testredis, 'test', %Job{jid: "1234"}, "this is an error")
     Exq.Api.remove_failed(Exq.Api, "1234")

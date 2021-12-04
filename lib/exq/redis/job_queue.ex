@@ -415,6 +415,10 @@ defmodule Exq.Redis.JobQueue do
     Connection.zrem!(redis, failed_queue_key(namespace), raw_jobs)
   end
 
+  def dequeue_scheduled_jobs(redis, namespace, raw_jobs) do
+    dequeue_scheduled_jobs(redis, namespace, scheduled_queue_key(namespace), raw_jobs)
+  end
+
   def list_queues(redis, namespace) do
     Connection.smembers!(redis, full_key(namespace, "queues"))
   end
