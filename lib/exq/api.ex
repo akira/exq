@@ -376,6 +376,21 @@ defmodule Exq.Api do
   end
 
   @doc """
+  Re enqueue jobs from retry queue immediatly.
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `raw_job` - raw json encoded job value
+
+  Returns:
+    * `{:ok, num_enqueued}`
+
+  """
+  def dequeue_retry_jobs(pid, raw_jobs) do
+    GenServer.call(pid, {:dequeue_retry_jobs, raw_jobs})
+  end
+
+  @doc """
   Number of jobs in the retry queue.
 
   Expected args:
@@ -445,6 +460,21 @@ defmodule Exq.Api do
 
   def clear_scheduled(pid) do
     GenServer.call(pid, :clear_scheduled)
+  end
+
+  @doc """
+  Enqueue jobs from scheduled queue immediatly.
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `raw_job` - raw json encoded job value
+
+  Returns:
+    * `{:ok, num_enqueued}`
+
+  """
+  def dequeue_scheduled_jobs(pid, raw_jobs) do
+    GenServer.call(pid, {:dequeue_scheduled_jobs, raw_jobs})
   end
 
   @doc """

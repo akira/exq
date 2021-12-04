@@ -12,6 +12,22 @@ defmodule Exq.Redis.Script do
   end
 
   @scripts %{
+    scheduler_dequeue_jobs:
+      Prepare.script("""
+      local schedule_queue, namespace_prefix = KEYS[1], KEYS[2]
+      local jobs = ARGV
+      local dequeued = 0
+      for _, job in ipairs(jobs) do
+        local job_queue = cjson.decode(job)['queue']
+        local count = redis.call('ZREM', schedule_queue, job)
+        if count == 1 then
+          redis.call('SADD', namespace_prefix .. 'queues', job_queue)
+          redis.call('LPUSH', namespace_prefix .. 'queue:' .. job_queue, job)
+          dequeued = dequeued + 1
+        end
+      end
+      return dequeued
+      """),
     scheduler_dequeue:
       Prepare.script("""
       local schedule_queue = KEYS[1]
