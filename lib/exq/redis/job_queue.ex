@@ -398,6 +398,10 @@ defmodule Exq.Redis.JobQueue do
     Connection.zrem!(redis, retry_queue_key(namespace), raw_jobs)
   end
 
+  def dequeue_retry_jobs(redis, namespace, raw_jobs) do
+    dequeue_scheduled_jobs(redis, namespace, retry_queue_key(namespace), raw_jobs)
+  end
+
   def remove_scheduled(redis, namespace, jid) do
     {:ok, job} = find_job(redis, namespace, jid, :scheduled, false)
     Connection.zrem!(redis, scheduled_queue_key(namespace), job)
@@ -490,6 +494,10 @@ defmodule Exq.Redis.JobQueue do
     }
 
     {jid, Config.serializer().encode!(job)}
+  end
+
+  defp dequeue_scheduled_jobs(redis, namespace, queue_key, raw_jobs) do
+    Script.eval!(redis, :scheduler_dequeue_jobs, [queue_key, full_key(namespace, "")], raw_jobs)
   end
 
   defp get_max_retries do
