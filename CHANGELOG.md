@@ -5,6 +5,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2021-12-12
+
+NOTE: Please read PR #458 for upgrade instructions.
+
+### Added
+- Add retried_at field for Sidekiq compatibility #450 by @ananthakumaran
+- Add apis to support exq_ui #452 by @ananthakumaran
+- Add documentation about mode: :enqueuer and Exq.Enqueuer.queue_in #456 by @dbernheisel
+- Add api to immediatly enqeueue jobs from retry/scheduled queue #461 by @ananthakumaran
+- Add api to re-enqueue dead job #462 by @ananthakumaran
+
+### Changed
+- Add Sidekiq 5 compatibility #458 by @ananthakumaran
+- Use latest Phoenix child spec style #459 by @vovayartsev
+- Replace deprecated supervisor calls #453 by @vkuznetsov
+
+### Fixed
+- Handle timeouts on middleware pipeline #444 by @ananthakumaran
+- Use the correct scheduled time for enqueued_at field for mock #449 by @ananthakumaran
+
+
 ## [0.15.0] - 2021-07-19
 
 ### Added
