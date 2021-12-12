@@ -104,9 +104,7 @@ defmodule Exq.Worker.Server do
     {:noreply, state}
   end
 
-  @doc """
-  Dispatch work to the target module (call :perform method of target).
-  """
+  # Dispatch work to the target module (call :perform method of target).
   def handle_cast(:dispatch, state) do
     dispatch_work(
       state.pipeline.assigns.worker_module,
@@ -117,9 +115,7 @@ defmodule Exq.Worker.Server do
     {:noreply, state}
   end
 
-  @doc """
-  Worker done with normal termination message.
-  """
+  # Worker done with normal termination message.
   def handle_cast({:done, result}, state) do
     state =
       if !has_pipeline_after_work_ran?(state.pipeline) do
