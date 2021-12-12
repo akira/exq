@@ -266,8 +266,8 @@ defmodule ApiTest do
     {:ok, [raw_job]} = Exq.Api.retries(Exq.Api, raw: true)
     assert {:ok, 1} = Exq.Api.dequeue_retry_jobs(Exq.Api, [raw_job])
     assert {:ok, nil} = Exq.Api.find_scheduled(Exq.Api, jid)
-
     assert {:ok, 0} = Exq.Api.dequeue_retry_jobs(Exq.Api, [raw_job])
+    assert {:ok, [^raw_job]} = Exq.Api.jobs(Exq.Api, "test", raw: true)
   end
 
   test "remove job in scheduled queue" do
@@ -289,6 +289,7 @@ defmodule ApiTest do
     {:ok, 1} = Exq.Api.dequeue_scheduled_jobs(Exq.Api, [raw_job])
     assert {:ok, nil} = Exq.Api.find_scheduled(Exq.Api, jid)
     {:ok, 0} = Exq.Api.dequeue_scheduled_jobs(Exq.Api, [raw_job])
+    assert {:ok, [^raw_job]} = Exq.Api.jobs(Exq.Api, "custom", raw: true)
   end
 
   test "remove job in failed queue" do
@@ -302,6 +303,15 @@ defmodule ApiTest do
     {:ok, [raw_job]} = Exq.Api.failed(Exq.Api, raw: true)
     Exq.Api.remove_failed_jobs(Exq.Api, [raw_job])
     {:ok, nil} = Exq.Api.find_failed(Exq.Api, "1234")
+  end
+
+  test "enqueue jobs in failed queue" do
+    JobQueue.fail_job(:testredis, 'test', %Job{jid: "1234", queue: "test"}, "this is an error")
+    {:ok, [raw_job]} = Exq.Api.failed(Exq.Api, raw: true)
+    {:ok, 1} = Exq.Api.dequeue_failed_jobs(Exq.Api, [raw_job])
+    assert {:ok, nil} = Exq.Api.find_failed(Exq.Api, "1234")
+    {:ok, 0} = Exq.Api.dequeue_failed_jobs(Exq.Api, [raw_job])
+    assert {:ok, [^raw_job]} = Exq.Api.jobs(Exq.Api, "test", raw: true)
   end
 
   test "clear job queue" do

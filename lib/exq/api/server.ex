@@ -205,6 +205,11 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
+  def handle_call({:dequeue_failed_jobs, raw_jobs}, _from, state) do
+    result = JobQueue.dequeue_failed_jobs(state.redis, state.namespace, raw_jobs)
+    {:reply, result, state}
+  end
+
   def handle_call(:clear_processes, _from, state) do
     JobStat.clear_processes(state.redis, state.namespace)
     {:reply, :ok, state}
