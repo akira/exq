@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+
+## [0.16.1] - 2021-12-13
+
+### Added
+
+### Changed
+
+### Fixed
+- Fix @doc redefined warnings #463 by deepfryed
+
 ## [0.16.0] - 2021-12-12
 
 NOTE: Please read PR #458 for upgrade instructions.
