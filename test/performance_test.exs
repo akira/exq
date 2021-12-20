@@ -85,7 +85,7 @@ defmodule PerformanceTest do
     stop_process(sup)
   end
 
-  test "peformance for flakey workers" do
+  test "performance for flakey workers" do
     Process.register(self(), :tester)
     max_timeout_ms = 2 * 1_000
 

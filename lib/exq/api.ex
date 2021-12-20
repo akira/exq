@@ -391,7 +391,7 @@ defmodule Exq.Api do
   end
 
   @doc """
-  Re enqueue jobs from retry queue immediatly.
+  Re enqueue jobs from retry queue immediately.
 
   Expected args:
     * `pid` - Exq.Api process
@@ -478,7 +478,7 @@ defmodule Exq.Api do
   end
 
   @doc """
-  Enqueue jobs from scheduled queue immediatly.
+  Enqueue jobs from scheduled queue immediately.
 
   Expected args:
     * `pid` - Exq.Api process

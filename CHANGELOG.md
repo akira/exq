@@ -23,7 +23,7 @@ NOTE: Please read PR #458 for upgrade instructions.
 - Add retried_at field for Sidekiq compatibility #450 by @ananthakumaran
 - Add apis to support exq_ui #452 by @ananthakumaran
 - Add documentation about mode: :enqueuer and Exq.Enqueuer.queue_in #456 by @dbernheisel
-- Add api to immediatly enqeueue jobs from retry/scheduled queue #461 by @ananthakumaran
+- Add api to immediately enqeueue jobs from retry/scheduled queue #461 by @ananthakumaran
 - Add api to re-enqueue dead job #462 by @ananthakumaran
 
 ### Changed
@@ -51,7 +51,7 @@ NOTE: Please read PR #458 for upgrade instructions.
 - use Task instead of spawn_link for starting workers #436 by @mitchellhenke
 
 ### Fixed
-- re-enqueue unfinished jobs to the begining of queue on restart #424 by @ananthakumaran
+- re-enqueue unfinished jobs to the beginning of queue on restart #424 by @ananthakumaran
 - Fix for sentinel 0.11.0+ #428 by @ananthakumaran
 - Fixes for generated HTML docs by #442 @kianmeng
 
