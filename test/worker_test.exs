@@ -239,7 +239,7 @@ defmodule WorkerTest do
   # Go through Exit reasons: http://erlang.org/doc/reference_manual/errors.html#exit_reasons
 
   test "execute invalid module perform" do
-    {:ok, worker} = start_worker({"NonExistant", "[]"})
+    {:ok, worker} = start_worker({"NonExistent", "[]"})
     assert_terminate(worker, false)
   end
 
@@ -253,7 +253,7 @@ defmodule WorkerTest do
     assert_terminate(worker, false)
   end
 
-  test "worker with arithmatic error (badarith) still sends stats" do
+  test "worker with arithmetic error (badarith) still sends stats" do
     {:ok, worker} = start_worker({"WorkerTest.BadArithmaticWorker", "[]"})
     assert_terminate(worker, false)
   end
