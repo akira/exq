@@ -236,6 +236,11 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
+  def handle_call({:send_signal, node_id, signal_name}, _from, state) do
+    result = JobStat.node_signal(state.redis, state.namespace, node_id, signal_name)
+    {:reply, result, state}
+  end
+
   def terminate(_reason, _state) do
     :ok
   end

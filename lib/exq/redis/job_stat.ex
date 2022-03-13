@@ -103,6 +103,21 @@ defmodule Exq.Redis.JobStat do
     end
   end
 
+  def node_signal(redis, namespace, node_id, signal_name) do
+    key = node_info_key(namespace, node_id)
+    signal_key = "#{key}-signals"
+
+    case Connection.qp(redis, [
+           ["MULTI"],
+           ["LPUSH", signal_key, signal_name],
+           ["EXPIRE", signal_key, 60],
+           ["EXEC"]
+         ]) do
+      {:ok, ["OK", "QUEUED", "QUEUED", [_, 1]]} -> :ok
+      error -> error
+    end
+  end
+
   def node_ids(redis, namespace) do
     Connection.smembers!(redis, nodes_key(namespace))
   end
