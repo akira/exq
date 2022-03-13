@@ -541,4 +541,22 @@ defmodule Exq.Api do
   def retry_job(pid, jid) do
     GenServer.call(pid, {:retry_job, jid})
   end
+
+  @doc """
+  Send signal to the given node.
+
+  Expected args:
+    * `pid` - Exq.Api process
+    * `node_id` - node identifier
+    * `signal_name` - Name of the signal.
+
+  Supported Signals
+    * TSTP - unsubscibe from all queues
+
+  Returns:
+    * :ok
+  """
+  def send_signal(pid, node_id, signal_name) do
+    GenServer.call(pid, {:send_signal, node_id, signal_name})
+  end
 end
