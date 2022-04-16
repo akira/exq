@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 
+## [0.16.2] - 2022-04-15
+
+### Added
+- API to send signal to worker nodes by @ananthakumaran
+### Changed
+
+### Fixed
+- Fixed typos #464 by @kianmeng
+
 ## [0.16.1] - 2021-12-13
 
 ### Added
