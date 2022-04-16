@@ -472,7 +472,7 @@ config :exq,
 
 Exq has a separate repo, exq_ui which provides with a Web UI to monitor your workers:
 
-![Screenshot](http://i.imgur.com/m57gRPY.png)
+![Screenshot](https://i.imgur.com/MmIiv8b.png)
 
 See https://github.com/akira/exq_ui for more details.
 
