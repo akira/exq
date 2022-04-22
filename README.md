@@ -476,6 +476,12 @@ Exq has a separate repo, exq_ui which provides with a Web UI to monitor your wor
 
 See https://github.com/akira/exq_ui for more details.
 
+## Community Plugins
+
+* [exq_scheduler](https://github.com/activesphere/exq-scheduler) Exq Scheduler is a cron like job scheduler for Exq, it's also compatible with Sidekiq and Resque.
+* [exq_limit](https://github.com/ananthakumaran/exq_limit) ExqLimit implements different types of rate limiting for Exq queue.
+* [exq_batch](https://github.com/ananthakumaran/exq_batch) ExqBatch provides a building block to create complex workflows using Exq jobs. A batch monitors a group of Exq jobs and creates callback job when all the jobs are processed.
+
 ## Starting Exq manually
 
 Typically, Exq will start as part of the application along with the configuration you have set.  However, you can also start Exq manually and set your own configuration per instance.
