@@ -15,7 +15,9 @@ defmodule Exq.Support.Job do
             args: nil,
             jid: nil,
             finished_at: nil,
-            enqueued_at: nil
+            enqueued_at: nil,
+            queuing_timeout: :infinity,
+            execution_timeout: :infinity
 
   alias Exq.Support.Config
 
@@ -39,7 +41,9 @@ defmodule Exq.Support.Job do
       args: job.args,
       jid: job.jid,
       finished_at: job.finished_at,
-      enqueued_at: job.enqueued_at
+      enqueued_at: job.enqueued_at,
+      queuing_timeout: job.queuing_timeout,
+      execution_timeout: job.execution_timeout
     })
   end
 

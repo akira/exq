@@ -25,6 +25,24 @@ defmodule Exq.Serializers.JsonSerializer do
   def decode_job(serialized) do
     deserialized = decode!(serialized)
 
+    queuing_timeout = Map.get(deserialized, "queuing_timeout")
+
+    queuing_timeout =
+      if is_integer(queuing_timeout) do
+        queuing_timeout
+      else
+        :infinity
+      end
+
+    execution_timeout = Map.get(deserialized, "execution_timeout")
+
+    execution_timeout =
+      if is_integer(execution_timeout) do
+        execution_timeout
+      else
+        :infinity
+      end
+
     %Exq.Support.Job{
       args: Map.get(deserialized, "args"),
       class: Map.get(deserialized, "class"),
@@ -38,7 +56,9 @@ defmodule Exq.Serializers.JsonSerializer do
       processor: Map.get(deserialized, "processor"),
       queue: Map.get(deserialized, "queue"),
       retry: Map.get(deserialized, "retry"),
-      retry_count: Map.get(deserialized, "retry_count")
+      retry_count: Map.get(deserialized, "retry_count"),
+      queuing_timeout: queuing_timeout,
+      execution_timeout: execution_timeout
     }
   end
 
@@ -56,7 +76,9 @@ defmodule Exq.Serializers.JsonSerializer do
       processor: job.processor,
       queue: job.queue,
       retry: job.retry,
-      retry_count: job.retry_count
+      retry_count: job.retry_count,
+      queuing_timeout: job.queuing_timeout,
+      execution_timeout: job.execution_timeout
     }
 
     encode!(deserialized)
