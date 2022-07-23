@@ -25,6 +25,7 @@ config :exq,
     Exq.Middleware.Stats,
     Exq.Middleware.Job,
     Exq.Middleware.Manager,
+    Exq.Middleware.Unique,
     Exq.Middleware.Logger
   ]
 

@@ -12,6 +12,45 @@ defmodule Exq.Redis.Script do
   end
 
   @scripts %{
+    enqueue:
+      Prepare.script("""
+      local job_queue, namespace_prefix, unique_key = KEYS[1], KEYS[2], KEYS[3]
+      local job, jid, unlocks_in = ARGV[1], ARGV[2], tonumber(ARGV[3])
+      local unlocked = true
+      local conflict_jid = nil
+
+      if unlocks_in then
+        unlocked = redis.call("set", unique_key, jid, "px", unlocks_in, "nx")
+      end
+
+      if unlocked then
+        redis.call('SADD', namespace_prefix .. 'queues', job_queue)
+        redis.call('LPUSH', namespace_prefix .. 'queue:' .. job_queue, job)
+        return 0
+      else
+        conflict_jid = redis.call("get", unique_key)
+        return {1, conflict_jid}
+      end
+      """),
+    enqueue_at:
+      Prepare.script("""
+      local schedule_queue, unique_key = KEYS[1], KEYS[2]
+      local job, score, jid, unlocks_in = ARGV[1], tonumber(ARGV[2]), ARGV[3], tonumber(ARGV[4])
+      local unlocked = true
+      local conflict_jid = nil
+
+      if unlocks_in then
+        unlocked = redis.call("set", unique_key, jid, "px", unlocks_in, "nx")
+      end
+
+      if unlocked then
+        redis.call('ZADD', schedule_queue, score, job)
+        return 0
+      else
+        conflict_jid = redis.call("get", unique_key)
+        return {1, conflict_jid}
+      end
+      """),
     scheduler_dequeue_jobs:
       Prepare.script("""
       local schedule_queue, namespace_prefix = KEYS[1], KEYS[2]

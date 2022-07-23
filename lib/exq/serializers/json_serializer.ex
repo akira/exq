@@ -38,7 +38,11 @@ defmodule Exq.Serializers.JsonSerializer do
       processor: Map.get(deserialized, "processor"),
       queue: Map.get(deserialized, "queue"),
       retry: Map.get(deserialized, "retry"),
-      retry_count: Map.get(deserialized, "retry_count")
+      retry_count: Map.get(deserialized, "retry_count"),
+      unique_for: Map.get(deserialized, "unique_for"),
+      unique_until: Map.get(deserialized, "unique_until"),
+      unique_token: Map.get(deserialized, "unique_token"),
+      unlocks_at: Map.get(deserialized, "unlocks_at")
     }
   end
 
@@ -58,6 +62,18 @@ defmodule Exq.Serializers.JsonSerializer do
       retry: job.retry,
       retry_count: job.retry_count
     }
+
+    deserialized =
+      if job.unique_for do
+        Map.merge(deserialized, %{
+          unique_for: job.unique_for,
+          unique_until: job.unique_until,
+          unique_token: job.unique_token,
+          unlocks_at: job.unlocks_at
+        })
+      else
+        deserialized
+      end
 
     encode!(deserialized)
   end
