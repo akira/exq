@@ -458,7 +458,7 @@ Same node recovery is straightforward and works well if the number of worker nod
 
 Heartbeat mechanism helps in these cases. Each node registers a heartbeat at regular interval. If any node misses 5 consecutive heartbeats, it will be considered dead and all the in-progress jobs belong to that node will be re-enqueued.
 
-This feature is disabled by default and can be enabled using the following config:j
+This feature is disabled by default and can be enabled using the following config:
 
 ```elixir
 config :exq,
@@ -513,11 +513,11 @@ via `unique_for`.
   load. This will make sure you never have more than one job pending
   for a user in the queue.
 
-* Batch - Let's you want to send a notification to user, but want to
-  wait for an hour and batch them together. Schedule a job one hour in
-  the future using `enqueue_in` and set `unique_until: :success`. This
-  will make sure no other job get enqueued till the scheduled job
-  completes successfully.
+* Batch - Let's say you want to send a notification to user, but want
+  to wait for an hour and batch them together. Schedule a job one hour
+  in the future using `enqueue_in` and set `unique_until:
+  :success`. This will make sure no other job get enqueued till the
+  scheduled job completes successfully.
 
 Although Exq provides unique jobs feature, try to make your worker
 idempotent as much as possible. Unique jobs doesn't prevent your job
