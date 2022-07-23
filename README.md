@@ -488,10 +488,10 @@ expiration time is calculated as `scheduled_time + unique_for`
 
 * `unique_until` allows you to clear the lock based on job
 lifecycle. Using `:success` will clear the lock on successful
-completion of job, `:start` will clear the lock when the job is picked
-for execution for the first time. `:expiry` specifies the lock should
-be cleared based on the expiration time set via
-`unique_for`.
+completion of job or if the job is dead, `:start` will clear the lock
+when the job is picked for execution for the first time. `:expiry`
+specifies the lock should be cleared based on the expiration time set
+via `unique_for`.
 
 ```elixir
 {:ok, jid} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], unique_for: 60 * 60)

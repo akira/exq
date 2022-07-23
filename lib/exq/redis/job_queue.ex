@@ -254,27 +254,28 @@ defmodule Exq.Redis.JobQueue do
     full_key(namespace, "dead")
   end
 
-  def retry_or_fail_job(redis, namespace, %{retry: retry} = job, error)
-      when is_integer(retry) and retry > 0 do
-    retry_or_fail_job(redis, namespace, job, error, retry)
-  end
+  def dead?(job) do
+    retry_count = (job.retry_count || 0) + 1
 
-  def retry_or_fail_job(redis, namespace, %{retry: true} = job, error) do
-    retry_or_fail_job(redis, namespace, job, error, get_max_retries())
+    case job do
+      %{retry: retry} when is_integer(retry) and retry > 0 ->
+        retry_count > retry
+
+      %{retry: true} ->
+        retry_count > get_max_retries()
+
+      _ ->
+        true
+    end
   end
 
   def retry_or_fail_job(redis, namespace, job, error) do
-    fail_job(redis, namespace, job, error)
-  end
-
-  defp retry_or_fail_job(redis, namespace, job, error, max_retries) do
-    retry_count = (job.retry_count || 0) + 1
-
-    if retry_count <= max_retries do
-      retry_job(redis, namespace, job, retry_count, error)
-    else
+    if dead?(job) do
       Logger.info("Max retries on job #{job.jid} exceeded")
       fail_job(redis, namespace, job, error)
+    else
+      retry_count = (job.retry_count || 0) + 1
+      retry_job(redis, namespace, job, retry_count, error)
     end
   end
 

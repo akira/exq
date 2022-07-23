@@ -38,7 +38,22 @@ defmodule Exq.Middleware.Unique do
     pipeline
   end
 
-  def after_failed_work(pipeline) do
+  def after_failed_work(
+        %Pipeline{assigns: %{job_serialized: job_serialized, redis: redis, namespace: namespace}} =
+          pipeline
+      ) do
+    job = Exq.Support.Job.decode(job_serialized)
+
+    case job do
+      %{unique_until: "success", unique_token: unique_token} ->
+        if JobQueue.dead?(job) do
+          {:ok, _} = JobQueue.unlock(redis, namespace, unique_token)
+        end
+
+      _ ->
+        :ok
+    end
+
     pipeline
   end
 end

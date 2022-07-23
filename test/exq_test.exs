@@ -662,7 +662,7 @@ defmodule ExqTest do
       Exq.enqueue(Exq, "q1", FailWorker, [],
         unique_for: 60,
         unique_until: :success,
-        max_retries: 0
+        max_retries: 5
       )
 
     :timer.sleep(100)
@@ -671,8 +671,40 @@ defmodule ExqTest do
       Exq.enqueue(Exq, "q1", FailWorker, [],
         unique_for: 60,
         unique_until: :success,
-        max_retries: 0
+        max_retries: 5
       )
+
+    stop_process(sup)
+  end
+
+  test "clear lock when the job is dead" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
+
+    with_application_env(:exq, :backoff, ConstantBackoff, fn ->
+      {:ok, j1} =
+        Exq.enqueue(Exq, "q1", FailWorker, [],
+          unique_for: 60,
+          unique_until: :success,
+          max_retries: 1
+        )
+
+      {:conflict, ^j1} =
+        Exq.enqueue(Exq, "q1", FailWorker, [],
+          unique_for: 60,
+          unique_until: :success,
+          max_retries: 1
+        )
+
+      :timer.sleep(2000)
+
+      {:ok, _} =
+        Exq.enqueue(Exq, "q1", FailWorker, [],
+          unique_for: 60,
+          unique_until: :success,
+          max_retries: 1
+        )
+    end)
 
     stop_process(sup)
   end
