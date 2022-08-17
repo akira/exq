@@ -1,0 +1,28 @@
+version: "3.3"
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: ./.devcontainer/Dockerfile
+    environment:
+      VARIANT: "latest"
+      REDIS_HOST: redis_db
+      REDIS_PORT: 6379
+      REDIS_URL: "redis://redis_db:6379"
+      CACHE_TEST_REDIS_URL: "redis://redis_db:6379/2"
+      CACHE_DEV_REDIS_URL: "redis://redis_db:6379/3"
+      # just DEV, because jobs don't use redis in tests
+      JOBS_DEV_REDIS_URL: "redis://redis_db:6379/4"
+    command: sleep infinity
+    volumes:
+      - ..:/home/app/exq:cached
+    links:
+      - redis_db
+    depends_on:
+      - redis_db
+
+  redis_db:
+    image: redis:4
+    restart: always
+    expose:
+      - "6379"
