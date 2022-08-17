@@ -35,6 +35,30 @@ defmodule Exq.Enqueuer.EnqueueApi do
       end
 
       @doc """
+      Enqueue several jobs immediately.
+
+      Expected args:
+        * `pid` - PID for Exq Manager or Enqueuer to handle this
+        * `queue` - Name of queue to use
+        * `worker` - Worker module to target
+        * `args` - Array of array of args to send to workers
+        * `options` - job options, for example [max_retries: `Integer`].
+        jid does not suppoert
+
+      Returns:
+        * `{:ok, jids}` if jobs were enqueued successfully, with `jids` = Job IDs.
+        * `{:error, reason}` if there was an error enqueueing job
+
+      """
+      def enqueue_bulk(pid, queue, worker, args),
+        do: enqueue_bulk(pid, queue, worker, args, @default_options)
+
+      def enqueue_bulk(pid, queue, worker, args, options) do
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue_bulk(pid, queue, worker, args, options)
+      end
+
+      @doc """
       Schedule a job to be enqueued at a specific time in the future.
 
       Expected args:

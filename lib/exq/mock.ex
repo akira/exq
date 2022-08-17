@@ -75,6 +75,18 @@ defmodule Exq.Mock do
   end
 
   @doc false
+  def enqueue_bulk(pid, queue, worker, args, options) do
+    {:ok, runnable} =
+      GenServer.call(
+        __MODULE__,
+        {:enqueue, self(), :enqueue_bulk, [pid, queue, worker, args, options]},
+        @timeout
+      )
+
+    runnable.()
+  end
+
+  @doc false
   def enqueue_at(pid, queue, time, worker, args, options) do
     {:ok, runnable} =
       GenServer.call(
@@ -99,33 +111,62 @@ defmodule Exq.Mock do
   end
 
   @impl true
-  def handle_call({:enqueue, owner_pid, type, args}, _from, state) do
+  def handle_call({:enqueue, owner_pid, :enqueue_bulk, args}, from, state) do
     state = maybe_add_and_monitor_pid(state, owner_pid, state.default_mode)
 
-    case state.modes[owner_pid] do
-      :redis ->
-        runnable = fn -> apply(Redis, type, args) end
-        {:reply, {:ok, runnable}, state}
+    {runnables, state} =
+      args
+      |> Enum.at(3)
+      |> Enum.map(&List.replace_at(args, 3, &1))
+      |> Enum.map_reduce(state, fn e, acc ->
+        process_enqueue(state.modes[owner_pid], owner_pid, :enquue, e, acc)
+      end)
 
-      :inline ->
-        runnable = fn ->
-          job = to_job(type, args)
-          apply(Coercion.to_module(job.class), :perform, job.args)
-          {:ok, job.jid}
-        end
+    runnable_bulk = fn ->
+      jids =
+        Enum.map(runnables, fn runnable ->
+          {:ok, jid} = runnable.()
+          jid
+        end)
 
-        {:reply, {:ok, runnable}, state}
-
-      :fake ->
-        job = to_job(type, args)
-        state = update_in(state.jobs[owner_pid], &((&1 || []) ++ [job]))
-
-        runnable = fn ->
-          {:ok, job.jid}
-        end
-
-        {:reply, {:ok, runnable}, state}
+      {:ok, jids}
     end
+
+    {:reply, {:ok, runnable_bulk}, state}
+  end
+
+  @impl true
+  def handle_call({:enqueue, owner_pid, type, args}, _from, state) do
+    state = maybe_add_and_monitor_pid(state, owner_pid, state.default_mode)
+    {runnable, state} = process_enqueue(state.modes[owner_pid], owner_pid, type, args, state)
+
+    {:reply, {:ok, runnable}, state}
+  end
+
+  defp process_enqueue(:redis, _owner_pid, type, args, state) do
+    runnable = fn -> apply(Redis, type, args) end
+    {runnable, state}
+  end
+
+  defp process_enqueue(:inline, _owner_pid, type, args, state) do
+    runnable = fn ->
+      job = to_job(type, args)
+      apply(Coercion.to_module(job.class), :perform, job.args)
+      {:ok, job.jid}
+    end
+
+    {runnable, state}
+  end
+
+  defp process_enqueue(:fake, owner_pid, type, args, state) do
+    job = to_job(type, args)
+    state = update_in(state.jobs[owner_pid], &((&1 || []) ++ [job]))
+
+    runnable = fn ->
+      {:ok, job.jid}
+    end
+
+    {runnable, state}
   end
 
   def handle_call({:mode, owner_pid, mode}, _from, state) do

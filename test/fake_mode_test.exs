@@ -62,5 +62,23 @@ defmodule FakeModeTest do
                }
              ] = Exq.Mock.jobs()
     end
+
+    test "enqueue_bulk" do
+      assert [] = Exq.Mock.jobs()
+      assert {:ok, _} = Exq.enqueue_bulk(Exq, "low", BrokenWorker, [[1], [2]])
+
+      assert [
+               %Exq.Support.Job{
+                 args: [1],
+                 class: FakeModeTest.BrokenWorker,
+                 queue: "low"
+               },
+               %Exq.Support.Job{
+                 args: [2],
+                 class: FakeModeTest.BrokenWorker,
+                 queue: "low"
+               }
+             ] = Exq.Mock.jobs()
+    end
   end
 end

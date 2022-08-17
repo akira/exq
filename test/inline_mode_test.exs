@@ -27,5 +27,9 @@ defmodule InlineModeTest do
       jid = UUID.uuid4()
       assert {:ok, jid} == Exq.enqueue(Exq, "low", EchoWorker, [1], jid: jid)
     end
+
+    test "enqueue_bulk should return jid per worker" do
+      assert {:ok, [jid1, jid2]} = Exq.enqueue_bulk(Exq, "low", EchoWorker, [[1], [2]])
+    end
   end
 end

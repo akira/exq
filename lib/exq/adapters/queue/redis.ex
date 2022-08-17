@@ -14,6 +14,11 @@ defmodule Exq.Adapters.Queue.Redis do
     JobQueue.enqueue(redis, namespace, queue, worker, args, options)
   end
 
+  def enqueue_bulk(pid, queue, worker, args, options) do
+    {redis, namespace} = GenServer.call(pid, :redis, Config.get(:genserver_timeout))
+    JobQueue.enqueue_bulk(redis, namespace, queue, worker, args, options)
+  end
+
   def enqueue_at(pid, queue, time, worker, args, options) do
     {redis, namespace} = GenServer.call(pid, :redis, Config.get(:genserver_timeout))
     JobQueue.enqueue_at(redis, namespace, queue, time, worker, args, options)
