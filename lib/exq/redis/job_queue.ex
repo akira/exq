@@ -22,6 +22,23 @@ defmodule Exq.Redis.JobQueue do
 
   @default_size 100
 
+  def enqueue_bulk(redis, namespace, queue, worker, list, options) do
+    options = Keyword.delete(options, :jid)
+
+    {jids, jobs_serialized} =
+      Enum.reduce(list, {[], []}, fn args, {jids, jobs} ->
+        {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
+
+        {[jid | jids], [job_serialized | jobs]}
+      end)
+
+    case enqueue(redis, namespace, queue, jobs_serialized) do
+      :ok -> {:ok, Enum.reverse(jids)}
+      other -> other
+    end
+  end
+
+  @spec enqueue(any, any, any, any, any, keyword) :: any
   def enqueue(redis, namespace, queue, worker, args, options) do
     {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
 
@@ -40,12 +57,12 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-  def enqueue(redis, namespace, queue, job_serialized) do
+  def enqueue(redis, namespace, queue, jobs_serialized) when is_list(jobs_serialized) do
     try do
       response =
         Connection.qp(redis, [
           ["SADD", full_key(namespace, "queues"), queue],
-          ["LPUSH", queue_key(namespace, queue), job_serialized]
+          ["LPUSH", queue_key(namespace, queue) | jobs_serialized]
         ])
 
       case response do
@@ -60,6 +77,10 @@ defmodule Exq.Redis.JobQueue do
         Logger.info("Error enqueueing -  #{Kernel.inspect(e)}")
         {:error, :timeout}
     end
+  end
+
+  def enqueue(redis, namespace, queue, job_serialized) do
+    enqueue(redis, namespace, queue, [job_serialized])
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args, options)

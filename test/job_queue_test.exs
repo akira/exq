@@ -274,4 +274,14 @@ defmodule JobQueueTest do
     [{:ok, {job_str, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
     assert %{"jid" => ^jid, "retry" => 3} = Jason.decode!(job_str)
   end
+
+  test "enqueue_bulk single queue" do
+    assert {:ok, [jid1, jid2]} =
+             JobQueue.enqueue_bulk(:testredis, "test", "default", MyWorker, [[1], [2]], [])
+
+    assert [
+             %{args: [1], class: "MyWorker", jid: ^jid1},
+             %{args: [2], class: "MyWorker", jid: ^jid2}
+           ] = JobQueue.jobs(:testredis, "test", "default")
+  end
 end
