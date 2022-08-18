@@ -20,20 +20,16 @@ defmodule Exq.Redis.JobQueue do
   alias Exq.Support.Config
   alias Exq.Support.Time
 
-  @default_size 100
-
   def enqueue_bulk(redis, namespace, queue, worker, list, options) do
     options = Keyword.delete(options, :jid)
 
     {jids, jobs_serialized} =
-      Enum.reduce(list, {[], []}, fn args, {jids, jobs} ->
-        {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
-
-        {[jid | jids], [job_serialized | jobs]}
-      end)
+      list
+      |> Enum.map(&to_job_serialized(queue, worker, &1, options))
+      |> Enum.unzip()
 
     case enqueue(redis, namespace, queue, jobs_serialized) do
-      :ok -> {:ok, Enum.reverse(jids)}
+      :ok -> {:ok, jids}
       other -> other
     end
   end

@@ -280,8 +280,8 @@ defmodule JobQueueTest do
              JobQueue.enqueue_bulk(:testredis, "test", "default", MyWorker, [[1], [2]], [])
 
     assert [
-             %{args: [1], class: "MyWorker", jid: ^jid1},
-             %{args: [2], class: "MyWorker", jid: ^jid2}
+             %{args: [2], class: "MyWorker", jid: ^jid2},
+             %{args: [1], class: "MyWorker", jid: ^jid1}
            ] = JobQueue.jobs(:testredis, "test", "default")
   end
 end
