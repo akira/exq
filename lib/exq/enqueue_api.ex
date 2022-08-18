@@ -43,7 +43,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         * `worker` - Worker module to target
         * `args` - Array of array of args to send to workers
         * `options` - job options, for example [max_retries: `Integer`].
-        jid does not suppoert
+        jid is not supported.
 
       Returns:
         * `{:ok, jids}` if jobs were enqueued successfully, with `jids` = Job IDs.
