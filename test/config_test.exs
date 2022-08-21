@@ -282,6 +282,7 @@ defmodule Exq.ConfigTest do
              Exq.Middleware.Stats,
              Exq.Middleware.Job,
              Exq.Middleware.Manager,
+             Exq.Middleware.Unique,
              Exq.Middleware.Telemetry
            ]
 

@@ -15,7 +15,11 @@ defmodule Exq.Support.Job do
             args: nil,
             jid: nil,
             finished_at: nil,
-            enqueued_at: nil
+            enqueued_at: nil,
+            unique_for: nil,
+            unique_until: nil,
+            unique_token: nil,
+            unlocks_at: nil
 
   alias Exq.Support.Config
 
@@ -39,7 +43,11 @@ defmodule Exq.Support.Job do
       args: job.args,
       jid: job.jid,
       finished_at: job.finished_at,
-      enqueued_at: job.enqueued_at
+      enqueued_at: job.enqueued_at,
+      unique_for: job.unique_for,
+      unique_until: job.unique_until,
+      unique_token: job.unique_token,
+      unlocks_at: job.unlocks_at
     })
   end
 

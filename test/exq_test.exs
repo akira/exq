@@ -489,6 +489,241 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "prevent duplicate job" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"])
+    {:ok, j1} = Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [50, :worked], unique_for: 60)
+    {:conflict, ^j1} = Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [50, :worked], unique_for: 60)
+
+    :timer.sleep(150)
+    assert_received {"worked"}
+
+    {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [50, :worked], unique_for: 60)
+    :timer.sleep(150)
+    assert_received {"worked"}
+    stop_process(sup)
+  end
+
+  test "prevent duplicate with custom token" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1", "q2"])
+
+    {:ok, j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [50, :worked],
+        unique_for: 60,
+        unique_token: "t1"
+      )
+
+    {:conflict, ^j1} =
+      Exq.enqueue(Exq, "q2", ExqTest.SleepWorker, [50, :worked],
+        unique_for: 60,
+        unique_token: "t1"
+      )
+
+    :timer.sleep(150)
+    assert_received {"worked"}
+
+    {:ok, _} =
+      Exq.enqueue(Exq, "q2", ExqTest.SleepWorker, [50, :worked],
+        unique_for: 60,
+        unique_token: "t1"
+      )
+
+    :timer.sleep(150)
+    assert_received {"worked"}
+    stop_process(sup)
+  end
+
+  test "prevent duplicate until job picked for execution" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"])
+
+    args = [200, :worked]
+
+    {:ok, _} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, args,
+        unique_for: 60,
+        unique_until: :start
+      )
+
+    :timer.sleep(100)
+
+    {:ok, j2} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, args,
+        unique_for: 60,
+        unique_until: :start
+      )
+
+    {:conflict, ^j2} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, args,
+        unique_for: 60,
+        unique_until: :start
+      )
+
+    :timer.sleep(400)
+    assert_received {"worked"}
+    assert_received {"worked"}
+
+    {:ok, _} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, args,
+        unique_for: 60,
+        unique_until: :start
+      )
+
+    :timer.sleep(400)
+    assert_received {"worked"}
+    stop_process(sup)
+  end
+
+  defmodule ConstantBackoff do
+    @behaviour Exq.Backoff.Behaviour
+
+    def offset(_job) do
+      1
+    end
+  end
+
+  test "second execution should not clear lock" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
+
+    with_application_env(:exq, :backoff, ConstantBackoff, fn ->
+      args = [200, :worked]
+
+      {:ok, _} =
+        Exq.enqueue(Exq, "q1", FailWorker, [],
+          unique_for: 60,
+          unique_until: :start,
+          unique_token: "t1",
+          max_retries: 5
+        )
+
+      :timer.sleep(100)
+
+      {:ok, j2} =
+        Exq.enqueue(Exq, "q2", ExqTest.SleepWorker, [10000, :worked],
+          unique_for: 60,
+          unique_until: :start,
+          unique_token: "t1"
+        )
+
+      :timer.sleep(2000)
+
+      {:conflict, ^j2} =
+        Exq.enqueue(Exq, "q2", ExqTest.SleepWorker, [10000, :worked],
+          unique_for: 60,
+          unique_until: :start,
+          unique_token: "t1"
+        )
+    end)
+
+    stop_process(sup)
+  end
+
+  test "prevent duplicate until expiry" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"])
+
+    args = [200, :worked]
+
+    {:ok, j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, args,
+        unique_for: 1,
+        unique_until: :expiry
+      )
+
+    :timer.sleep(300)
+    assert_received {"worked"}
+
+    {:conflict, ^j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, args,
+        unique_for: 1,
+        unique_until: :expiry
+      )
+
+    :timer.sleep(1500)
+
+    {:ok, _} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, args,
+        unique_for: 1,
+        unique_until: :expiry
+      )
+
+    :timer.sleep(300)
+    assert_received {"worked"}
+    stop_process(sup)
+  end
+
+  test "prevent duplicate job until success" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"])
+
+    {:ok, j1} =
+      Exq.enqueue(Exq, "q1", FailWorker, [],
+        unique_for: 60,
+        unique_until: :success,
+        max_retries: 5
+      )
+
+    :timer.sleep(100)
+
+    {:conflict, ^j1} =
+      Exq.enqueue(Exq, "q1", FailWorker, [],
+        unique_for: 60,
+        unique_until: :success,
+        max_retries: 5
+      )
+
+    stop_process(sup)
+  end
+
+  test "clear lock when the job is dead" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
+
+    with_application_env(:exq, :backoff, ConstantBackoff, fn ->
+      {:ok, j1} =
+        Exq.enqueue(Exq, "q1", FailWorker, [],
+          unique_for: 60,
+          unique_until: :success,
+          max_retries: 1
+        )
+
+      {:conflict, ^j1} =
+        Exq.enqueue(Exq, "q1", FailWorker, [],
+          unique_for: 60,
+          unique_until: :success,
+          max_retries: 1
+        )
+
+      :timer.sleep(2000)
+
+      {:ok, _} =
+        Exq.enqueue(Exq, "q1", FailWorker, [],
+          unique_for: 60,
+          unique_until: :success,
+          max_retries: 1
+        )
+    end)
+
+    stop_process(sup)
+  end
+
+  test "prevent duplicate scheduled job" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
+    {:ok, j1} = Exq.enqueue_in(Exq, "q1", 1, PerformWorker, [], unique_for: 60)
+    {:conflict, ^j1} = Exq.enqueue_in(Exq, "q1", 1, PerformWorker, [], unique_for: 60)
+
+    :timer.sleep(2000)
+    assert_received {:worked}
+
+    {:ok, _} = Exq.enqueue_at(Exq, "q1", DateTime.utc_now(), PerformWorker, [], unique_for: 60)
+    :timer.sleep(1000)
+    assert_received {:worked}
+    stop_process(sup)
+  end
+
   defp enqueue_fail_job(count) do
     for _ <- 0..(count - 1) do
       {:ok, _} =

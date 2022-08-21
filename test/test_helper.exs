@@ -89,13 +89,17 @@ defmodule ExqTestUtil do
   end
 
   def with_application_env(app, key, new, context) do
-    old = Application.get_env(app, key)
+    old = Application.get_env(app, key, :undefined)
     Application.put_env(app, key, new)
 
     try do
       context.()
     after
-      Application.put_env(app, key, old)
+      if old == :undefined do
+        Application.delete_env(app, key)
+      else
+        Application.put_env(app, key, old)
+      end
     end
   end
 end

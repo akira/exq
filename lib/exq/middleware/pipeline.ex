@@ -19,6 +19,7 @@ defmodule Exq.Middleware.Pipeline do
       - Exq.Middleware.Job: Will NOT remove the backup from job queue
       - Exq.Middleware.Logger: Will NOT record job as done or failed with timestamp
       - Exq.Middleware.Manager: Will NOT update worker counter
+      - Exq.Middleware.Unique: Will NOT clear unique lock
       - Exq.Middleware.Stats: Will NOT remove job from processes queue
 
   """

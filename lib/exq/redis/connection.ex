@@ -32,8 +32,8 @@ defmodule Exq.Redis.Connection do
     q(redis, ["SET", key, val])
   end
 
-  def del!(redis, key) do
-    q(redis, ["DEL", key])
+  def del!(redis, key, options \\ []) do
+    q(redis, ["DEL", key], options)
   end
 
   def expire!(redis, key, time \\ 10) do

@@ -372,8 +372,7 @@ To unsubscribe from all queues:
 If you'd like to customize worker execution and/or create plugins like Sidekiq/Resque have, Exq supports custom middleware. The first step would be to define the middleware in ```config.exs``` and add your middleware into the chain:
 
 ```elixir
-middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager,
-  Exq.Middleware.Logger]
+middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager, Exq.Middleware.Unique, Exq.Middleware.Logger]
 ```
 
 You can then create a module that implements the middleware behavior and defines `before_work`,  `after_processed_work` and `after_failed_work` functions.  You can also halt execution of the chain as well. For a simple example of middleware implementation, see the [Exq Logger Middleware](https://github.com/akira/exq/blob/master/lib/exq/middleware/logger.ex).
@@ -459,7 +458,7 @@ Same node recovery is straightforward and works well if the number of worker nod
 
 Heartbeat mechanism helps in these cases. Each node registers a heartbeat at regular interval. If any node misses 5 consecutive heartbeats, it will be considered dead and all the in-progress jobs belong to that node will be re-enqueued.
 
-This feature is disabled by default and can be enabled using the following config:j
+This feature is disabled by default and can be enabled using the following config:
 
 ```elixir
 config :exq,
@@ -467,6 +466,64 @@ config :exq,
     heartbeat_interval: 60_000,
     missed_heartbeats_allowed: 5
 ```
+
+## Unique Jobs
+
+There are many use cases where we want to avoid duplicate jobs. Exq
+provides a few job level options to handle these cases.
+
+This feature is implemented using lock abstraction. When you enqueue a
+job for the first time, a unique lock is created. The lock token is
+derived from the job queue, class and args or from the `unique_token`
+value if provided. If you try to enqueue another job with same args
+and the lock has not expired yet, you will get back `{:conflict,
+jid}`, here jid refers the first successful job.
+
+The lock expiration is controlled by two options.
+
+* `unique_for` (seconds), controls the maximum duration a lock can be
+active. This option is mandatory to create a unique job and the lock
+never outlives the expiration duration. In cases of scheduled job, the
+expiration time is calculated as `scheduled_time + unique_for`
+
+* `unique_until` allows you to clear the lock based on job
+lifecycle. Using `:success` will clear the lock on successful
+completion of job or if the job is dead, `:start` will clear the lock
+when the job is picked for execution for the first time. `:expiry`
+specifies the lock should be cleared based on the expiration time set
+via `unique_for`.
+
+```elixir
+{:ok, jid} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], unique_for: 60 * 60)
+{:conflict, ^jid} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], unique_for: 60 * 60)
+```
+
+### Example usages
+
+* Idempotency - Let's say you want to send a welcome email and want to
+  make sure it's never sent more than once, even when the enqueue part
+  might get retried due to timeout etc. Use a reasonable expiration
+  duration (unique_for) that covers the retry period along with
+  `unique_until: :expiry`.
+
+* Debounce - Let's say for any change to user data, you want to sync
+  it to another system. If you just enqueue a job for each change, you
+  might end up with unnecessary duplicate sync calls. Use
+  `unique_until: :start` along with expiration time based on queue
+  load. This will make sure you never have more than one job pending
+  for a user in the queue.
+
+* Batch - Let's say you want to send a notification to user, but want
+  to wait for an hour and batch them together. Schedule a job one hour
+  in the future using `enqueue_in` and set `unique_until:
+  :success`. This will make sure no other job get enqueued till the
+  scheduled job completes successfully.
+
+Although Exq provides unique jobs feature, try to make your worker
+idempotent as much as possible. Unique jobs doesn't prevent your job
+from getting retried on failure etc. So, unique jobs is **best
+effort**, not a guarantee to avoid duplicate execution.
+
 
 ## Web UI
 

@@ -186,6 +186,7 @@ defmodule WorkerTest do
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Stats)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Job)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Manager)
+    Exq.Middleware.Server.push(middleware, Exq.Middleware.Unique)
     Exq.Middleware.Server.push(middleware, Exq.Middleware.Logger)
 
     start_supervised(%{

@@ -33,6 +33,7 @@ defmodule Exq.Support.Config do
       Exq.Middleware.Stats,
       Exq.Middleware.Job,
       Exq.Middleware.Manager,
+      Exq.Middleware.Unique,
       Exq.Middleware.Logger
     ],
     queue_adapter: Exq.Adapters.Queue.Redis

@@ -23,43 +23,40 @@ defmodule Exq.Redis.JobQueue do
   @default_size 100
 
   def enqueue(redis, namespace, queue, worker, args, options) do
-    {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
+    {jid, job, job_serialized} = to_job_serialized(queue, worker, args, options)
 
-    case enqueue(redis, namespace, queue, job_serialized) do
+    case do_enqueue(redis, namespace, queue, job, job_serialized, unique_check: true) do
       :ok -> {:ok, jid}
       other -> other
     end
   end
 
-  def enqueue(redis, namespace, job_serialized) do
-    job = Config.serializer().decode_job(job_serialized)
-
-    case enqueue(redis, namespace, job.queue, job_serialized) do
-      :ok -> {:ok, job.jid}
-      error -> error
-    end
-  end
-
-  def enqueue(redis, namespace, queue, job_serialized) do
+  defp do_enqueue(redis, namespace, queue, job, job_serialized, options \\ []) do
     try do
+      [unlocks_in, unique_key] = unique_args(namespace, job, options)
+
       response =
-        Connection.qp(redis, [
-          ["SADD", full_key(namespace, "queues"), queue],
-          ["LPUSH", queue_key(namespace, queue), job_serialized]
-        ])
+        Script.eval!(
+          redis,
+          :enqueue,
+          [queue, full_key(namespace, ""), unique_key],
+          [job_serialized, job.jid, unlocks_in]
+        )
 
       case response do
-        {:ok, [%Redix.Error{}, %Redix.Error{}]} = error -> error
-        {:ok, [%Redix.Error{}, _]} = error -> error
-        {:ok, [_, %Redix.Error{}]} = error -> error
-        {:ok, [_, _]} -> :ok
-        other -> other
+        {:ok, 0} -> :ok
+        {:ok, [1, old_jid]} -> {:conflict, old_jid}
+        error -> error
       end
     catch
       :exit, e ->
         Logger.info("Error enqueueing -  #{Kernel.inspect(e)}")
         {:error, :timeout}
     end
+  end
+
+  def unlock(redis, namespace, unique_token) do
+    Connection.del!(redis, unique_key(namespace, unique_token), retry_on_connection_error: 3)
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args, options)
@@ -69,19 +66,48 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def enqueue_at(redis, namespace, queue, time, worker, args, options) do
-    {jid, job_serialized} = to_job_serialized(queue, worker, args, options)
-    enqueue_job_at(redis, namespace, job_serialized, jid, time, scheduled_queue_key(namespace))
+    {jid, job, job_serialized} =
+      to_job_serialized(queue, worker, args, options, Time.unix_seconds(time))
+
+    do_enqueue_job_at(
+      redis,
+      namespace,
+      job,
+      job_serialized,
+      jid,
+      time,
+      scheduled_queue_key(namespace),
+      unique_check: true
+    )
   end
 
-  def enqueue_job_at(redis, _namespace, job_serialized, jid, time, scheduled_queue) do
+  def do_enqueue_job_at(
+        redis,
+        namespace,
+        job,
+        job_serialized,
+        jid,
+        time,
+        scheduled_queue,
+        options \\ []
+      ) do
     score = Time.time_to_score(time)
 
     try do
-      case Connection.zadd(redis, scheduled_queue, score, job_serialized,
-             retry_on_connection_error: 3
-           ) do
-        {:ok, _} -> {:ok, jid}
-        other -> other
+      [unlocks_in, unique_key] = unique_args(namespace, job, options)
+
+      response =
+        Script.eval!(redis, :enqueue_at, [scheduled_queue, unique_key], [
+          job_serialized,
+          score,
+          jid,
+          unlocks_in
+        ])
+
+      case response do
+        {:ok, 0} -> {:ok, jid}
+        {:ok, [1, old_jid]} -> {:conflict, old_jid}
+        error -> error
       end
     catch
       :exit, e ->
@@ -204,6 +230,10 @@ defmodule Exq.Redis.JobQueue do
     full_key(namespace, "queue:#{queue}")
   end
 
+  def unique_key(namespace, unique_token) do
+    full_key(namespace, "unique:#{unique_token}")
+  end
+
   def backup_queue_key(namespace, node_id, queue) do
     full_key(namespace, "queue:backup::#{node_id}::#{queue}")
   end
@@ -224,27 +254,28 @@ defmodule Exq.Redis.JobQueue do
     full_key(namespace, "dead")
   end
 
-  def retry_or_fail_job(redis, namespace, %{retry: retry} = job, error)
-      when is_integer(retry) and retry > 0 do
-    retry_or_fail_job(redis, namespace, job, error, retry)
-  end
+  def dead?(job) do
+    retry_count = (job.retry_count || 0) + 1
 
-  def retry_or_fail_job(redis, namespace, %{retry: true} = job, error) do
-    retry_or_fail_job(redis, namespace, job, error, get_max_retries())
+    case job do
+      %{retry: retry} when is_integer(retry) and retry > 0 ->
+        retry_count > retry
+
+      %{retry: true} ->
+        retry_count > get_max_retries()
+
+      _ ->
+        true
+    end
   end
 
   def retry_or_fail_job(redis, namespace, job, error) do
-    fail_job(redis, namespace, job, error)
-  end
-
-  defp retry_or_fail_job(redis, namespace, job, error, max_retries) do
-    retry_count = (job.retry_count || 0) + 1
-
-    if retry_count <= max_retries do
-      retry_job(redis, namespace, job, retry_count, error)
-    else
+    if dead?(job) do
       Logger.info("Max retries on job #{job.jid} exceeded")
       fail_job(redis, namespace, job, error)
+    else
+      retry_count = (job.retry_count || 0) + 1
+      retry_job(redis, namespace, job, retry_count, error)
     end
   end
 
@@ -258,12 +289,20 @@ defmodule Exq.Redis.JobQueue do
     Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
 
     {:ok, _jid} =
-      enqueue_job_at(redis, namespace, Job.encode(job), job.jid, time, retry_queue_key(namespace))
+      do_enqueue_job_at(
+        redis,
+        namespace,
+        job,
+        Job.encode(job),
+        job.jid,
+        time,
+        retry_queue_key(namespace)
+      )
   end
 
   def retry_job(redis, namespace, job) do
     remove_retry(redis, namespace, job.jid)
-    {:ok, _jid} = enqueue(redis, namespace, Job.encode(job))
+    :ok = do_enqueue(redis, namespace, job.queue, job, Job.encode(job))
   end
 
   def fail_job(redis, namespace, job, error) do
@@ -492,16 +531,18 @@ defmodule Exq.Redis.JobQueue do
     jid = Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end)
     retry = Keyword.get_lazy(options, :max_retries, fn -> get_max_retries() end)
 
-    job = %{
-      queue: queue,
-      retry: retry,
-      class: worker,
-      args: args,
-      jid: jid,
-      enqueued_at: enqueued_at
-    }
+    job =
+      %{
+        queue: queue,
+        retry: retry,
+        class: worker,
+        args: args,
+        jid: jid,
+        enqueued_at: enqueued_at
+      }
+      |> add_unique_attributes(options)
 
-    {jid, Config.serializer().encode!(job)}
+    {jid, job, Config.serializer().encode!(job)}
   end
 
   defp dequeue_scheduled_jobs(redis, namespace, queue_key, raw_jobs) do
@@ -545,6 +586,42 @@ defmodule Exq.Redis.JobQueue do
       list
     else
       Enum.map(list, &Job.decode/1)
+    end
+  end
+
+  defp add_unique_attributes(job, options) do
+    unique_for = Keyword.get(options, :unique_for, nil)
+
+    if unique_for do
+      unique_token =
+        Keyword.get_lazy(options, :unique_token, fn ->
+          string =
+            Enum.join([job.queue, job.class] ++ Enum.map(job.args, &:erlang.phash2(&1)), ":")
+
+          :crypto.hash(:sha256, string) |> Base.encode64()
+        end)
+
+      Map.put(job, :unique_for, unique_for)
+      |> Map.put(:unique_until, to_string(Keyword.get(options, :unique_until, :success)))
+      |> Map.put(:unique_token, unique_token)
+      |> Map.put(:unlocks_at, job.enqueued_at + unique_for)
+    else
+      job
+    end
+  end
+
+  defp unique_args(namespace, job, options) do
+    if Keyword.get(options, :unique_check, false) do
+      case job do
+        %{unlocks_at: unlocks_at, unique_token: unique_token} ->
+          unlocks_in = Enum.max([trunc((unlocks_at - Time.unix_seconds()) * 1000), 0])
+          [unlocks_in, unique_key(namespace, unique_token)]
+
+        _ ->
+          [nil, nil]
+      end
+    else
+      [nil, nil]
     end
   end
 end

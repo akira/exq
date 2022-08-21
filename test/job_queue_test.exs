@@ -120,11 +120,12 @@ defmodule JobQueueTest do
 
   test "scheduler_dequeue enqueue_at" do
     JobQueue.enqueue_at(:testredis, "test", "default", DateTime.utc_now(), MyWorker, [], [])
-    {jid, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [], retry: true)
+    {jid, job, job_serialized} = JobQueue.to_job_serialized("retry", MyWorker, [], retry: true)
 
-    JobQueue.enqueue_job_at(
+    JobQueue.do_enqueue_job_at(
       :testredis,
       "test",
+      job,
       job_serialized,
       jid,
       DateTime.utc_now(),
@@ -157,7 +158,11 @@ defmodule JobQueueTest do
           enqueued_at: Time.unix_seconds(),
           finished_at: nil,
           processor: nil,
-          args: []
+          args: [],
+          unique_for: nil,
+          unique_until: nil,
+          unique_token: nil,
+          unlocks_at: nil
         },
         %RuntimeError{}
       )
@@ -240,14 +245,14 @@ defmodule JobQueueTest do
   end
 
   test "to_job_serialized using module atom" do
-    {_jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], max_retries: 0)
+    {_jid, _job, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], max_retries: 0)
     job = Job.decode(serialized)
     assert job.class == "MyWorker"
     assert job.retry == 0
   end
 
   test "to_job_serialized using module string" do
-    {_jid, serialized} =
+    {_jid, _job, serialized} =
       JobQueue.to_job_serialized("default", "MyWorker/perform", [], max_retries: 10)
 
     job = Job.decode(serialized)
@@ -257,7 +262,7 @@ defmodule JobQueueTest do
 
   test "to_job_serialized using existing job ID" do
     jid = UUID.uuid4()
-    {^jid, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], jid: jid)
+    {^jid, _job, serialized} = JobQueue.to_job_serialized("default", MyWorker, [], jid: jid)
 
     job = Job.decode(serialized)
     assert job.jid == jid
