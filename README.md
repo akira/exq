@@ -522,7 +522,9 @@ via `unique_for`.
 Although Exq provides unique jobs feature, try to make your worker
 idempotent as much as possible. Unique jobs doesn't prevent your job
 from getting retried on failure etc. So, unique jobs is **best
-effort**, not a guarantee to avoid duplicate execution.
+effort**, not a guarantee to avoid duplicate execution. Uniqueness
+feature depends on `Exq.Middleware.Unique` middleware. If you override
+`:middleware` configuration, make sure to include it.
 
 
 ## Web UI
