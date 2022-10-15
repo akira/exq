@@ -25,37 +25,28 @@ jobs:
 
   test:
     name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: check_duplicate_runs
     if: ${{ needs.check_duplicate_runs.outputs.should_skip != 'true' }}
 
     strategy:
       fail-fast: false
       matrix:
-        elixir:
-        - "1.6"
-        - "1.7"
-        - "1.8.2"
-        - "1.9.4"
-        - "1.10.4"
-        - "1.11.3"
-        otp:
-        - "20.3"
-        - "21.3"
-        - "22.2"
-        - "23.0"
-        exclude:
-        - elixir: "1.6"
-          otp: "21.3"
-        - elixir: "1.6"
-          otp: "22.2"
-        - elixir: "1.6"
-          otp: "23.0"
-        - elixir: "1.10.4"
-          otp: "20.3"
-        - elixir: "1.11.3"
-          otp: "20.3"
-
+        include:
+          - elixir: 1.6
+            otp: 20.3
+          - elixir: 1.7
+            otp: 21.3
+          - elixir: 1.8.2
+            otp: 21.3
+          - elixir: 1.9.4
+            otp: 22.2
+          - elixir: 1.10.4
+            otp: 23.0
+          - elixir: 1.13.0
+            otp: 24.1
+            check_warnings: true
+            check_format: true
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -86,14 +77,18 @@ jobs:
     - name: Remove compiled application files
       run: mix clean
 
+    - name: Check Format
+      run: mix format --check-formatted
+      if: ${{ matrix.check_format }}
+
     - name: Compile dependencies
       run: mix compile
       env:
         MIX_ENV: test
 
-    - name: Compile dependencies
+    - name: Check warnings
       run: mix compile --force --warnings-as-errors
-      if: matrix.elixir != '1.11.3'
+      if: ${{ matrix.check_warnings }}
       env:
         MIX_ENV: test
 
