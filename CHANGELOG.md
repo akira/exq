@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 
+## [0.17.0] - 2022-11-25
+
+### Added
+- Add Exq unique job feature, allow to enforce a single instance of job! #469 by @ananthakumaran
+
+### Fixed
+- Setup default redis timeout config #475 by @ananthakumaran
+
+### Changed
+- Use erlef/setup-beam and bump versions #476 by @kianmeng
+
 ## [0.16.2] - 2022-04-15
 
 ### Added
