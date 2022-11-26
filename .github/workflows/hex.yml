@@ -10,7 +10,7 @@ jobs:
       - name: Check out
         uses: actions/checkout@v2
 
-      - name: Publish package to hex.pm
-        uses: wesleimp/action-publish-hex@v1
+      - name: Publish to Hex.pm
+        uses: erlangpack/github-action@v3
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
