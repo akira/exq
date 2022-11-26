@@ -2,7 +2,7 @@ defmodule Exq.Mixfile do
   use Mix.Project
 
   @source_url "https://github.com/akira/exq"
-  @version "0.16.2"
+  @version "0.17.0"
 
   def project do
     [
