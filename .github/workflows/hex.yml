@@ -1,16 +1,23 @@
+env:
+  ELIXIR_VERSION: "1.13.4"
+  OTP_VERSION: "25.0.1"
 on:
   push:
     tags:
       - '*'
-
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - name: Check out
-        uses: actions/checkout@v2
-
-      - name: Publish to Hex.pm
-        uses: erlangpack/github-action@v3
-        env:
-          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+      - uses: actions/checkout@v3
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      - name: Publish to Hex
+        uses: synchronal/hex-publish-action@v3
+        with:
+          name: exq
+          key: ${{ secrets.HEX_PM_KEY }}
+          tag-release: false
