@@ -14,8 +14,8 @@ defmodule Exq.Redis.Script do
   @scripts %{
     enqueue:
       Prepare.script("""
-      local job_queue, namespace_prefix, unique_key = KEYS[1], KEYS[2], KEYS[3]
-      local job, jid, unlocks_in = ARGV[1], ARGV[2], tonumber(ARGV[3])
+      local queues_key, job_queue_key, unique_key = KEYS[1], KEYS[2], KEYS[3]
+      local job_queue, job, jid, unlocks_in = ARGV[1], ARGV[2], ARGV[3], tonumber(ARGV[4])
       local unlocked = true
       local conflict_jid = nil
 
@@ -24,8 +24,8 @@ defmodule Exq.Redis.Script do
       end
 
       if unlocked then
-        redis.call('SADD', namespace_prefix .. 'queues', job_queue)
-        redis.call('LPUSH', namespace_prefix .. 'queue:' .. job_queue, job)
+        redis.call('SADD', queues_key, job_queue)
+        redis.call('LPUSH', job_queue_key, job)
         return 0
       else
         conflict_jid = redis.call("get", unique_key)

@@ -35,12 +35,14 @@ defmodule Exq.Redis.JobQueue do
     try do
       [unlocks_in, unique_key] = unique_args(namespace, job, options)
 
+      keys = [full_key(namespace, "queues"), queue_key(namespace, queue)] ++ (unique_key || [])
+
       response =
         Script.eval!(
           redis,
           :enqueue,
-          [queue, full_key(namespace, ""), unique_key],
-          [job_serialized, job.jid, unlocks_in]
+          keys,
+          [queue, job_serialized, job.jid, unlocks_in]
         )
 
       case response do
@@ -96,8 +98,10 @@ defmodule Exq.Redis.JobQueue do
     try do
       [unlocks_in, unique_key] = unique_args(namespace, job, options)
 
+      keys = [scheduled_queue] ++ (unique_key || [])
+
       response =
-        Script.eval!(redis, :enqueue_at, [scheduled_queue, unique_key], [
+        Script.eval!(redis, :enqueue_at, keys, [
           job_serialized,
           score,
           jid,
