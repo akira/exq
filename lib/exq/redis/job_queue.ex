@@ -121,55 +121,23 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def enqueue_all(redis, namespace, jobs) do
-    schedule_queue = scheduled_queue_key(namespace)
+    { unique_keys, args } = extract_enqueue_all_keys_and_args(namespace, jobs)
 
-    job_attrs = extract_job_attrs(namespace, jobs)
-
-    lock_commands =
-      job_attrs
-      |> Enum.map(fn ({ jid, _score, _job_serialized, unique_key, unlocks_in }) ->
-        if unlocks_in do
-          ["SET", unique_key, jid, "PX", unlocks_in, "NX"]
-        else
-          ["ECHO", "OK"]
-        end
-      end)
-
-    Connection.q_transaction_pipeline(redis, lock_commands)
+    Script.eval!(
+      redis,
+      :enqueue_all,
+      [ scheduled_queue_key(namespace) | unique_keys ],
+      args
+    )
     |> case do
-      {:error, reason} -> {:error, reason}
-      {:ok, lock_result} ->
-        unlocked_response_array = List.to_tuple(lock_result)
-        enqueue_commands =
-          job_attrs
-          |> Enum.with_index
-          |> Enum.map(fn ({ job_attr, i }) ->
-            { _jid, score, job_serialized, unique_key, _unlocks_in } = job_attr
-            unlocked = elem(unlocked_response_array, i)
-            if unlocked do
-              ["ZADD", schedule_queue, score, job_serialized]
-            else
-              ["GET", unique_key]
-            end
-          end)
-
-        Connection.q_transaction_pipeline(redis, enqueue_commands)
-        |> case do
-          {:error, reason} -> {:error, reason}
-          {:ok, enqueue_result} ->
-            enqueue_response_array = List.to_tuple(enqueue_result)
-
-            job_attrs
-            |> Enum.with_index
-            |> Enum.map(fn ({ job_attr, i }) ->
-              enqueue_response = elem(enqueue_response_array, i)
-              case enqueue_response do
-                0 -> { :ok, elem(job_attr, 0) }
-                1 -> { :ok, elem(job_attr, 0) }
-                conflict_jid -> { :conflict, conflict_jid }
-              end
-            end)
-        end
+      {:ok, result} ->
+        result |> Enum.map(fn([status, jid]) ->
+          case status do
+            0 -> {:ok, jid}
+            1 -> {:conflict, jid}
+          end
+        end)
+      error -> error
     end
   end
 
@@ -685,15 +653,26 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-  defp extract_job_attrs(namespace, jobs) do
-    Enum.map(jobs, fn ([queue, time, worker, args, options]) ->
-      { jid, job, job_serialized } =
+
+
+  defp extract_enqueue_all_keys_and_args(namespace, jobs) do
+    { unique_keys, job_attrs} = Enum.reduce(jobs, {[], []}, fn (job, { unique_keys_acc, job_attrs_acc }) ->
+      [queue, time, worker, args, options] = job
+
+      { jid, job_data, job_serialized } =
         to_job_serialized(queue, worker, args, options, Time.unix_seconds(time))
 
-      [unlocks_in, unique_key] = unique_args(namespace, job, unique_check: true)
       score = Time.time_to_score(time)
 
-      { jid, score, job_serialized, unique_key, unlocks_in }
+      [unlocks_in, unique_key] = unique_args(namespace, job_data, unique_check: true)
+
+      # accumulating in reverse order for efficiency
+      {
+        [ unique_key | unique_keys_acc ],
+        [ unlocks_in, job_serialized, score, jid ] ++ job_attrs_acc
+      }
     end)
+
+    { Enum.reverse(unique_keys), Enum.reverse(job_attrs) }
   end
 end

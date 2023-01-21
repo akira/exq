@@ -51,6 +51,38 @@ defmodule Exq.Redis.Script do
         return {1, conflict_jid}
       end
       """),
+    enqueue_all:
+      Prepare.script("""
+      local schedule_queue = KEYS[1]
+      local i = 1
+      local result = {}
+
+      while i < #(KEYS) do
+        local unique_key = KEYS[i + 1]
+        local jid        = ARGV[(i - 1) * 4 + 1]
+        local score      = tonumber(ARGV[(i - 1) * 4 + 2])
+        local job        = ARGV[(i - 1) * 4 + 3]
+        local unlocks_in = tonumber(ARGV[(i - 1) * 4 + 4])
+        local unlocked   = true
+        local conflict_jid = nil
+
+        if unlocks_in then
+          unlocked = redis.call("set", unique_key, jid, "px", unlocks_in, "nx")
+        end
+
+        if unlocked then
+          redis.call('ZADD', schedule_queue, score, job)
+          result[i] = {0, jid}
+        else
+          conflict_jid = redis.call("get", unique_key)
+          result[i] = {1, conflict_jid}
+        end
+
+        i = i + 1
+      end
+
+      return result
+      """),
     scheduler_dequeue_jobs:
       Prepare.script("""
       local schedule_queue, namespace_prefix = KEYS[1], KEYS[2]
