@@ -98,6 +98,20 @@ defmodule Exq.Enqueuer.EnqueueApi do
         queue_adapter = Config.get(:queue_adapter)
         queue_adapter.enqueue_in(pid, queue, offset, worker, args, options)
       end
+
+      @doc """
+      Schedule multiple jobs to be atomically enqueued at specific times
+
+      Expected args:
+      * `pid` - PID for Exq Manager or Enqueuer to handle this
+      * `jobs` - List of jobs
+      #{@options_doc}
+
+      """
+      def enqueue_all(pid, jobs) do
+        queue_adapter = Config.get(:queue_adapter)
+        queue_adapter.enqueue_all(pid, jobs)
+      end
     end
   end
 end

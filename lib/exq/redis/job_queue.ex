@@ -120,6 +120,59 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
+  def enqueue_all(redis, namespace, jobs) do
+    schedule_queue = scheduled_queue_key(namespace)
+
+    job_attrs = extract_job_attrs(namespace, jobs)
+
+    lock_commands =
+      job_attrs
+      |> Enum.map(fn ({ jid, _score, _job_serialized, unique_key, unlocks_in }) ->
+        if unlocks_in do
+          ["SET", unique_key, jid, "PX", unlocks_in, "NX"]
+        else
+          ["ECHO", "OK"]
+        end
+      end)
+
+    Connection.q_transaction_pipeline(redis, lock_commands)
+    |> case do
+      {:error, reason} -> {:error, reason}
+      {:ok, lock_result} ->
+        unlocked_response_array = List.to_tuple(lock_result)
+        enqueue_commands =
+          job_attrs
+          |> Enum.with_index
+          |> Enum.map(fn ({ job_attr, i }) ->
+            { _jid, score, job_serialized, unique_key, _unlocks_in } = job_attr
+            unlocked = elem(unlocked_response_array, i)
+            if unlocked do
+              ["ZADD", schedule_queue, score, job_serialized]
+            else
+              ["GET", unique_key]
+            end
+          end)
+
+        Connection.q_transaction_pipeline(redis, enqueue_commands)
+        |> case do
+          {:error, reason} -> {:error, reason}
+          {:ok, enqueue_result} ->
+            enqueue_response_array = List.to_tuple(enqueue_result)
+
+            job_attrs
+            |> Enum.with_index
+            |> Enum.map(fn ({ job_attr, i }) ->
+              enqueue_response = elem(enqueue_response_array, i)
+              case enqueue_response do
+                0 -> { :ok, elem(job_attr, 0) }
+                1 -> { :ok, elem(job_attr, 0) }
+                conflict_jid -> { :conflict, conflict_jid }
+              end
+            end)
+        end
+    end
+  end
+
   @doc """
   Dequeue jobs for available queues
   """
@@ -630,5 +683,17 @@ defmodule Exq.Redis.JobQueue do
     else
       [nil, nil]
     end
+  end
+
+  defp extract_job_attrs(namespace, jobs) do
+    Enum.map(jobs, fn ([queue, time, worker, args, options]) ->
+      { jid, job, job_serialized } =
+        to_job_serialized(queue, worker, args, options, Time.unix_seconds(time))
+
+      [unlocks_in, unique_key] = unique_args(namespace, job, unique_check: true)
+      score = Time.time_to_score(time)
+
+      { jid, score, job_serialized, unique_key, unlocks_in }
+    end)
   end
 end

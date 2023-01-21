@@ -30,4 +30,5 @@ defmodule Exq.Adapters.Queue do
   @callback enqueue(server, String.t(), module(), list(), list()) :: tuple()
   @callback enqueue_at(server, String.t(), DateTime.t(), module(), list(), list()) :: tuple()
   @callback enqueue_in(server, String.t(), integer(), module(), list(), list()) :: tuple()
+  @callback enqueue_all(server, list()) :: tuple()
 end
