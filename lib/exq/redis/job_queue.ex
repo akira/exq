@@ -121,23 +121,26 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def enqueue_all(redis, namespace, jobs) do
-    { unique_keys, args } = extract_enqueue_all_keys_and_args(namespace, jobs)
+    {keys, args} = extract_enqueue_all_keys_and_args(namespace, jobs)
 
     Script.eval!(
       redis,
       :enqueue_all,
-      [ scheduled_queue_key(namespace) | unique_keys ],
+      [scheduled_queue_key(namespace), full_key(namespace, "queues")] ++ keys,
       args
     )
     |> case do
       {:ok, result} ->
-        result |> Enum.map(fn([status, jid]) ->
+        result
+        |> Enum.map(fn [status, jid] ->
           case status do
             0 -> {:ok, jid}
             1 -> {:conflict, jid}
           end
         end)
-      error -> error
+
+      error ->
+        error
     end
   end
 
@@ -653,26 +656,49 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
-
-
+  # Returns
+  # {
+  #   [
+  #     job_1_unique_key, job_1_queue_key,
+  #     job_2_unique_key, job_2_queue_key,
+  #     ...
+  #   ],
+  #   [
+  #     job_1_jid, job_1_queue, job_1_score, job_1_job_serialized, job_1_unlocks_in,
+  #     job_2_jid, job_2_queue, job_2_score, job_2_job_serialized, job_2_unlocks_in,
+  #     ...
+  #   ]
+  # }
   defp extract_enqueue_all_keys_and_args(namespace, jobs) do
-    { unique_keys, job_attrs} = Enum.reduce(jobs, {[], []}, fn (job, { unique_keys_acc, job_attrs_acc }) ->
-      [queue, time, worker, args, options] = job
+    {keys, job_attrs} =
+      Enum.reduce(jobs, {[], []}, fn job, {keys_acc, job_attrs_acc} ->
+        [queue, worker, args, options] = job
 
-      { jid, job_data, job_serialized } =
-        to_job_serialized(queue, worker, args, options, Time.unix_seconds(time))
+        {score, enqueued_at} =
+          case options[:schedule] do
+            {:at, at_time} ->
+              {Time.time_to_score(at_time), Time.unix_seconds(at_time)}
 
-      score = Time.time_to_score(time)
+            {:in, offset} ->
+              at_time = Time.offset_from_now(offset)
+              {Time.time_to_score(at_time), Time.unix_seconds(at_time)}
 
-      [unlocks_in, unique_key] = unique_args(namespace, job_data, unique_check: true)
+            _ ->
+              {"0", Time.unix_seconds()}
+          end
 
-      # accumulating in reverse order for efficiency
-      {
-        [ unique_key | unique_keys_acc ],
-        [ unlocks_in, job_serialized, score, jid ] ++ job_attrs_acc
-      }
-    end)
+        {jid, job_data, job_serialized} =
+          to_job_serialized(queue, worker, args, options, enqueued_at)
 
-    { Enum.reverse(unique_keys), Enum.reverse(job_attrs) }
+        [unlocks_in, unique_key] = unique_args(namespace, job_data, unique_check: true)
+
+        # accumulating in reverse order for efficiency
+        {
+          [queue_key(namespace, queue), unique_key] ++ keys_acc,
+          [unlocks_in, job_serialized, score, queue, jid] ++ job_attrs_acc
+        }
+      end)
+
+    {Enum.reverse(keys), Enum.reverse(job_attrs)}
   end
 end

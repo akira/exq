@@ -12,4 +12,6 @@ defmodule Exq.Adapters.Queue.Mock do
   defdelegate enqueue_at(pid, queue, time, worker, args, options), to: Exq.Mock
 
   defdelegate enqueue_in(pid, queue, offset, worker, args, options), to: Exq.Mock
+
+  defdelegate enqueue_all(pid, jobs), to: Exq.Mock
 end

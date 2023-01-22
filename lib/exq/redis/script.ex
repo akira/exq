@@ -53,16 +53,19 @@ defmodule Exq.Redis.Script do
       """),
     enqueue_all:
       Prepare.script("""
-      local schedule_queue = KEYS[1]
+      local schedule_queue, queues_key = KEYS[1], KEYS[2]
       local i = 1
       local result = {}
 
-      while i < #(KEYS) do
-        local unique_key = KEYS[i + 1]
-        local jid        = ARGV[(i - 1) * 4 + 1]
-        local score      = tonumber(ARGV[(i - 1) * 4 + 2])
-        local job        = ARGV[(i - 1) * 4 + 3]
-        local unlocks_in = tonumber(ARGV[(i - 1) * 4 + 4])
+      while i <= #(ARGV) / 5 do
+        local keys_start = i * 2
+        local args_start = (i - 1) * 5
+        local unique_key, job_queue_key = KEYS[keys_start + 1], KEYS[keys_start + 2]
+        local jid        = ARGV[args_start + 1]
+        local job_queue  = ARGV[args_start + 2]
+        local score      = tonumber(ARGV[args_start + 3])
+        local job        = ARGV[args_start + 4]
+        local unlocks_in = tonumber(ARGV[args_start + 5])
         local unlocked   = true
         local conflict_jid = nil
 
@@ -70,7 +73,11 @@ defmodule Exq.Redis.Script do
           unlocked = redis.call("set", unique_key, jid, "px", unlocks_in, "nx")
         end
 
-        if unlocked then
+        if unlocked and score == 0 then
+          redis.call('SADD', queues_key, job_queue)
+          redis.call('LPUSH', job_queue_key, job)
+          result[i] = {0, jid}
+        elseif unlocked then
           redis.call('ZADD', schedule_queue, score, job)
           result[i] = {0, jid}
         else

@@ -98,6 +98,17 @@ defmodule Exq.Mock do
     runnable.()
   end
 
+  def enqueue_all(pid, jobs) do
+    {:ok, runnable} =
+      GenServer.call(
+        __MODULE__,
+        {:enqueue, self(), :enqueue_all, [pid, jobs]},
+        @timeout
+      )
+
+    runnable.()
+  end
+
   @impl true
   def handle_call({:enqueue, owner_pid, type, args}, _from, state) do
     state = maybe_add_and_monitor_pid(state, owner_pid, state.default_mode)

@@ -222,17 +222,6 @@ defmodule Exq.Redis.Connection do
     )
   end
 
-  def q_transaction_pipeline(redis, commands, options \\ []) do
-    Redis.with_retry_on_connection_error(
-      fn ->
-        redis
-        |> Redix.transaction_pipeline(commands, timeout: Config.get(:redis_timeout))
-        |> handle_responses(redis)
-      end,
-      Keyword.get(options, :retry_on_connection_error, 0)
-    )
-  end
-
   defp handle_response({:error, %{message: "READONLY" <> _rest}} = error, redis) do
     disconnect(redis)
     error
