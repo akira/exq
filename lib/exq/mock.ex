@@ -99,14 +99,14 @@ defmodule Exq.Mock do
   end
 
   def enqueue_all(pid, jobs) do
-    {:ok, runnable} =
-      GenServer.call(
-        __MODULE__,
-        {:enqueue, self(), :enqueue_all, [pid, jobs]},
-        @timeout
-      )
-
-    runnable.()
+    jobs
+    |> Enum.map(fn ([ queue, worker, args, options ]) ->
+        case options[:schedule] do
+          {:at, at_time} -> enqueue_at(pid, queue, at_time, worker, args, options)
+          {:in, offset} -> enqueue_in(pid, queue, offset, worker, args, options)
+          _ -> enqueue(pid, queue, worker, args, options)
+        end
+      end)
   end
 
   @impl true
