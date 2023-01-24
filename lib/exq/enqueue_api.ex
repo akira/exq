@@ -103,9 +103,23 @@ defmodule Exq.Enqueuer.EnqueueApi do
       Schedule multiple jobs to be atomically enqueued at specific times
 
       Expected args:
-      * `pid` - PID for Exq Manager or Enqueuer to handle this
-      * `jobs` - List of jobs
-      #{@options_doc}
+        * `pid` - PID for Exq Manager or Enqueuer to handle this
+        * `jobs` - List of jobs each defined as `[queue, worker, args, options]`
+          * `queue` - Name of queue to use
+          * `worker` - Worker module to target
+          * `args` - Array of args to send to worker
+          * `options`: Following job options are supported
+            * `max_retries` (integer) - max retry count
+            * `jid` (string) - user supplied jid value
+            * `unique_for` (integer) - lock expiration duration in seconds
+            * `unique_token` (string) - unique lock token. By default the token is computed based on the queue, class and args.
+            * `unique_until` (atom) - defaults to `:success`. Supported values are
+              * `:success` - unlock on job success
+              * `:start` - unlock on job first execution
+              * `:expiry` - unlock when the lock is expired. Depends on `unique_for` value.
+            * `schedule` - (optional) - used to schedule the job for future. If not present, job will be enqueued immediately by default.
+              * `{:in, seconds_from_now}`
+              * `{:at, datetime}`
 
       """
       def enqueue_all(pid, jobs) do

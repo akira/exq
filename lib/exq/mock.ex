@@ -100,13 +100,13 @@ defmodule Exq.Mock do
 
   def enqueue_all(pid, jobs) do
     jobs
-    |> Enum.map(fn ([ queue, worker, args, options ]) ->
-        case options[:schedule] do
-          {:at, at_time} -> enqueue_at(pid, queue, at_time, worker, args, options)
-          {:in, offset} -> enqueue_in(pid, queue, offset, worker, args, options)
-          _ -> enqueue(pid, queue, worker, args, options)
-        end
-      end)
+    |> Enum.map(fn [queue, worker, args, options] ->
+      case options[:schedule] do
+        {:at, at_time} -> enqueue_at(pid, queue, at_time, worker, args, options)
+        {:in, offset} -> enqueue_in(pid, queue, offset, worker, args, options)
+        _ -> enqueue(pid, queue, worker, args, options)
+      end
+    end)
   end
 
   @impl true
