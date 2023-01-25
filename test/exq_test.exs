@@ -143,7 +143,7 @@ defmodule ExqTest do
     {:ok, sup} = Exq.start_link(scheduler_enable: true)
     {:ok, _} = Exq.enqueue_at(Exq, "default", DateTime.utc_now(), ExqTest.PerformWorker, [])
 
-    [{:ok, _}, {:ok, _}, {:ok, _}] =
+    {:ok, [{:ok, _}, {:ok, _}, {:ok, _}]} =
       Exq.enqueue_all(Exq, [
         ["default", ExqTest.PerformArgWorker, [1], []],
         ["default", ExqTest.PerformArgWorker, [2], [schedule: {:at, DateTime.utc_now()}]],
@@ -746,7 +746,7 @@ defmodule ExqTest do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
 
-    [{:ok, j1}, {:conflict, j2}] =
+    {:ok, [{:ok, j1}, {:conflict, j2}]} =
       Exq.enqueue_all(Exq, [
         ["q1", PerformWorker, [], [schedule: {:in, 1}, unique_for: 60]],
         ["q1", PerformWorker, [], [schedule: {:in, 1}, unique_for: 60]]
@@ -757,7 +757,7 @@ defmodule ExqTest do
     :timer.sleep(2000)
     assert_received {:worked}
 
-    [{:ok, _}] =
+    {:ok, [{:ok, _}]} =
       Exq.enqueue_all(Exq, [
         ["q1", PerformWorker, [], [schedule: {:in, 1}, unique_for: 60]]
       ])

@@ -51,7 +51,7 @@ defmodule FakeModeTest do
       scheduled_at = DateTime.utc_now()
       assert [] = Exq.Mock.jobs()
 
-      assert [{:ok, _}, {:ok, _}, {:ok, _}] =
+      assert {:ok, [{:ok, _}, {:ok, _}, {:ok, _}]} =
                Exq.enqueue_all(Exq, [
                  ["low", BrokenWorker, [1], []],
                  ["low", BrokenWorker, [2], [schedule: {:at, scheduled_at}]],

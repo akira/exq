@@ -24,7 +24,7 @@ defmodule InlineModeTest do
     end
 
     test "enqueue_all should return the correct value" do
-      assert [{:ok, _}, {:ok, _}, {:ok, _}] =
+      assert {:ok, [{:ok, _}, {:ok, _}, {:ok, _}]} =
                Exq.enqueue_all(Exq, [
                  ["low", EchoWorker, [1], [schedule: {:in, 300}]],
                  ["low", EchoWorker, [1], [schedule: {:at, DateTime.utc_now()}]],

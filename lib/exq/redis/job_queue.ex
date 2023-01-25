@@ -123,24 +123,34 @@ defmodule Exq.Redis.JobQueue do
   def enqueue_all(redis, namespace, jobs) do
     {keys, args} = extract_enqueue_all_keys_and_args(namespace, jobs)
 
-    Script.eval!(
-      redis,
-      :enqueue_all,
-      [scheduled_queue_key(namespace), full_key(namespace, "queues")] ++ keys,
-      args
-    )
-    |> case do
-      {:ok, result} ->
-        result
-        |> Enum.map(fn [status, jid] ->
-          case status do
-            0 -> {:ok, jid}
-            1 -> {:conflict, jid}
-          end
-        end)
+    try do
+      response =
+        Script.eval!(
+          redis,
+          :enqueue_all,
+          [scheduled_queue_key(namespace), full_key(namespace, "queues")] ++ keys,
+          args
+        )
 
-      error ->
-        error
+      case response do
+        {:ok, result} ->
+          {
+            :ok,
+            Enum.map(result, fn [status, jid] ->
+              case status do
+                0 -> {:ok, jid}
+                1 -> {:conflict, jid}
+              end
+            end)
+          }
+
+        error ->
+          error
+      end
+    catch
+      :exit, e ->
+        Logger.info("Error enqueueing -  #{Kernel.inspect(e)}")
+        {:error, :timeout}
     end
   end
 

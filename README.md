@@ -540,7 +540,7 @@ Exq comes with an `enqueue_all` method which guarantees atomicity.
 
 
 ```elixir
-[{:ok, jid_1}, {:ok, jid_2}, {:ok, jid_3}] = Exq.enqueue_all(Exq, [
+{:ok, [{:ok, jid_1}, {:ok, jid_2}, {:ok, jid_3}]} = Exq.enqueue_all(Exq, [
   [job_1_queue, job_1_worker, job_1_args, job_1_options],
   [job_2_queue, job_2_worker, job_2_args, job_2_options],
   [job_3_queue, job_3_worker, job_3_args, job_3_options]
@@ -549,7 +549,7 @@ Exq comes with an `enqueue_all` method which guarantees atomicity.
 
 `enqueue_all` also supports scheduling jobs via `schedule` key in the `options` passed for each job:
 ```elixir
-[{:ok, jid_1}, {:ok, jid_2}, {:ok, jid_3}] = Exq.enqueue_all(Exq, [
+{:ok, [{:ok, jid_1}, {:ok, jid_2}, {:ok, jid_3}]} = Exq.enqueue_all(Exq, [
   [job_1_queue, job_1_worker, job_1_args, [schedule: {:in, 60 * 60}]],
   [job_2_queue, job_2_worker, job_2_args, [schedule: {:at, midnight}]],
   [job_3_queue, job_3_worker, job_3_args, []] # no schedule key is present, it is enqueued immediately
