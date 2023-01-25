@@ -141,7 +141,6 @@ defmodule ExqTest do
   test "enqueue_all and run many jobs" do
     Process.register(self(), :exqtest)
     {:ok, sup} = Exq.start_link(scheduler_enable: true)
-    {:ok, _} = Exq.enqueue_at(Exq, "default", DateTime.utc_now(), ExqTest.PerformWorker, [])
 
     {:ok, [{:ok, _}, {:ok, _}, {:ok, _}]} =
       Exq.enqueue_all(Exq, [
