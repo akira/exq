@@ -138,6 +138,23 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "enqueue_all and run many jobs" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(scheduler_enable: true)
+
+    {:ok, [{:ok, _}, {:ok, _}, {:ok, _}]} =
+      Exq.enqueue_all(Exq, [
+        ["default", ExqTest.PerformArgWorker, [1], []],
+        ["default", ExqTest.PerformArgWorker, [2], [schedule: {:at, DateTime.utc_now()}]],
+        ["default", ExqTest.PerformArgWorker, [3], [schedule: {:in, 0}]]
+      ])
+
+    assert_receive {:worked, 1}
+    assert_receive {:worked, 2}
+    assert_receive {:worked, 3}
+    stop_process(sup)
+  end
+
   test "enqueue with separate enqueuer" do
     Process.register(self(), :exqtest)
     {:ok, exq_sup} = Exq.start_link()
@@ -720,6 +737,31 @@ defmodule ExqTest do
 
     {:ok, _} = Exq.enqueue_at(Exq, "q1", DateTime.utc_now(), PerformWorker, [], unique_for: 60)
     :timer.sleep(1000)
+    assert_received {:worked}
+    stop_process(sup)
+  end
+
+  test "prevent duplicate scheduled job while using enqueue_all" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
+
+    {:ok, [{:ok, j1}, {:conflict, j2}]} =
+      Exq.enqueue_all(Exq, [
+        ["q1", PerformWorker, [], [schedule: {:in, 1}, unique_for: 60]],
+        ["q1", PerformWorker, [], [schedule: {:in, 1}, unique_for: 60]]
+      ])
+
+    assert j1 == j2
+
+    :timer.sleep(2000)
+    assert_received {:worked}
+
+    {:ok, [{:ok, _}]} =
+      Exq.enqueue_all(Exq, [
+        ["q1", PerformWorker, [], [schedule: {:in, 1}, unique_for: 60]]
+      ])
+
+    :timer.sleep(1500)
     assert_received {:worked}
     stop_process(sup)
   end

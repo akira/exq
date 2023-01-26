@@ -527,6 +527,35 @@ feature depends on `Exq.Middleware.Unique` middleware. If you override
 `:middleware` configuration, make sure to include it.
 
 
+## Enqueuing Many Jobs Atomically
+
+Similar to database transactions, there are cases where you may want to
+enqueue/schedule many jobs atomically. A common usecase of this would be when you
+have a computationally heavy job and you want to break it down to multiple smaller jobs so they
+can be run concurrently. If you use a loop to enqueue/schedule these jobs,
+and a network, connectivity, or application error occurs while passing these jobs to Exq,
+you will end up in a situation where you have to roll back all the jobs that you may already
+have scheduled/enqueued which will be a complicated process. In order to avoid this problem,
+Exq comes with an `enqueue_all` method which guarantees atomicity.
+
+
+```elixir
+{:ok, [{:ok, jid_1}, {:ok, jid_2}, {:ok, jid_3}]} = Exq.enqueue_all(Exq, [
+  [job_1_queue, job_1_worker, job_1_args, job_1_options],
+  [job_2_queue, job_2_worker, job_2_args, job_2_options],
+  [job_3_queue, job_3_worker, job_3_args, job_3_options]
+])
+```
+
+`enqueue_all` also supports scheduling jobs via `schedule` key in the `options` passed for each job:
+```elixir
+{:ok, [{:ok, jid_1}, {:ok, jid_2}, {:ok, jid_3}]} = Exq.enqueue_all(Exq, [
+  [job_1_queue, job_1_worker, job_1_args, [schedule: {:in, 60 * 60}]],
+  [job_2_queue, job_2_worker, job_2_args, [schedule: {:at, midnight}]],
+  [job_3_queue, job_3_worker, job_3_args, []] # no schedule key is present, it is enqueued immediately
+])
+```
+
 ## Web UI
 
 Exq has a separate repo, exq_ui which provides with a Web UI to monitor your workers:
