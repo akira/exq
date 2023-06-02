@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 
+## [0.18.0] - 2023-06-01
+
+### Added
+- Add enqueue_all for enqueuing a batch of jobs atomically #483 by @meysius
+
+### Fixed
+- Fix namespaced keys in scripts for ACL redis #481 by @korialis
+
 ## [0.17.0] - 2022-11-25
 
 ### Added
