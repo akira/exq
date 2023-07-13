@@ -8,7 +8,7 @@ defmodule Exq.Mixfile do
     [
       app: :exq,
       version: @version,
-      elixir: "~> 1.6",
+      elixir: "~> 1.7",
       elixirc_paths: ["lib"],
       test_coverage: [tool: ExCoveralls],
       deps: deps(),
