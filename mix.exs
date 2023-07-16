@@ -8,7 +8,7 @@ defmodule Exq.Mixfile do
     [
       app: :exq,
       version: @version,
-      elixir: "~> 1.6",
+      elixir: "~> 1.7",
       elixirc_paths: ["lib"],
       test_coverage: [tool: ExCoveralls],
       deps: deps(),
@@ -28,7 +28,7 @@ defmodule Exq.Mixfile do
     [
       {:elixir_uuid, ">= 1.2.0"},
       {:redix, ">= 0.9.0"},
-      {:poison, ">= 1.2.0 and < 5.0.0", optional: true},
+      {:poison, ">= 1.2.0 and < 6.0.0", optional: true},
       {:jason, "~> 1.0", optional: true},
       {:excoveralls, "~> 0.6", only: :test},
       {:flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
