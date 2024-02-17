@@ -43,8 +43,6 @@ Some OTP related documentation to look at:
 
 If you need a durable jobs, retries with exponential backoffs, dynamically scheduled jobs in the future - that are all able to survive application restarts, then an externally backed queueing library such as Exq could be a good fit.
 
-If you are starting a brand new project, I would also take a look at [Faktory](https://github.com/contribsys/faktory). It provides language independent queueing system, which means this logic doesn't have to be implemented across different languages and can use a thin client such as [faktory_worker_ex](https://github.com/cjbottaro/faktory_worker_ex).
-
 ## Getting Started
 
 ### Pre-requisite
