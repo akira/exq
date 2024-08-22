@@ -21,6 +21,7 @@ defmodule Exq.Worker.Server do
   alias Exq.Middleware.Server, as: Middleware
   alias Exq.Middleware.Pipeline
   alias Exq.Worker.Metadata
+  require Logger
 
   defmodule State do
     defstruct job_serialized: nil,
@@ -172,6 +173,7 @@ defmodule Exq.Worker.Server do
     {:ok, pid} =
       Task.start_link(fn ->
         :ok = Metadata.associate(metadata, self(), job)
+        Logger.metadata(job_id: job.jid)
         result = apply(worker_module, :perform, job.args)
         GenServer.cast(worker, {:done, result})
       end)
