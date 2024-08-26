@@ -56,7 +56,7 @@ NOTE: Please read PR #458 for upgrade instructions.
 - Add retried_at field for Sidekiq compatibility #450 by @ananthakumaran
 - Add apis to support exq_ui #452 by @ananthakumaran
 - Add documentation about mode: :enqueuer and Exq.Enqueuer.queue_in #456 by @dbernheisel
-- Add api to immediately enqeueue jobs from retry/scheduled queue #461 by @ananthakumaran
+- Add api to immediately enqueue jobs from retry/scheduled queue #461 by @ananthakumaran
 - Add api to re-enqueue dead job #462 by @ananthakumaran
 
 ### Changed
