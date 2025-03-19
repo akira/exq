@@ -5,7 +5,7 @@ defmodule Exq.Middleware.Telemetry do
 
   ### Exq telemetry events
 
-  The middleware emit three events, same as what `:telemetry.span/3` emits.
+  The middleware emits three events, same as what `:telemetry.span/3` emits.
   * `[:exq, :job, :start]` - Is invoked whenever a job starts.
 
       ** Measurements **
