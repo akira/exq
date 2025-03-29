@@ -323,6 +323,22 @@ defmodule ApiTest do
     assert {:ok, nil} = Exq.Api.find_scheduled(Exq.Api, jid)
   end
 
+  test "remove scheduled jobs but keep lock" do
+    {:ok, jid} = Exq.enqueue_in(Exq, "custom", 1000, Bogus, [], unique_for: 60, unique_token: "t1")
+    {:ok, [job]} = Exq.Api.scheduled(Exq.Api, raw: true)
+    :ok = Exq.Api.remove_scheduled_jobs(Exq.Api, [job])
+    assert {:ok, []} = Exq.Api.scheduled(Exq.Api, raw: true)
+    {:conflict, ^jid} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+  end
+
+  test "remove and unlock scheduled jobs" do
+    {:ok, _} = Exq.enqueue_in(Exq, "custom", 1000, Bogus, [], unique_for: 60, unique_token: "t1")
+    {:ok, [job]} = Exq.Api.scheduled(Exq.Api, raw: true)
+    :ok = Exq.Api.remove_scheduled_jobs(Exq.Api, [job], true)
+    assert {:ok, []} = Exq.Api.scheduled(Exq.Api, raw: true)
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+  end
+
   test "enqueue jobs in scheduled queue" do
     {:ok, jid} = Exq.enqueue_in(Exq, "custom", 1000, Bogus, [])
     {:ok, [raw_job]} = Exq.Api.scheduled(Exq.Api, raw: true)
