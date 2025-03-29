@@ -327,6 +327,24 @@ defmodule ApiTest do
     {:ok, nil} = Exq.Api.find_failed(Exq.Api, "1234")
   end
 
+  test "remove and unlock jobs in failed queue" do
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 600, unique_token: "t1")
+    {:ok, [job]} = Exq.Api.jobs(Exq.Api, "custom")
+    JobQueue.fail_job(:testredis, 'test', job, "this is an error")
+    {:ok, [raw_job]} = Exq.Api.failed(Exq.Api, raw: true)
+    Exq.Api.remove_failed_jobs(Exq.Api, [raw_job], true)
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 600, unique_token: "t1")
+  end
+
+  test "remove jobs but keep lock in failed queue" do
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 600, unique_token: "t1")
+    {:ok, [job]} = Exq.Api.jobs(Exq.Api, "custom")
+    JobQueue.fail_job(:testredis, 'test', job, "this is an error")
+    {:ok, [raw_job]} = Exq.Api.failed(Exq.Api, raw: true)
+    Exq.Api.remove_failed_jobs(Exq.Api, [raw_job])
+    {:conflict, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 600, unique_token: "t1")
+  end
+
   test "enqueue jobs in failed queue" do
     JobQueue.fail_job(:testredis, 'test', %Job{jid: "1234", queue: "test"}, "this is an error")
     {:ok, [raw_job]} = Exq.Api.failed(Exq.Api, raw: true)

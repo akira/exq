@@ -291,13 +291,14 @@ defmodule Exq.Api do
   Expected args:
     * `pid` - Exq.Api process
     * `raw_job` - raw json encoded job value
+    * `unlock` - (boolean) whether to unlock jobs unique tokens, default is `false`
 
   Returns:
     * `:ok`
 
   """
-  def remove_failed_jobs(pid, raw_jobs) do
-    GenServer.call(pid, {:remove_failed_jobs, raw_jobs})
+  def remove_failed_jobs(pid, raw_jobs, unlock \\ false) do
+    GenServer.call(pid, {:remove_failed_jobs, raw_jobs, unlock})
   end
 
   def clear_failed(pid) do
