@@ -243,6 +243,22 @@ defmodule ApiTest do
     assert {:ok, 0} = Exq.Api.queue_size(Exq.Api, "custom")
   end
 
+  test "remove enqueued jobs but keep lock" do
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+    {:ok, [job]} = Exq.Api.jobs(Exq.Api, "custom", raw: true)
+    :ok = Exq.Api.remove_enqueued_jobs(Exq.Api, "custom", [job])
+    assert {:ok, 0} = Exq.Api.queue_size(Exq.Api, "custom")
+    {:conflict, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+  end
+
+  test "remove and unlock enqueued jobs" do
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+    {:ok, [job]} = Exq.Api.jobs(Exq.Api, "custom", raw: true)
+    :ok = Exq.Api.remove_enqueued_jobs(Exq.Api, "custom", [job], true)
+    assert {:ok, 0} = Exq.Api.queue_size(Exq.Api, "custom")
+    {:ok, _} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+  end
+
   test "remove job in retry queue" do
     jid = "1234"
     JobQueue.retry_job(:testredis, 'test', %Job{jid: "1234"}, 1, "this is an error")

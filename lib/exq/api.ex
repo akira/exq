@@ -188,14 +188,15 @@ defmodule Exq.Api do
   Expected args:
     * `pid` - Exq.Api process
     * `queue` - The name of the queue to remove the job from
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
+    * `unlock` - (boolean) whether to unlock jobs unique tokens, default is `false`
 
   Returns:
     * `:ok`
 
   """
-  def remove_enqueued_jobs(pid, queue, raw_jobs) do
-    GenServer.call(pid, {:remove_enqueued_jobs, queue, raw_jobs})
+  def remove_enqueued_jobs(pid, queue, raw_jobs, unlock \\ false) do
+    GenServer.call(pid, {:remove_enqueued_jobs, queue, raw_jobs, unlock})
   end
 
   @doc """
