@@ -155,8 +155,10 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:remove_enqueued_jobs, queue, raw_jobs}, _from, state) do
+  def handle_call({:remove_enqueued_jobs, queue, raw_jobs, unlock}, _from, state) do
     JobQueue.remove_enqueued_jobs(state.redis, state.namespace, queue, raw_jobs)
+    if unlock, do: JobQueue.unlock_jobs(state.redis, state.namespace, raw_jobs)
+
     {:reply, :ok, state}
   end
 
@@ -165,8 +167,9 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:remove_retry_jobs, raw_jobs}, _from, state) do
+  def handle_call({:remove_retry_jobs, raw_jobs, unlock}, _from, state) do
     JobQueue.remove_retry_jobs(state.redis, state.namespace, raw_jobs)
+    if unlock, do: JobQueue.unlock_jobs(state.redis, state.namespace, raw_jobs)
     {:reply, :ok, state}
   end
 
@@ -180,8 +183,10 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:remove_scheduled_jobs, raw_jobs}, _from, state) do
+  def handle_call({:remove_scheduled_jobs, raw_jobs, unlock}, _from, state) do
     JobQueue.remove_scheduled_jobs(state.redis, state.namespace, raw_jobs)
+    if unlock, do: JobQueue.unlock_jobs(state.redis, state.namespace, raw_jobs)
+
     {:reply, :ok, state}
   end
 
@@ -195,8 +200,10 @@ defmodule Exq.Api.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:remove_failed_jobs, raw_jobs}, _from, state) do
+  def handle_call({:remove_failed_jobs, raw_jobs, unlock}, _from, state) do
     JobQueue.remove_failed_jobs(state.redis, state.namespace, raw_jobs)
+    if unlock, do: JobQueue.unlock_jobs(state.redis, state.namespace, raw_jobs)
+
     {:reply, :ok, state}
   end
 
