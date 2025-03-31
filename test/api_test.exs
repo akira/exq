@@ -247,7 +247,9 @@ defmodule ApiTest do
     {:ok, jid} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
     {:ok, [job]} = Exq.Api.jobs(Exq.Api, "custom", raw: true)
     :ok = Exq.Api.remove_enqueued_jobs(Exq.Api, "custom", [job])
-    assert {:conflict, ^jid} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+
+    assert {:conflict, ^jid} =
+             Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
   end
 
   test "remove enqueued jobs and clear their unique tokens" do
@@ -287,7 +289,9 @@ defmodule ApiTest do
     JobQueue.retry_job(:testredis, 'test', job, 1, "this is an error")
     {:ok, [raw_job]} = Exq.Api.retries(Exq.Api, raw: true)
     :ok = Exq.Api.remove_retry_jobs(Exq.Api, [raw_job])
-    assert {:conflict, ^jid} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+
+    assert {:conflict, ^jid} =
+             Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
   end
 
   test "re enqueue jobs in retry queue" do
@@ -322,11 +326,15 @@ defmodule ApiTest do
   end
 
   test "remove scheduled jobs but keep unique tokens" do
-    {:ok, jid} = Exq.enqueue_in(Exq, "custom", 1000, Bogus, [], unique_for: 60, unique_token: "t1")
+    {:ok, jid} =
+      Exq.enqueue_in(Exq, "custom", 1000, Bogus, [], unique_for: 60, unique_token: "t1")
+
     {:ok, [job]} = Exq.Api.scheduled(Exq.Api, raw: true)
     :ok = Exq.Api.remove_scheduled_jobs(Exq.Api, [job])
     {:ok, []} = Exq.Api.scheduled(Exq.Api, raw: true)
-    assert {:conflict, ^jid} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+
+    assert {:conflict, ^jid} =
+             Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
   end
 
   test "remove scheduled jobs and clear their unique tokens" do
@@ -374,7 +382,9 @@ defmodule ApiTest do
     JobQueue.fail_job(:testredis, 'test', job, "this is an error")
     {:ok, [raw_job]} = Exq.Api.failed(Exq.Api, raw: true)
     :ok = Exq.Api.remove_failed_jobs(Exq.Api, [raw_job])
-    assert {:conflict, ^jid} = Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
+
+    assert {:conflict, ^jid} =
+             Exq.enqueue(Exq, "custom", Bogus, [], unique_for: 60, unique_token: "t1")
   end
 
   test "enqueue jobs in failed queue" do
