@@ -58,7 +58,10 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def unlock_jobs(redis, namespace, raw_jobs) do
-    raw_jobs |> Enum.each(&unlock(redis, namespace, Job.decode(&1).unique_token))
+    for job <- raw_jobs,
+        unique_token = Job.decode(job).unique_token do
+      unlock(redis, namespace, unique_token)
+    end
   end
 
   def unlock(redis, namespace, unique_token) do
