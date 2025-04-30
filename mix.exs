@@ -13,7 +13,11 @@ defmodule Exq.Mixfile do
       test_coverage: [tool: ExCoveralls],
       deps: deps(),
       docs: docs(),
-      package: package()
+      package: package(),
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.github": :test
+      ]
     ]
   end
 
@@ -30,13 +34,14 @@ defmodule Exq.Mixfile do
       {:redix, ">= 0.9.0"},
       {:poison, ">= 1.2.0 and < 6.0.0", optional: true},
       {:jason, "~> 1.0", optional: true},
-      {:excoveralls, "~> 0.6", only: :test},
-      {:flaky_connection, git: "https://github.com/hamiltop/flaky_connection.git", only: :test},
+      {:excoveralls, "~> 0.18", only: :test},
+      {:castore, "~> 1.0", only: :test},
+      {:flaky_connection,
+       git: "https://github.com/ananthakumaran/flaky_connection.git", only: :test},
 
       # docs
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:benchee, "~> 1.0", only: :dev, runtime: false},
-      {:ranch, "~> 1.6", only: :test, override: true}
+      {:benchee, "~> 1.0", only: :dev, runtime: false}
     ]
   end
 
