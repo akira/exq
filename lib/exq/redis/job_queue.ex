@@ -249,7 +249,7 @@ defmodule Exq.Redis.JobQueue do
         end
 
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Error dequeueing jobs from scheduler queue #{queue} - #{Kernel.inspect(reason)}"
         )
 
