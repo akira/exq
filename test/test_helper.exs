@@ -85,7 +85,7 @@ defmodule ExqTestUtil do
 
   def reset_config do
     config = Mix.Config.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
-    Mix.Config.persist(config)
+    Application.put_all_env(config, persistent: true)
   end
 
   def with_application_env(app, key, new, context) do

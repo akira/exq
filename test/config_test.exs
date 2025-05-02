@@ -18,7 +18,7 @@ defmodule Exq.ConfigTest do
 
   test "Mix.Config should change the host." do
     assert Exq.Support.Config.get(:host) != "127.1.1.1"
-    Mix.Config.persist(exq: [host: "127.1.1.1"])
+    Application.put_all_env([exq: [host: "127.1.1.1"]], persistent: true)
     assert Exq.Support.Config.get(:host) == "127.1.1.1"
   end
 
@@ -28,13 +28,16 @@ defmodule Exq.ConfigTest do
     System.put_env("REDIS_DATABASE", "1")
     System.put_env("REDIS_PASSWORD", "password")
 
-    Mix.Config.persist(
-      exq: [
-        host: {:system, "REDIS_HOST"},
-        port: {:system, "REDIS_PORT"},
-        database: {:system, "REDIS_DATABASE"},
-        password: {:system, "REDIS_PASSWORD"}
-      ]
+    Application.put_all_env(
+      [
+        exq: [
+          host: {:system, "REDIS_HOST"},
+          port: {:system, "REDIS_PORT"},
+          database: {:system, "REDIS_DATABASE"},
+          password: {:system, "REDIS_PASSWORD"}
+        ]
+      ],
+      persistent: true
     )
 
     [
@@ -54,20 +57,22 @@ defmodule Exq.ConfigTest do
     assert password == "password"
 
     System.put_env("REDIS_URL", "redis_url")
-    Mix.Config.persist(exq: [url: {:system, "REDIS_URL"}])
+    Application.put_all_env([exq: [url: {:system, "REDIS_URL"}]], persistent: true)
     [redis_opts, _] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts == "redis_url"
   end
 
   test "redis_opts from runtime with defaults" do
-    Mix.Config.persist(exq: [url: {:system, "REDIS_URL", "default_redis_url"}])
+    Application.put_all_env([exq: [url: {:system, "REDIS_URL", "default_redis_url"}]],
+      persistent: true
+    )
 
     redis_opts = Exq.Support.Opts.redis_opts()
     assert ["default_redis_url", _] = redis_opts
   end
 
   test "Raises an ArgumentError when supplied with an invalid port" do
-    Mix.Config.persist(exq: [port: {:system, "REDIS_PORT"}])
+    Application.put_all_env([exq: [port: {:system, "REDIS_PORT"}]], persistent: true)
     System.put_env("REDIS_PORT", "invalid integer")
 
     assert_raise(ArgumentError, fn ->
@@ -76,7 +81,9 @@ defmodule Exq.ConfigTest do
   end
 
   test "redis_opts" do
-    Mix.Config.persist(exq: [host: "127.0.0.1", port: 6379, password: ~c"", database: 0])
+    Application.put_all_env([exq: [host: "127.0.0.1", port: 6379, password: ~c"", database: 0]],
+      persistent: true
+    )
 
     [
       [
@@ -94,25 +101,29 @@ defmodule Exq.ConfigTest do
     assert password == ~c""
     assert database == 0
 
-    Mix.Config.persist(exq: [host: ~c"127.1.1.1", password: ~c"password"])
+    Application.put_all_env([exq: [host: ~c"127.1.1.1", password: ~c"password"]],
+      persistent: true
+    )
+
     [redis_opts] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts[:host] == ~c"127.1.1.1"
     assert redis_opts[:password] == ~c"password"
 
-    Mix.Config.persist(exq: [password: "binary_password"])
+    Application.put_all_env([exq: [password: "binary_password"]], persistent: true)
     [redis_opts] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts[:password] == "binary_password"
 
-    Mix.Config.persist(exq: [password: nil])
+    Application.put_all_env([exq: [password: nil]], persistent: true)
     redis_opts = Exq.Support.Opts.redis_opts()
     assert redis_opts[:password] == nil
 
-    Mix.Config.persist(exq: [url: "redis_url"])
+    Application.put_all_env([exq: [url: "redis_url"]], persistent: true)
     [redis_opts, _] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
     assert redis_opts == "redis_url"
 
-    Mix.Config.persist(
-      exq: [url: "redis_url", redis_options: [backoff_initial: 100, sync_connect: true]]
+    Application.put_all_env(
+      [exq: [url: "redis_url", redis_options: [backoff_initial: 100, sync_connect: true]]],
+      persistent: true
     )
 
     [
@@ -131,90 +142,107 @@ defmodule Exq.ConfigTest do
   end
 
   test "redis_inspect_opts" do
-    Mix.Config.persist(exq: [host: "127.0.0.1", port: 6379, password: ~c"password", database: 0])
+    Application.put_all_env(
+      [exq: [host: "127.0.0.1", port: 6379, password: ~c"password", database: 0]],
+      persistent: true
+    )
 
     assert "[[host: \"127.0.0.1\", port: 6379, database: 0, password: \"*****\", name: Exq.Redis, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
-    Mix.Config.persist(exq: [host: ~c"127.1.1.1", password: ~c"password"])
+    Application.put_all_env([exq: [host: ~c"127.1.1.1", password: ~c"password"]],
+      persistent: true
+    )
 
     assert "[[host: '127.1.1.1', port: 6379, database: 0, password: \"*****\", name: Exq.Redis, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
-    Mix.Config.persist(exq: [password: nil])
+    Application.put_all_env([exq: [password: nil]], persistent: true)
 
     assert "[[host: '127.1.1.1', port: 6379, database: 0, password: nil, name: nil, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts()
 
-    Mix.Config.persist(exq: [url: "redis_url"])
+    Application.put_all_env([exq: [url: "redis_url"]], persistent: true)
 
     assert "[\"redis_url\", [name: Exq.Redis, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
-    Mix.Config.persist(
-      exq: [
-        redis_options: [
-          sentinel: [sentinels: [[host: "127.0.0.1", port: 6666]], group: "exq"],
-          database: 0,
-          password: "password",
-          timeout: 5000,
-          name: Exq.Redis.Client,
-          socket_opts: []
+    Application.put_all_env(
+      [
+        exq: [
+          redis_options: [
+            sentinel: [sentinels: [[host: "127.0.0.1", port: 6666]], group: "exq"],
+            database: 0,
+            password: "password",
+            timeout: 5000,
+            name: Exq.Redis.Client,
+            socket_opts: []
+          ]
         ]
-      ]
+      ],
+      persistent: true
     )
 
     assert "[\"redis_url\", [sentinel: [sentinels: [[host: \"127.0.0.1\", port: 6666]], group: \"exq\"], database: 0, password: \"*****\", timeout: 5000, name: Exq.Redis.Client, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
-    Mix.Config.persist(
-      exq: [
-        redis_options: [
-          sentinel: [sentinels: [[host: "127.0.0.1", port: 6666]], group: "exq"],
-          database: 0,
-          password: nil,
-          timeout: 5000,
-          name: Exq.Redis.Client,
-          socket_opts: []
+    Application.put_all_env(
+      [
+        exq: [
+          redis_options: [
+            sentinel: [sentinels: [[host: "127.0.0.1", port: 6666]], group: "exq"],
+            database: 0,
+            password: nil,
+            timeout: 5000,
+            name: Exq.Redis.Client,
+            socket_opts: []
+          ]
         ]
-      ]
+      ],
+      persistent: true
     )
 
     assert "[\"redis_url\", [sentinel: [sentinels: [[host: \"127.0.0.1\", port: 6666]], group: \"exq\"], database: 0, password: nil, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
-    Mix.Config.persist(
-      exq: [
-        redis_options: [
-          sentinel: [
-            sentinels: [[host: "127.0.0.1", port: 6666]],
-            password: "password",
-            group: "exq"
-          ],
-          database: 0,
-          timeout: 5000,
-          name: Exq.Redis.Client,
-          socket_opts: []
+    Application.put_all_env(
+      [
+        exq: [
+          redis_options: [
+            sentinel: [
+              sentinels: [[host: "127.0.0.1", port: 6666]],
+              password: "password",
+              group: "exq"
+            ],
+            database: 0,
+            timeout: 5000,
+            name: Exq.Redis.Client,
+            socket_opts: []
+          ]
         ]
-      ]
+      ],
+      persistent: true
     )
 
     assert "[\"redis_url\", [sentinel: [sentinels: [[host: \"127.0.0.1\", port: 6666]], password: \"*****\", group: \"exq\"], database: 0, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
-    Mix.Config.persist(
-      exq: [
-        redis_options: [
-          sentinel: [
-            sentinels: [[host: "127.0.0.1", port: 6666, password: "password"]],
-            group: "exq"
-          ],
-          database: 0,
-          timeout: 5000,
-          name: Exq.Redis.Client,
-          socket_opts: []
+    Application.put_all_env(
+      [
+        exq: [
+          redis_options: [
+            sentinel: [
+              sentinels: [[host: "127.0.0.1", port: 6666, password: "password"]],
+              group: "exq"
+            ],
+            database: 0,
+            timeout: 5000,
+            name: Exq.Redis.Client,
+            socket_opts: []
+          ]
         ]
-      ]
+      ],
+      persistent: true
     )
 
     assert "[\"redis_url\", [sentinel: [sentinels: [[host: \"127.0.0.1\", port: 6666, password: \"*****\"]], group: \"exq\"], database: 0, timeout: 5000, name: Exq.Redis.Client, socket_opts: []]]" ==
@@ -222,17 +250,20 @@ defmodule Exq.ConfigTest do
   end
 
   test "default redis_worker_opts" do
-    Mix.Config.persist(
-      exq: [
-        queues: ["default"],
-        scheduler_enable: true,
-        namespace: "exq",
-        concurrency: 100,
-        scheduler_poll_timeout: 200,
-        poll_timeout: 100,
-        redis_timeout: 5000,
-        shutdown_timeout: 7000
-      ]
+    Application.put_all_env(
+      [
+        exq: [
+          queues: ["default"],
+          scheduler_enable: true,
+          namespace: "exq",
+          concurrency: 100,
+          scheduler_poll_timeout: 200,
+          poll_timeout: 100,
+          redis_timeout: 5000,
+          shutdown_timeout: 7000
+        ]
+      ],
+      persistent: true
     )
 
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
@@ -288,7 +319,9 @@ defmodule Exq.ConfigTest do
 
     assert mode == :default
 
-    Mix.Config.persist(exq: [queues: [{"default", 1000}, {"test1", 2000}]])
+    Application.put_all_env([exq: [queues: [{"default", 1000}, {"test1", 2000}]]],
+      persistent: true
+    )
 
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
 
@@ -299,14 +332,17 @@ defmodule Exq.ConfigTest do
              {"test1", {Exq.Dequeue.Local, [concurrency: 2000]}}
            ]
 
-    Mix.Config.persist(
-      exq: [
-        queues: [
-          {"default", "1000"},
-          {"test1", "infinite"},
-          {"test2", {External.BucketLimiter, %{size: 60, limit: 5}}}
+    Application.put_all_env(
+      [
+        exq: [
+          queues: [
+            {"default", "1000"},
+            {"test1", "infinite"},
+            {"test2", {External.BucketLimiter, %{size: 60, limit: 5}}}
+          ]
         ]
-      ]
+      ],
+      persistent: true
     )
 
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
@@ -325,7 +361,7 @@ defmodule Exq.ConfigTest do
   end
 
   test "api redis_worker_opts" do
-    Mix.Config.persist(exq: [])
+    Application.put_all_env([exq: []], persistent: true)
 
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :api)
 
@@ -344,15 +380,18 @@ defmodule Exq.ConfigTest do
     System.put_env("EXQ_SCHEDULER_ENABLE", "True")
     System.put_env("EXQ_SHUTDOWN_TIMEOUT", "1234")
 
-    Mix.Config.persist(
-      exq: [
-        namespace: {:system, "EXQ_NAMESPACE"},
-        concurrency: {:system, "EXQ_CONCURRENCY"},
-        poll_timeout: {:system, "EXQ_POLL_TIMEOUT"},
-        scheduler_poll_timeout: {:system, "EXQ_SCHEDULER_POLL_TIMEOUT"},
-        scheduler_enable: {:system, "EXQ_SCHEDULER_ENABLE"},
-        shutdown_timeout: {:system, "EXQ_SHUTDOWN_TIMEOUT"}
-      ]
+    Application.put_all_env(
+      [
+        exq: [
+          namespace: {:system, "EXQ_NAMESPACE"},
+          concurrency: {:system, "EXQ_CONCURRENCY"},
+          poll_timeout: {:system, "EXQ_POLL_TIMEOUT"},
+          scheduler_poll_timeout: {:system, "EXQ_SCHEDULER_POLL_TIMEOUT"},
+          scheduler_enable: {:system, "EXQ_SCHEDULER_ENABLE"},
+          shutdown_timeout: {:system, "EXQ_SHUTDOWN_TIMEOUT"}
+        ]
+      ],
+      persistent: true
     )
 
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)
@@ -368,10 +407,13 @@ defmodule Exq.ConfigTest do
   test "redis_worker_opts from runtime environment - concurrency :infinity" do
     System.put_env("EXQ_CONCURRENCY", "infinity")
 
-    Mix.Config.persist(
-      exq: [
-        concurrency: {:system, "EXQ_CONCURRENCY"}
-      ]
+    Application.put_all_env(
+      [
+        exq: [
+          concurrency: {:system, "EXQ_CONCURRENCY"}
+        ]
+      ],
+      persistent: true
     )
 
     {Redix, [_redis_opts], server_opts} = Exq.Support.Opts.redis_worker_opts(mode: :default)

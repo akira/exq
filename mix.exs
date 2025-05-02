@@ -34,6 +34,8 @@ defmodule Exq.Mixfile do
       {:redix, ">= 0.9.0"},
       {:poison, ">= 1.2.0 and < 6.0.0", optional: true},
       {:jason, "~> 1.0", optional: true},
+
+      # test
       {:excoveralls, "~> 0.18", only: :test},
       {:castore, "~> 1.0", only: :test},
       {:flaky_connection,
