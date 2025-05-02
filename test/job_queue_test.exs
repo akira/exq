@@ -6,7 +6,7 @@ defmodule JobQueueTest do
 
   import ExqTestUtil
 
-  @host 'host-name'
+  @host ~c"host-name"
 
   setup do
     TestRedis.setup()

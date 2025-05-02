@@ -76,7 +76,7 @@ defmodule Exq.ConfigTest do
   end
 
   test "redis_opts" do
-    Mix.Config.persist(exq: [host: "127.0.0.1", port: 6379, password: '', database: 0])
+    Mix.Config.persist(exq: [host: "127.0.0.1", port: 6379, password: ~c"", database: 0])
 
     [
       [
@@ -91,13 +91,13 @@ defmodule Exq.ConfigTest do
 
     assert host == "127.0.0.1"
     assert port == 6379
-    assert password == ''
+    assert password == ~c""
     assert database == 0
 
-    Mix.Config.persist(exq: [host: '127.1.1.1', password: 'password'])
+    Mix.Config.persist(exq: [host: ~c"127.1.1.1", password: ~c"password"])
     [redis_opts] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
-    assert redis_opts[:host] == '127.1.1.1'
-    assert redis_opts[:password] == 'password'
+    assert redis_opts[:host] == ~c"127.1.1.1"
+    assert redis_opts[:password] == ~c"password"
 
     Mix.Config.persist(exq: [password: "binary_password"])
     [redis_opts] = Exq.Support.Opts.redis_opts(redis: Exq.Redis)
@@ -131,12 +131,12 @@ defmodule Exq.ConfigTest do
   end
 
   test "redis_inspect_opts" do
-    Mix.Config.persist(exq: [host: "127.0.0.1", port: 6379, password: 'password', database: 0])
+    Mix.Config.persist(exq: [host: "127.0.0.1", port: 6379, password: ~c"password", database: 0])
 
     assert "[[host: \"127.0.0.1\", port: 6379, database: 0, password: \"*****\", name: Exq.Redis, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
-    Mix.Config.persist(exq: [host: '127.1.1.1', password: 'password'])
+    Mix.Config.persist(exq: [host: ~c"127.1.1.1", password: ~c"password"])
 
     assert "[[host: '127.1.1.1', port: 6379, database: 0, password: \"*****\", name: Exq.Redis, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
