@@ -154,12 +154,14 @@ defmodule Exq.ConfigTest do
       persistent: true
     )
 
-    assert "[[host: '127.1.1.1', port: 6379, database: 0, password: \"*****\", name: Exq.Redis, socket_opts: []]]" ==
+    host = inspect(~c"127.1.1.1")
+
+    assert "[[host: #{host}, port: 6379, database: 0, password: \"*****\", name: Exq.Redis, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts(redis: Exq.Redis)
 
     Application.put_all_env([exq: [password: nil]], persistent: true)
 
-    assert "[[host: '127.1.1.1', port: 6379, database: 0, password: nil, name: nil, socket_opts: []]]" ==
+    assert "[[host: #{host}, port: 6379, database: 0, password: nil, name: nil, socket_opts: []]]" ==
              Exq.Support.Opts.redis_inspect_opts()
 
     Application.put_all_env([exq: [url: "redis_url"]], persistent: true)
