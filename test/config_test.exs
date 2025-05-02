@@ -1,6 +1,5 @@
 defmodule Exq.ConfigTest do
   use ExUnit.Case
-  require Mix.Config
 
   setup_all do
     ExqTestUtil.reset_config()
@@ -16,7 +15,7 @@ defmodule Exq.ConfigTest do
     end)
   end
 
-  test "Mix.Config should change the host." do
+  test "Application.put should change the host." do
     assert Exq.Support.Config.get(:host) != "127.1.1.1"
     Application.put_all_env([exq: [host: "127.1.1.1"]], persistent: true)
     assert Exq.Support.Config.get(:host) == "127.1.1.1"

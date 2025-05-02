@@ -20,15 +20,16 @@ defmodule ExqTestUtil do
   @long_timeout 100
 
   alias Exq.Support.Coercion
-  alias Exq.Support.Config
+  alias Exq.Support
+  alias Config.Reader
 
   def redis_host do
-    Config.get(:host)
+    Support.Config.get(:host)
   end
 
   def redis_port do
     :port
-    |> Config.get()
+    |> Support.Config.get()
     |> Coercion.to_integer()
   end
 
@@ -84,7 +85,7 @@ defmodule ExqTestUtil do
   end
 
   def reset_config do
-    config = Mix.Config.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
+    config = Reader.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
     Application.put_all_env(config, persistent: true)
   end
 
