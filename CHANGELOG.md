@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Resolved deprecation warnings [#499](https://github.com/akira/exq/pull/499) by @ananthakumaran.
+- Added the ability to clear unique tokens when deleting a job [#497](https://github.com/akira/exq/pull/497) by @dmitrykleymenov
+
+### Removed
+
+- Dropped support for Elixir versions prior to 1.12.
 
 ## [0.19.0] - 2023-07-01
 
