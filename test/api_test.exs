@@ -155,15 +155,25 @@ defmodule ApiTest do
     assert {:ok, []} = Exq.Api.retries(Exq.Api)
   end
 
-  test "retry with data" do
-    JobQueue.retry_job(:testredis, "test", %Job{jid: "1"}, 1, "this is an error")
-    JobQueue.retry_job(:testredis, "test", %Job{jid: "2"}, 1, "this is an error")
-    {:ok, jobs} = Exq.Api.retries(Exq.Api)
-    assert Enum.count(jobs) == 2
-    assert Enum.at(jobs, 0).jid == "1"
+  defmodule ConstantBackoff do
+    @behaviour Exq.Backoff.Behaviour
 
-    {:ok, [job]} = Exq.Api.retries(Exq.Api, size: 1, raw: true, offset: 1)
-    assert Jason.decode!(job)["jid"] == "2"
+    def offset(_job) do
+      1
+    end
+  end
+
+  test "retry with data" do
+    with_application_env(:exq, :backoff, ConstantBackoff, fn ->
+      JobQueue.retry_job(:testredis, "test", %Job{jid: "1"}, 1, "this is an error")
+      JobQueue.retry_job(:testredis, "test", %Job{jid: "2"}, 1, "this is an error")
+      {:ok, jobs} = Exq.Api.retries(Exq.Api)
+      assert Enum.count(jobs) == 2
+      assert Enum.at(jobs, 0).jid == "1"
+
+      {:ok, [job]} = Exq.Api.retries(Exq.Api, size: 1, raw: true, offset: 1)
+      assert Jason.decode!(job)["jid"] == "2"
+    end)
   end
 
   test "scheduled when empty" do
