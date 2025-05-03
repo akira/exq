@@ -6,7 +6,7 @@ defmodule JobQueueTest do
 
   import ExqTestUtil
 
-  @host 'host-name'
+  @host ~c"host-name"
 
   setup do
     TestRedis.setup()
@@ -271,7 +271,7 @@ defmodule JobQueueTest do
   test "max_retries from runtime environment" do
     System.put_env("EXQ_MAX_RETRIES", "3")
 
-    Mix.Config.persist(exq: [max_retries: {:system, "EXQ_MAX_RETRIES"}])
+    Application.put_all_env([exq: [max_retries: {:system, "EXQ_MAX_RETRIES"}]], persistent: true)
 
     {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
     assert jid != nil

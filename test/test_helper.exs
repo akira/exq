@@ -20,15 +20,16 @@ defmodule ExqTestUtil do
   @long_timeout 100
 
   alias Exq.Support.Coercion
-  alias Exq.Support.Config
+  alias Exq.Support
+  alias Config.Reader
 
   def redis_host do
-    Config.get(:host)
+    Support.Config.get(:host)
   end
 
   def redis_port do
     :port
-    |> Config.get()
+    |> Support.Config.get()
     |> Coercion.to_integer()
   end
 
@@ -84,8 +85,8 @@ defmodule ExqTestUtil do
   end
 
   def reset_config do
-    config = Mix.Config.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
-    Mix.Config.persist(config)
+    config = Reader.read!(Path.join([Path.dirname(__DIR__), "config", "config.exs"]))
+    Application.put_all_env(config, persistent: true)
   end
 
   def with_application_env(app, key, new, context) do
@@ -112,18 +113,18 @@ defmodule TestRedis do
   # TODO: Automate config
   def start do
     unless Config.get(:test_with_local_redis) == false do
-      [] = :os.cmd('redis-server test/test-redis.conf')
-      [] = :os.cmd('redis-server test/test-redis-replica.conf')
-      [] = :os.cmd('redis-server test/test-sentinel.conf --sentinel')
+      [] = :os.cmd(~c"redis-server test/test-redis.conf")
+      [] = :os.cmd(~c"redis-server test/test-redis-replica.conf")
+      [] = :os.cmd(~c"redis-server test/test-sentinel.conf --sentinel")
       :timer.sleep(500)
     end
   end
 
   def stop do
     unless Config.get(:test_with_local_redis) == false do
-      [] = :os.cmd('redis-cli -p 6555 shutdown')
-      [] = :os.cmd('redis-cli -p 6556 shutdown')
-      [] = :os.cmd('redis-cli -p 6666 shutdown')
+      [] = :os.cmd(~c"redis-cli -p 6555 shutdown")
+      [] = :os.cmd(~c"redis-cli -p 6556 shutdown")
+      [] = :os.cmd(~c"redis-cli -p 6666 shutdown")
     end
   end
 

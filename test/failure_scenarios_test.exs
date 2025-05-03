@@ -51,7 +51,7 @@ defmodule FailureScenariosTest do
         :ranch_tcp,
         [port: conn.port],
         FlakyConnectionHandler,
-        ['127.0.0.1', redis_port(), agent]
+        [~c"127.0.0.1", redis_port(), agent]
       )
 
     :timer.sleep(2000)
@@ -91,7 +91,7 @@ defmodule FailureScenariosTest do
         :ranch_tcp,
         [port: conn.port],
         FlakyConnectionHandler,
-        ['127.0.0.1', redis_port(), agent]
+        [~c"127.0.0.1", redis_port(), agent]
       )
 
     :timer.sleep(2000)

@@ -81,7 +81,7 @@ defmodule Exq.Node.Server do
   end
 
   defp process_signal(unknown, _) do
-    Logger.warn("Received unsupported signal #{unknown}")
+    Logger.warning("Received unsupported signal #{unknown}")
     :ok
   end
 
