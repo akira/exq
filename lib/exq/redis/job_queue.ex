@@ -57,6 +57,13 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
+  def unlock_jobs(redis, namespace, raw_jobs) do
+    for job <- raw_jobs,
+        unique_token = Job.decode(job).unique_token do
+      unlock(redis, namespace, unique_token)
+    end
+  end
+
   def unlock(redis, namespace, unique_token) do
     Connection.del!(redis, unique_key(namespace, unique_token), retry_on_connection_error: 3)
   end

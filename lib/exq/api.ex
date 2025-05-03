@@ -188,14 +188,16 @@ defmodule Exq.Api do
   Expected args:
     * `pid` - Exq.Api process
     * `queue` - The name of the queue to remove the job from
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
+    * `options`
+      - clear_unique_tokens: (boolean) whether to clear jobs unique tokens, default is `false`
 
   Returns:
     * `:ok`
 
   """
-  def remove_enqueued_jobs(pid, queue, raw_jobs) do
-    GenServer.call(pid, {:remove_enqueued_jobs, queue, raw_jobs})
+  def remove_enqueued_jobs(pid, queue, raw_jobs, options \\ []) do
+    GenServer.call(pid, {:remove_enqueued_jobs, queue, raw_jobs, options})
   end
 
   @doc """
@@ -289,14 +291,16 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
+    * `options`
+      - clear_unique_tokens: (boolean) whether to clear jobs unique tokens, default is `false`
 
   Returns:
     * `:ok`
 
   """
-  def remove_failed_jobs(pid, raw_jobs) do
-    GenServer.call(pid, {:remove_failed_jobs, raw_jobs})
+  def remove_failed_jobs(pid, raw_jobs, options \\ []) do
+    GenServer.call(pid, {:remove_failed_jobs, raw_jobs, options})
   end
 
   def clear_failed(pid) do
@@ -308,7 +312,7 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
 
   Returns:
     * `{:ok, num_enqueued}`
@@ -376,14 +380,16 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
+    * `options`
+      - clear_unique_tokens: (boolean) whether to clear jobs unique tokens, default is `false`
 
   Returns:
     * `:ok`
 
   """
-  def remove_retry_jobs(pid, raw_jobs) do
-    GenServer.call(pid, {:remove_retry_jobs, raw_jobs})
+  def remove_retry_jobs(pid, raw_jobs, options \\ []) do
+    GenServer.call(pid, {:remove_retry_jobs, raw_jobs, options})
   end
 
   def clear_retries(pid) do
@@ -395,7 +401,7 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
 
   Returns:
     * `{:ok, num_enqueued}`
@@ -463,14 +469,16 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
+    * `options`
+      - clear_unique_tokens: (boolean) whether to clear jobs unique tokens, default is `false`
 
   Returns:
     * `:ok`
 
   """
-  def remove_scheduled_jobs(pid, raw_jobs) do
-    GenServer.call(pid, {:remove_scheduled_jobs, raw_jobs})
+  def remove_scheduled_jobs(pid, raw_jobs, options \\ []) do
+    GenServer.call(pid, {:remove_scheduled_jobs, raw_jobs, options})
   end
 
   def clear_scheduled(pid) do
@@ -482,7 +490,7 @@ defmodule Exq.Api do
 
   Expected args:
     * `pid` - Exq.Api process
-    * `raw_job` - raw json encoded job value
+    * `raw_jobs` - list of raw json encoded job values
 
   Returns:
     * `{:ok, num_enqueued}`
