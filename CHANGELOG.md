@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.20.0] - 2025-07-19
+
 ### Changed
 
 - Resolved deprecation warnings [#499](https://github.com/akira/exq/pull/499) by @ananthakumaran.
