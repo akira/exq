@@ -47,7 +47,7 @@ defmodule Exq.Middleware.Pipeline do
   end
 
   @doc """
-  Sets `terminated` to true
+  Sets `terminated` to true
   """
   def terminate(%Pipeline{} = pipeline) do
     %{pipeline | terminated: true}

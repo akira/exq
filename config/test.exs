@@ -27,6 +27,7 @@ config :exq,
     Exq.Middleware.Job,
     Exq.Middleware.Manager,
     Exq.Middleware.Unique,
-    Exq.Middleware.Telemetry
+    Exq.Middleware.Telemetry,
+    Exq.Middleware.Snooze
   ],
   queue_adapter: Exq.Adapters.Queue.Mock

@@ -240,7 +240,8 @@ defmodule MiddlewareTest do
       Exq.Middleware.Job,
       Exq.Middleware.Manager,
       Exq.Middleware.Unique,
-      Exq.Middleware.Telemetry
+      Exq.Middleware.Telemetry,
+      Exq.Middleware.Snooze
     ]
 
     assert Middleware.all(Middleware) == chain

@@ -171,6 +171,37 @@ defmodule JobQueueTest do
     end)
   end
 
+  test "snooze job" do
+    with_application_env(:exq, :max_retries, 1, fn ->
+      JobQueue.snooze_job(
+        :testredis,
+        "test",
+        %{
+          retry_count: 0,
+          retry: true,
+          queue: "default",
+          class: "MyWorker",
+          jid: UUID.uuid4(),
+          error_class: nil,
+          error_message: "failed",
+          retried_at: Time.unix_seconds(),
+          failed_at: Time.unix_seconds(),
+          enqueued_at: Time.unix_seconds(),
+          finished_at: nil,
+          processor: nil,
+          args: [],
+          unique_for: nil,
+          unique_until: nil,
+          unique_token: nil,
+          unlocks_at: nil
+        },
+        10
+      )
+
+      assert JobQueue.queue_size(:testredis, "test", :retry) == 1
+    end)
+  end
+
   test "scheduler_dequeue max_score" do
     add_usecs = fn time, offset ->
       base = time |> DateTime.to_unix(:microsecond)

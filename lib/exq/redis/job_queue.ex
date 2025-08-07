@@ -317,6 +317,26 @@ defmodule Exq.Redis.JobQueue do
     end
   end
 
+  def snooze_job(redis, namespace, job, offset) do
+    job =
+      %{job | error_message: "Snoozed for #{offset} seconds"}
+      |> add_failure_timestamp()
+
+    time = Time.offset_from_now(offset)
+    Logger.info("Queueing job #{job.jid} to retry in #{offset} seconds")
+
+    {:ok, _jid} =
+      do_enqueue_job_at(
+        redis,
+        namespace,
+        job,
+        Job.encode(job),
+        job.jid,
+        time,
+        retry_queue_key(namespace)
+      )
+  end
+
   def retry_or_fail_job(redis, namespace, job, error) do
     if dead?(job) do
       Logger.info("Max retries on job #{job.jid} exceeded")
