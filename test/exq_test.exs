@@ -47,6 +47,13 @@ defmodule ExqTest do
     end
   end
 
+  defmodule SnoozeWorker do
+    def perform(time, message) do
+      send(:exqtest, {message})
+      {:snooze, time}
+    end
+  end
+
   setup do
     TestRedis.setup()
 
@@ -763,6 +770,17 @@ defmodule ExqTest do
 
     :timer.sleep(1500)
     assert_received {:worked}
+    stop_process(sup)
+  end
+
+  test "snooze job" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
+    {:ok, _} = Exq.enqueue(Exq, "q1", ExqTest.SnoozeWorker, [0.050, :snoozed], max_retries: 0)
+    :timer.sleep(100)
+    assert_received {"snoozed"}
+    :timer.sleep(100)
+    assert_received {"snoozed"}
     stop_process(sup)
   end
 

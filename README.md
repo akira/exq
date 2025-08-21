@@ -554,6 +554,20 @@ Exq comes with an `enqueue_all` method which guarantees atomicity.
 ])
 ```
 
+## Snooze
+
+A Job can be snoozed by returning `{:snooze, time_to_sleep_in_seconds}`
+from perform method. By default this feature is not enabled. Add
+`Exq.Middleware.Snooze` to the middleware list to enable this feature.
+
+```elixir
+defmodule MyWorker do
+  def perform do
+    {:snooze, 10}
+  end
+end
+```
+
 ## Web UI
 
 Exq has a separate repo, exq_ui which provides with a Web UI to monitor your workers:

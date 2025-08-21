@@ -45,6 +45,7 @@ jobs:
             otp: 27
             check_warnings: true
             check_format: true
+            coveralls: true
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -92,6 +93,14 @@ jobs:
 
     - name: Run unit tests
       run: mix coveralls.github --no-start
+      if: ${{ matrix.coveralls }}
       env:
         MIX_ENV: test
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run unit tests
+      run: mix test --no-start
+      if: ${{ ! matrix.coveralls }}
+      env:
+        MIX_ENV: test
+
