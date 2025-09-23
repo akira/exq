@@ -599,6 +599,36 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "handle lock expiry gracefully" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"])
+
+    {:ok, j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [3000, :worked1],
+        unique_for: 1,
+        unique_token: "t1"
+      )
+
+    :timer.sleep(2000)
+
+    {:ok, j2} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [3000, :worked],
+        unique_for: 60,
+        unique_token: "t1"
+      )
+
+    :timer.sleep(1500)
+    assert_received {"worked1"}
+
+    {:conflict, ^j2} =
+      Exq.enqueue(Exq, "q1", ExqTest.SleepWorker, [3000, :worked],
+        unique_for: 60,
+        unique_token: "t1"
+      )
+
+    stop_process(sup)
+  end
+
   defmodule ConstantBackoff do
     @behaviour Exq.Backoff.Behaviour
 
