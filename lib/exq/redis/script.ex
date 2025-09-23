@@ -12,6 +12,17 @@ defmodule Exq.Redis.Script do
   end
 
   @scripts %{
+    compare_and_delete:
+      Prepare.script("""
+      local key = KEYS[1]
+      local expected_value = ARGV[1]
+      local current_value = redis.call("get", key)
+      if current_value == expected_value then
+        return redis.call("del", key)
+      else
+        return 0
+      end
+      """),
     enqueue:
       Prepare.script("""
       local queues_key, job_queue_key, unique_key = KEYS[1], KEYS[2], KEYS[3]
