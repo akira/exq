@@ -58,14 +58,25 @@ defmodule Exq.Redis.JobQueue do
   end
 
   def unlock_jobs(redis, namespace, raw_jobs) do
-    for job <- raw_jobs,
-        unique_token = Job.decode(job).unique_token do
-      unlock(redis, namespace, unique_token)
+    for raw_job <- raw_jobs,
+        job = Job.decode(raw_job),
+        unique_token = job.unique_token do
+      unlock(redis, namespace, unique_token, job.jid)
     end
   end
 
-  def unlock(redis, namespace, unique_token) do
-    Connection.del!(redis, unique_key(namespace, unique_token), retry_on_connection_error: 3)
+  def unlock(redis, namespace, unique_token, jid) do
+    Exq.Support.Redis.with_retry_on_connection_error(
+      fn ->
+        Script.eval!(
+          redis,
+          :compare_and_delete,
+          [unique_key(namespace, unique_token)],
+          [jid]
+        )
+      end,
+      3
+    )
   end
 
   def enqueue_in(redis, namespace, queue, offset, worker, args, options)
