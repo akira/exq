@@ -1,6 +1,6 @@
 env:
-  ELIXIR_VERSION: "1.13.4"
-  OTP_VERSION: "25.0.1"
+  ELIXIR_VERSION: "1.18"
+  OTP_VERSION: "27"
 on:
   push:
     tags:
