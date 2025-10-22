@@ -32,7 +32,7 @@ defmodule Exq.Mixfile do
     [
       {:elixir_uuid, ">= 1.2.0"},
       {:redix, ">= 0.9.0"},
-      {:poison, ">= 1.2.0 and < 6.0.0", optional: true},
+      {:poison, ">= 1.2.0 and < 7.0.0", optional: true},
       {:jason, "~> 1.0", optional: true},
 
       # test
