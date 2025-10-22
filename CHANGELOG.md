@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.22.0] - 2025-10-22
+
+### Changed
+- Allow poison 6 #505 by @ananthakumaran
+- Upgrade ex_doc #506 by @ananthakumaran
+
+### Fixed
+- Shutdown order of enqueuer #501 by @ananthakumaran
+- Avoid unlocking lock acquired by other jobs #502 by @ananthakumaran
+
 ## [0.21.0] - 2025-08-24
 
 ### Added
