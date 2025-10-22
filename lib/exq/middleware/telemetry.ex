@@ -29,16 +29,16 @@ defmodule Exq.Middleware.Telemetry do
       In addition to the common metadata, exception event will have the following fields.
 
       - `kind` (exit | error) - either `exit` or `error`
-      - `reason` (term) - could be an `Exception.t/0` or term
+      - `reason` (term) - could be an `t:Exception.t/0` or term
       - `stacktrace` (list) - Stacktrace of the error. Will be empty if the kind is `exit`.
 
   ** Metadata **
 
   Each event has the following common metadata:
-  * `enqueued_at` (`DateTime.t/0`) - datetime the job was enqueued
-  * `queue` (`String.t/0`) - the name of the queue the job was executed in
-  * `class` (`String.t/0`) - the job's class
-  * `jid` (`String.t/0`) - the job's jid
+  * `enqueued_at` (`t:DateTime.t/0`) - datetime the job was enqueued
+  * `queue` (`t:String.t/0`) - the name of the queue the job was executed in
+  * `class` (`t:String.t/0`) - the job's class
+  * `jid` (`t:String.t/0`) - the job's jid
   * `retry_count` (integer) - number of times this job has failed so far
 
 
