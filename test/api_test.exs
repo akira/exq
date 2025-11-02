@@ -100,9 +100,10 @@ defmodule ApiTest do
   end
 
   test "send signal" do
-    assert nil == JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
+    assert [] == JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
     assert :ok = Exq.Api.send_signal(Exq.Api, "host1", "TSTP")
-    assert "TSTP" == JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
+    assert ["TSTP"] == JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
+    assert [] == JobStat.node_ping(:testredis, "test", %Node{identity: "host1", busy: 1})
   end
 
   test "jobs when empty" do

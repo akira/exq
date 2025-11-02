@@ -33,7 +33,8 @@ defmodule Exq.Worker.Server do
               middleware: nil,
               pipeline: nil,
               metadata: nil,
-              middleware_state: nil
+              middleware_state: nil,
+              task_pid: nil
   end
 
   def start_link(
@@ -59,6 +60,13 @@ defmodule Exq.Worker.Server do
   """
   def work(pid) do
     GenServer.cast(pid, :work)
+  end
+
+  @doc """
+  Cancel the current job
+  """
+  def cancel(pid) do
+    GenServer.cast(pid, :cancel)
   end
 
   ## ===========================================================
@@ -106,12 +114,14 @@ defmodule Exq.Worker.Server do
 
   # Dispatch work to the target module (call :perform method of target).
   def handle_cast(:dispatch, state) do
-    dispatch_work(
-      state.pipeline.assigns.worker_module,
-      state.pipeline.assigns.job,
-      state.metadata
-    )
+    task_pid =
+      dispatch_work(
+        state.pipeline.assigns.worker_module,
+        state.pipeline.assigns.job,
+        state.metadata
+      )
 
+    state = %{state | task_pid: task_pid}
     {:noreply, state}
   end
 
@@ -125,6 +135,20 @@ defmodule Exq.Worker.Server do
       end
 
     {:stop, :normal, state}
+  end
+
+  def handle_cast(:cancel, state) do
+    task_pid = state.task_pid
+
+    state =
+      if task_pid do
+        Process.exit(task_pid, :kill)
+        %{state | pipeline: Pipeline.assign(state.pipeline, :job_canceled, true)}
+      else
+        state
+      end
+
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, _, _, _, :normal}, state) do
@@ -177,6 +201,7 @@ defmodule Exq.Worker.Server do
       end)
 
     Process.monitor(pid)
+    pid
   end
 
   defp before_work(state) do
