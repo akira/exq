@@ -9,6 +9,7 @@ defmodule Exq.Middleware.Job do
 
     pipeline
     |> assign(:job, job)
+    |> assign(:job_canceled, false)
     |> assign(:worker_module, Exq.Support.Coercion.to_module(job.class))
   end
 
@@ -22,12 +23,21 @@ defmodule Exq.Middleware.Job do
 
   defp retry_or_fail_job(%Pipeline{assigns: assigns} = pipeline) do
     if assigns.job do
-      JobQueue.retry_or_fail_job(
-        assigns.redis,
-        assigns.namespace,
-        assigns.job,
-        to_string(assigns.error_message)
-      )
+      if assigns.job_canceled do
+        JobQueue.fail_job(
+          assigns.redis,
+          assigns.namespace,
+          assigns.job,
+          "Canceled"
+        )
+      else
+        JobQueue.retry_or_fail_job(
+          assigns.redis,
+          assigns.namespace,
+          assigns.job,
+          to_string(assigns.error_message)
+        )
+      end
     end
 
     pipeline

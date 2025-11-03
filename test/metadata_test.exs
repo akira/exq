@@ -25,9 +25,7 @@ defmodule MetadataTest do
     send(pid, :fetch_and_quit)
     Process.sleep(50)
 
-    assert_raise ArgumentError, fn ->
-      Metadata.lookup(metadata, pid)
-    end
+    assert Metadata.lookup(metadata, pid) == nil
   end
 
   test "custom name" do

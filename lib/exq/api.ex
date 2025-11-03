@@ -560,6 +560,7 @@ defmodule Exq.Api do
 
   Supported Signals
     * TSTP - unsubscibe from all queues
+    * CANCEL:{"pid":"#PID<0.42.0>","jid":"uuid"} - cancel the job process
 
   Returns:
     * :ok

@@ -18,7 +18,10 @@ defmodule Exq.Worker.Metadata do
   end
 
   def lookup(server, pid) when is_pid(pid) do
-    :ets.lookup_element(server, pid, 3)
+    case :ets.lookup(server, pid) do
+      [{_pid, _ref, value}] -> value
+      _ -> nil
+    end
   end
 
   ## ===========================================================

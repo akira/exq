@@ -5,6 +5,10 @@ defmodule Exq.Node.Server do
   alias Exq.Support.Time
   alias Exq.Redis.JobStat
   alias Exq.Support.Node
+  alias Exq.Serializers.JsonSerializer
+  alias Exq.Worker.Metadata
+  alias Exq.Support.Job
+  alias Exq.Worker.Server
 
   defmodule State do
     defstruct [
@@ -14,6 +18,7 @@ defmodule Exq.Node.Server do
       :redis,
       :node_id,
       :manager,
+      :metadata,
       :workers_sup,
       ping_count: 0
     ]
@@ -26,6 +31,7 @@ defmodule Exq.Node.Server do
       __MODULE__,
       %State{
         manager: Keyword.fetch!(options, :manager),
+        metadata: Keyword.fetch!(options, :metadata),
         workers_sup: Keyword.fetch!(options, :workers_sup),
         node_id: node_id,
         node: build_node(node_id),
@@ -58,7 +64,7 @@ defmodule Exq.Node.Server do
 
     :ok =
       JobStat.node_ping(redis, namespace, node)
-      |> process_signal(state)
+      |> process_signals(state)
 
     if Integer.mod(state.ping_count, 10) == 0 do
       JobStat.prune_dead_nodes(redis, namespace)
@@ -73,11 +79,48 @@ defmodule Exq.Node.Server do
     {:noreply, state}
   end
 
-  defp process_signal(nil, _), do: :ok
+  defp process_signals(signals, state) do
+    Enum.each(signals, fn signal ->
+      :ok = process_signal(signal, state)
+    end)
+
+    :ok
+  end
 
   defp process_signal("TSTP", state) do
     Logger.info("Received TSTP, unsubscribing from all queues")
     :ok = Exq.unsubscribe_all(state.manager)
+  end
+
+  # Make sure the process is running the jid before canceling the
+  # job. We don't want to send cancel message to unknown process,
+  # which could happen if we process the signals after a restart, in
+  # that case, the pid could point to a completely unrelated process.
+  defp process_signal("CANCEL:" <> args, state) do
+    case JsonSerializer.decode(args) do
+      {:ok, %{"pid" => "#PID" <> worker_pid_string, "jid" => jid}} ->
+        worker_pid = :erlang.list_to_pid(~c"#{worker_pid_string}")
+
+        case Process.info(worker_pid, :links) do
+          {:links, links} when length(links) <= 10 ->
+            if Enum.any?(links, fn link ->
+                 match?(%Job{jid: ^jid}, Metadata.lookup(state.metadata, link))
+               end) do
+              Server.cancel(worker_pid)
+              Logger.info("Canceled jid #{jid}")
+            else
+              Logger.warning("Not able to find worker process to cancel")
+            end
+
+          _ ->
+            Logger.warning("Not able to find worker process to cancel")
+        end
+
+      _ ->
+        Logger.warning("Received invalid args for cancel, args: #{args}")
+    end
+
+    :ok
   end
 
   defp process_signal(unknown, _) do

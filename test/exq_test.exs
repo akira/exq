@@ -814,6 +814,29 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "cancel job" do
+    {:ok, sup} = Exq.start_link()
+    {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [60 * 1000, :worked])
+
+    Process.sleep(100)
+    host = Exq.NodeIdentifier.HostnameIdentifier.node_id()
+    JobStat.node_ping(:testredis, "test", %Node{identity: host, busy: 1})
+
+    {:ok, [%{payload: %{jid: jid}, pid: pid}]} = Exq.Api.processes(Exq.Api)
+    assert {:ok, []} = Exq.Api.failed(Exq.Api)
+
+    :ok =
+      Exq.Api.send_signal(
+        Exq.Api,
+        host,
+        "CANCEL:#{Jason.encode!(%{jid: jid, pid: pid})}"
+      )
+
+    Process.sleep(5200)
+    assert {:ok, [%{jid: ^jid, error_message: "Canceled"}]} = Exq.Api.failed(Exq.Api)
+    {:ok, []} = Exq.Api.processes(Exq.Api)
+  end
+
   defp enqueue_fail_job(count) do
     for _ <- 0..(count - 1) do
       {:ok, _} =

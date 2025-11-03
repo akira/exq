@@ -70,6 +70,7 @@ defmodule Exq.Redis.JobStat do
 
   def node_ping(redis, namespace, node) do
     key = node_info_key(namespace, node.identity)
+    max_signals = 100
 
     case Connection.qp(
            redis,
@@ -89,12 +90,13 @@ defmodule Exq.Redis.JobStat do
                node.quiet
              ],
              ["EXPIRE", key, 60],
-             ["RPOP", "#{key}-signals"],
+             ["LRANGE", "#{key}-signals", 0, max_signals - 1],
+             ["LTRIM", "#{key}-signals", max_signals, -1],
              ["EXEC"]
            ]
          ) do
-      {:ok, ["OK", "QUEUED", "QUEUED", "QUEUED", "QUEUED", [_, "OK", 1, signal]]} ->
-        signal
+      {:ok, ["OK", "QUEUED", "QUEUED", "QUEUED", "QUEUED", "QUEUED", [_, "OK", 1, signals, "OK"]]} ->
+        signals
 
       error ->
         Logger.error("Failed to send node stats. Unexpected error from redis: #{inspect(error)}")
