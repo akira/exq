@@ -103,19 +103,16 @@ defmodule Exq.Node.Server do
 
         case Process.info(worker_pid, :links) do
           {:links, links} when length(links) <= 10 ->
-            job_pid =
-              Enum.find(links, fn link ->
-                match?(%Job{jid: ^jid}, Metadata.lookup(state.metadata, link))
-              end)
-
-            if job_pid do
+            if Enum.any?(links, fn link ->
+                 match?(%Job{jid: ^jid}, Metadata.lookup(state.metadata, link))
+               end) do
               Server.cancel(worker_pid)
               Logger.info("Canceled jid #{jid}")
             else
               Logger.warning("Not able to find worker process to cancel")
             end
 
-          nil ->
+          _ ->
             Logger.warning("Not able to find worker process to cancel")
         end
 
