@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.23.0] - 2025-11-04
+
+### Added
+- Add ability to cancel running jobs #507 by @ananthakumaran
+
 ## [0.22.0] - 2025-10-22
 
 ### Changed
