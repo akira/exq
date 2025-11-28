@@ -101,7 +101,7 @@ defmodule Exq.Redis.JobStat do
       error ->
         Logger.error("Failed to send node stats. Unexpected error from redis: #{inspect(error)}")
 
-        nil
+        []
     end
   end
 
