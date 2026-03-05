@@ -814,6 +814,39 @@ defmodule ExqTest do
     stop_process(sup)
   end
 
+  test "snooze + unique job" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 1, queues: ["q1"], scheduler_enable: true)
+
+    {:ok, j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SnoozeWorker, [0.050, :snoozed],
+        max_retries: 0,
+        unique_for: 500,
+        unique_token: "t1"
+      )
+
+    {:conflict, ^j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SnoozeWorker, [0.050, :snoozed],
+        max_retries: 0,
+        unique_for: 500,
+        unique_token: "t1"
+      )
+
+    :timer.sleep(100)
+    assert_received {"snoozed"}
+
+    {:conflict, ^j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SnoozeWorker, [0.050, :snoozed],
+        max_retries: 0,
+        unique_for: 500,
+        unique_token: "t1"
+      )
+
+    :timer.sleep(100)
+    assert_received {"snoozed"}
+    stop_process(sup)
+  end
+
   test "cancel job" do
     {:ok, sup} = Exq.start_link()
     {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.SleepWorker, [60 * 1000, :worked])
