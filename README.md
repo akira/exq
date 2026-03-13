@@ -558,7 +558,9 @@ Exq comes with an `enqueue_all` method which guarantees atomicity.
 
 A Job can be snoozed by returning `{:snooze, time_to_sleep_in_seconds}`
 from perform method. By default this feature is not enabled. Add
-`Exq.Middleware.Snooze` to the middleware list to enable this feature.
+`Exq.Middleware.Snooze` to the middleware list to enable this
+feature. If you use `Exq.Middleware.Unique`, it must be placed
+before it.
 
 ```elixir
 defmodule MyWorker do

@@ -21,6 +21,10 @@ defmodule Exq.Middleware.Unique do
     pipeline
   end
 
+  def after_processed_work(%Pipeline{assigns: %{job_snoozed: true}} = pipeline) do
+    pipeline
+  end
+
   def after_processed_work(
         %Pipeline{assigns: %{job_serialized: job_serialized, redis: redis, namespace: namespace}} =
           pipeline
