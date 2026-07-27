@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-07-27
+
+### Fixed
+- Preserve unique locks when a job is snoozed by @ananthakumaran
+- Prevent `Protocol.UndefinedError` when Redis node stats cannot be sent #508 by @dominikengelhardt
+
 ## [0.23.0] - 2025-11-04
 
 ### Added
