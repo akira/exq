@@ -23,10 +23,33 @@ defmodule Exq.Redis.Script do
         return 0
       end
       """),
+    clear_serial:
+      Prepare.script("""
+      local unique_key = KEYS[1]
+      local started_key = unique_key .. ':started'
+      local pending_key = unique_key .. ':pending'
+      local jid = ARGV[1]
+
+      if redis.call('GET', unique_key) ~= jid then
+        return 0
+      end
+
+      redis.call('DEL', unique_key)
+      if redis.call('GET', started_key) == jid then
+        redis.call('DEL', started_key)
+      end
+
+      local pending = redis.call('GET', pending_key)
+      if pending and cjson.decode(pending)['parent_jid'] == jid then
+        redis.call('DEL', pending_key)
+      end
+
+      return 1
+      """),
     enqueue:
       Prepare.script("""
       local queues_key, job_queue_key, unique_key = KEYS[1], KEYS[2], KEYS[3]
-      local job_queue, job, jid, unlocks_in = ARGV[1], ARGV[2], ARGV[3], tonumber(ARGV[4])
+      local job_queue, job, jid, unlocks_in, serial = ARGV[1], ARGV[2], ARGV[3], tonumber(ARGV[4]), tonumber(ARGV[5]) == 1
       local unlocked = true
       local conflict_jid = nil
 
@@ -35,18 +58,54 @@ defmodule Exq.Redis.Script do
       end
 
       if unlocked then
+        if serial then
+          redis.call('DEL', unique_key .. ':started')
+          redis.call('DEL', unique_key .. ':pending')
+        end
+
         redis.call('SADD', queues_key, job_queue)
         redis.call('LPUSH', job_queue_key, job)
         return 0
       else
         conflict_jid = redis.call("get", unique_key)
+      end
+
+      if not serial or not conflict_jid then
         return {1, conflict_jid}
       end
+
+      local active_jid = conflict_jid
+
+      local started_key = unique_key .. ':started'
+      if redis.call('GET', started_key) ~= active_jid then
+        return {1, active_jid}
+      end
+
+      local pending_key = unique_key .. ':pending'
+      local pending = redis.call('GET', pending_key)
+      if pending then
+        local pending_job = cjson.decode(pending)
+        if pending_job['parent_jid'] == active_jid then
+          return {1, pending_job['jid']}
+        end
+
+        redis.call('DEL', pending_key)
+      end
+
+      local ttl = redis.call('PTTL', unique_key)
+      if ttl <= 0 then
+        return {1, active_jid}
+      end
+
+      local pending_job = cjson.encode({parent_jid = active_jid, jid = jid, job = job, score = 0})
+      redis.call('PSETEX', pending_key, ttl, pending_job)
+
+      return {2, jid}
       """),
     enqueue_at:
       Prepare.script("""
       local schedule_queue, unique_key = KEYS[1], KEYS[2]
-      local job, score, jid, unlocks_in = ARGV[1], tonumber(ARGV[2]), ARGV[3], tonumber(ARGV[4])
+      local job, score, jid, unlocks_in, serial = ARGV[1], tonumber(ARGV[2]), ARGV[3], tonumber(ARGV[4]), tonumber(ARGV[5]) == 1
       local unlocked = true
       local conflict_jid = nil
 
@@ -55,12 +114,123 @@ defmodule Exq.Redis.Script do
       end
 
       if unlocked then
+        if serial then
+          redis.call('DEL', unique_key .. ':started')
+          redis.call('DEL', unique_key .. ':pending')
+        end
+
         redis.call('ZADD', schedule_queue, score, job)
         return 0
       else
         conflict_jid = redis.call("get", unique_key)
+      end
+
+      if not serial or not conflict_jid then
         return {1, conflict_jid}
       end
+
+      local active_jid = conflict_jid
+
+      local started_key = unique_key .. ':started'
+      if redis.call('GET', started_key) ~= active_jid then
+        return {1, active_jid}
+      end
+
+      local pending_key = unique_key .. ':pending'
+      local pending = redis.call('GET', pending_key)
+      if pending then
+        local pending_job = cjson.decode(pending)
+        if pending_job['parent_jid'] == active_jid then
+          return {1, pending_job['jid']}
+        end
+
+        redis.call('DEL', pending_key)
+      end
+
+      local ttl = redis.call('PTTL', unique_key)
+      if ttl <= 0 then
+        return {1, active_jid}
+      end
+
+      local pending_job = cjson.encode({parent_jid = active_jid, jid = jid, job = job, score = score})
+      redis.call('PSETEX', pending_key, ttl, pending_job)
+
+      return {2, jid}
+      """),
+    mark_serial_started:
+      Prepare.script("""
+      local unique_key = KEYS[1]
+      local started_key = unique_key .. ':started'
+      local jid = ARGV[1]
+
+      if redis.call('GET', unique_key) ~= jid then
+        return 0
+      end
+
+      local ttl = redis.call('PTTL', unique_key)
+      if ttl <= 0 then
+        return 0
+      end
+
+      redis.call('PSETEX', started_key, ttl, jid)
+      return 1
+      """),
+    complete_serial:
+      Prepare.script("""
+      local queues_key, schedule_queue = KEYS[1], KEYS[2]
+      local unique_key = KEYS[3]
+      local started_key = unique_key .. ':started'
+      local pending_key = unique_key .. ':pending'
+      local completed_jid, namespace_prefix, now = ARGV[1], ARGV[2], tonumber(ARGV[3])
+
+      if redis.call('GET', unique_key) ~= completed_jid then
+        return 0
+      end
+
+      local pending = redis.call('GET', pending_key)
+      if not pending then
+        redis.call('DEL', unique_key)
+        if redis.call('GET', started_key) == completed_jid then
+          redis.call('DEL', started_key)
+        end
+        return 0
+      end
+
+      local pending_job = cjson.decode(pending)
+      if pending_job['parent_jid'] ~= completed_jid then
+        redis.call('DEL', unique_key)
+        redis.call('DEL', pending_key)
+        if redis.call('GET', started_key) == completed_jid then
+          redis.call('DEL', started_key)
+        end
+        return 0
+      end
+
+      local job = cjson.decode(pending_job['job'])
+      local unique_for = tonumber(job['unique_for'])
+      if not unique_for or unique_for <= 0 then
+        return 0
+      end
+
+      local ttl = unique_for * 1000
+      if pending_job['score'] > now then
+        ttl = ttl + (pending_job['score'] - now) * 1000
+      end
+
+      redis.call('SET', unique_key, pending_job['jid'], 'PX', math.floor(ttl))
+      redis.call('DEL', pending_key)
+      if redis.call('GET', started_key) == completed_jid then
+        redis.call('DEL', started_key)
+      end
+
+      if pending_job['score'] == 0 then
+        redis.call('SADD', queues_key, job['queue'])
+        redis.call('LPUSH', namespace_prefix .. 'queue:' .. job['queue'], pending_job['job'])
+      else
+        redis.call('ZADD', schedule_queue, pending_job['score'], pending_job['job'])
+      end
+
+      return 1
       """),
     enqueue_all:
       Prepare.script("""
@@ -72,6 +242,8 @@ defmodule Exq.Redis.Script do
         local keys_start = i * 2
         local args_start = (i - 1) * 5
         local unique_key, job_queue_key = KEYS[keys_start + 1], KEYS[keys_start + 2]
+        local started_key = unique_key .. ':started'
+        local pending_key = unique_key .. ':pending'
         local jid        = ARGV[args_start + 1]
         local job_queue  = ARGV[args_start + 2]
         local score      = tonumber(ARGV[args_start + 3])
@@ -79,21 +251,54 @@ defmodule Exq.Redis.Script do
         local unlocks_in = tonumber(ARGV[args_start + 5])
         local unlocked   = true
         local conflict_jid = nil
+        local serial = false
 
         if unlocks_in then
           unlocked = redis.call("set", unique_key, jid, "px", unlocks_in, "nx")
+          serial = cjson.decode(job)['unique_until'] == 'serial'
         end
 
-        if unlocked and score == 0 then
-          redis.call('SADD', queues_key, job_queue)
-          redis.call('LPUSH', job_queue_key, job)
-          result[i] = {0, jid}
-        elseif unlocked then
-          redis.call('ZADD', schedule_queue, score, job)
+        if unlocked then
+          if serial then
+            redis.call('DEL', started_key)
+            redis.call('DEL', pending_key)
+          end
+
+          if score == 0 then
+            redis.call('SADD', queues_key, job_queue)
+            redis.call('LPUSH', job_queue_key, job)
+          else
+            redis.call('ZADD', schedule_queue, score, job)
+          end
           result[i] = {0, jid}
         else
           conflict_jid = redis.call("get", unique_key)
-          result[i] = {1, conflict_jid}
+
+          if serial and conflict_jid and redis.call('GET', started_key) == conflict_jid then
+            local pending = redis.call('GET', pending_key)
+
+            if pending then
+              local pending_job = cjson.decode(pending)
+              if pending_job['parent_jid'] == conflict_jid then
+                result[i] = {1, pending_job['jid']}
+              else
+                redis.call('DEL', pending_key)
+              end
+            end
+
+            if not result[i] then
+              local ttl = redis.call('PTTL', unique_key)
+              if ttl > 0 then
+                local pending_job = cjson.encode({parent_jid = conflict_jid, jid = jid, job = job, score = score})
+                redis.call('PSETEX', pending_key, ttl, pending_job)
+                result[i] = {2, jid}
+              else
+                result[i] = {1, conflict_jid}
+              end
+            end
+          else
+            result[i] = {1, conflict_jid}
+          end
         end
 
         i = i + 1

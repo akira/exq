@@ -36,20 +36,21 @@ defmodule Exq.Redis.JobQueue do
       [unlocks_in, unique_key] = unique_args(namespace, job, options)
 
       keys = keys_list([full_key(namespace, "queues"), queue_key(namespace, queue)], unique_key)
+      serial = if serial_unique_job?(job, unique_key), do: 1, else: 0
 
-      response =
-        Script.eval!(
-          redis,
-          :enqueue,
-          keys,
-          [queue, job_serialized, job.jid, unlocks_in]
-        )
-
-      case response do
-        {:ok, 0} -> :ok
-        {:ok, [1, old_jid]} -> {:conflict, old_jid}
-        error -> error
-      end
+      redis
+      |> Script.eval!(
+        :enqueue,
+        keys,
+        [
+          queue,
+          job_serialized,
+          job.jid,
+          unlocks_in,
+          serial
+        ]
+      )
+      |> parse_enqueue_response()
     catch
       :exit, e ->
         Logger.info("Error enqueueing -  #{Kernel.inspect(e)}")
@@ -61,7 +62,11 @@ defmodule Exq.Redis.JobQueue do
     for raw_job <- raw_jobs,
         job = Job.decode(raw_job),
         unique_token = job.unique_token do
-      unlock(redis, namespace, unique_token, job.jid)
+      if job.unique_until == "serial" do
+        clear_serial(redis, namespace, unique_token, job.jid)
+      else
+        unlock(redis, namespace, unique_token, job.jid)
+      end
     end
   end
 
@@ -73,6 +78,52 @@ defmodule Exq.Redis.JobQueue do
           :compare_and_delete,
           [unique_key(namespace, unique_token)],
           [jid]
+        )
+      end,
+      3
+    )
+  end
+
+  def clear_serial(redis, namespace, unique_token, jid) do
+    Exq.Support.Redis.with_retry_on_connection_error(
+      fn ->
+        Script.eval!(
+          redis,
+          :clear_serial,
+          [unique_key(namespace, unique_token)],
+          [jid]
+        )
+      end,
+      3
+    )
+  end
+
+  def mark_serial_started(redis, namespace, unique_token, jid) do
+    Exq.Support.Redis.with_retry_on_connection_error(
+      fn ->
+        Script.eval!(
+          redis,
+          :mark_serial_started,
+          [unique_key(namespace, unique_token)],
+          [jid]
+        )
+      end,
+      3
+    )
+  end
+
+  def complete_serial(redis, namespace, unique_token, jid) do
+    Exq.Support.Redis.with_retry_on_connection_error(
+      fn ->
+        Script.eval!(
+          redis,
+          :complete_serial,
+          [
+            full_key(namespace, "queues"),
+            scheduled_queue_key(namespace),
+            unique_key(namespace, unique_token)
+          ],
+          [jid, full_key(namespace, ""), Time.unix_seconds()]
         )
       end,
       3
@@ -117,20 +168,17 @@ defmodule Exq.Redis.JobQueue do
       [unlocks_in, unique_key] = unique_args(namespace, job, options)
 
       keys = keys_list([scheduled_queue], unique_key)
+      serial = if serial_unique_job?(job, unique_key), do: 1, else: 0
 
-      response =
-        Script.eval!(redis, :enqueue_at, keys, [
-          job_serialized,
-          score,
-          jid,
-          unlocks_in
-        ])
-
-      case response do
-        {:ok, 0} -> {:ok, jid}
-        {:ok, [1, old_jid]} -> {:conflict, old_jid}
-        error -> error
-      end
+      redis
+      |> Script.eval!(:enqueue_at, keys, [
+        job_serialized,
+        score,
+        jid,
+        unlocks_in,
+        serial
+      ])
+      |> parse_enqueue_response(jid)
     catch
       :exit, e ->
         Logger.info("Error enqueueing -  #{Kernel.inspect(e)}")
@@ -154,11 +202,8 @@ defmodule Exq.Redis.JobQueue do
         {:ok, result} ->
           {
             :ok,
-            Enum.map(result, fn [status, jid] ->
-              case status do
-                0 -> {:ok, jid}
-                1 -> {:conflict, jid}
-              end
+            Enum.map(result, fn [_, jid] = response ->
+              parse_enqueue_response({:ok, response}, jid)
             end)
           }
 
@@ -667,6 +712,23 @@ defmodule Exq.Redis.JobQueue do
       Enum.map(list, &Job.decode/1)
     end
   end
+
+  defp parse_enqueue_response({:ok, 0}), do: :ok
+  defp parse_enqueue_response({:ok, [0, _jid]}), do: :ok
+  defp parse_enqueue_response({:ok, [2, jid]}), do: {:deferred, jid}
+  defp parse_enqueue_response({:ok, [1, old_jid]}), do: {:conflict, old_jid}
+  defp parse_enqueue_response(error), do: error
+
+  defp parse_enqueue_response({:ok, 0}, jid), do: {:ok, jid}
+  defp parse_enqueue_response({:ok, [0, _jid]}, jid), do: {:ok, jid}
+  defp parse_enqueue_response({:ok, [2, _deferred_jid]}, jid), do: {:deferred, jid}
+  defp parse_enqueue_response({:ok, [1, old_jid]}, _jid), do: {:conflict, old_jid}
+  defp parse_enqueue_response(error, _jid), do: error
+
+  defp serial_unique_job?(%{unique_until: "serial"}, unique_key) when not is_nil(unique_key),
+    do: true
+
+  defp serial_unique_job?(_, _), do: false
 
   defp add_unique_attributes(job, options) do
     unique_for = Keyword.get(options, :unique_for, nil)
