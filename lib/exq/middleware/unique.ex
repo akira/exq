@@ -14,6 +14,9 @@ defmodule Exq.Middleware.Unique do
       when retry_count in [0, nil] ->
         {:ok, _} = JobQueue.unlock(redis, namespace, unique_token, jid)
 
+      %{unique_until: "serial", unique_token: unique_token, jid: jid} ->
+        {:ok, _} = JobQueue.mark_serial_started(redis, namespace, unique_token, jid)
+
       _ ->
         :ok
     end
@@ -35,6 +38,9 @@ defmodule Exq.Middleware.Unique do
       %{unique_until: "success", unique_token: unique_token, jid: jid} ->
         {:ok, _} = JobQueue.unlock(redis, namespace, unique_token, jid)
 
+      %{unique_until: "serial", unique_token: unique_token, jid: jid} ->
+        {:ok, _} = JobQueue.complete_serial(redis, namespace, unique_token, jid)
+
       _ ->
         :ok
     end
@@ -52,6 +58,11 @@ defmodule Exq.Middleware.Unique do
       %{unique_until: "success", unique_token: unique_token, jid: jid} ->
         if JobQueue.dead?(job) do
           {:ok, _} = JobQueue.unlock(redis, namespace, unique_token, jid)
+        end
+
+      %{unique_until: "serial", unique_token: unique_token, jid: jid} ->
+        if JobQueue.dead?(job) do
+          {:ok, _} = JobQueue.complete_serial(redis, namespace, unique_token, jid)
         end
 
       _ ->

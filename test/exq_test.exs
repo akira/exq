@@ -32,6 +32,54 @@ defmodule ExqTest do
     end
   end
 
+  defmodule SerialGateWorker do
+    def perform(id) do
+      send(:exqtest, {:serial_started, id, self()})
+
+      receive do
+        :continue -> send(:exqtest, {:serial_finished, id})
+      end
+    end
+  end
+
+  defmodule SerialFailWorker do
+    def perform do
+      send(:exqtest, {:serial_failure_started, self()})
+
+      receive do
+        :fail -> raise "serial job failed"
+      end
+    end
+  end
+
+  defmodule SerialSnoozeWorker do
+    def perform(id) do
+      send(:exqtest, {:serial_snooze_started, id, self()})
+
+      receive do
+        :snooze -> {:snooze, 0}
+        :continue -> send(:exqtest, {:serial_snooze_finished, id})
+      end
+    end
+  end
+
+  defmodule SerialRetryWorker do
+    def perform do
+      send(:exqtest, {:serial_retry_started, self()})
+
+      receive do
+        :fail -> raise "serial job failed"
+        :continue -> send(:exqtest, :serial_retry_finished)
+      end
+    end
+  end
+
+  defmodule ImmediateBackoff do
+    @behaviour Exq.Backoff.Behaviour
+
+    def offset(_job), do: 0
+  end
+
   defmodule EmptyMethodWorker do
     def perform do
     end
@@ -597,6 +645,129 @@ defmodule ExqTest do
     :timer.sleep(400)
     assert_received {"worked"}
     stop_process(sup)
+  end
+
+  test "serial jobs execute a deferred successor after the active job completes" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 2, queues: ["q1"])
+
+    options = [unique_for: 60, unique_until: :serial, unique_token: "serial-worker"]
+
+    {:ok, _j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SerialGateWorker, [1], options)
+
+    assert_receive {:serial_started, 1, j1_worker}, 1_000
+
+    {:deferred, _j2} =
+      Exq.enqueue(Exq, "q1", ExqTest.SerialGateWorker, [2], options)
+
+    assert JobQueue.queue_size(:testredis, "test", "q1") == 0
+
+    send(j1_worker, :continue)
+    assert_receive {:serial_finished, 1}, 1_000
+    assert_receive {:serial_started, 2, j2_worker}, 1_000
+
+    send(j2_worker, :continue)
+    assert_receive {:serial_finished, 2}, 1_000
+    stop_process(sup)
+  end
+
+  test "a snoozed serial job retains its deferred successor" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 2, queues: ["q1"], scheduler_enable: true)
+
+    options = [unique_for: 60, unique_until: :serial, unique_token: "serial-snooze-worker"]
+
+    {:ok, _j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SerialSnoozeWorker, [1], options)
+
+    assert_receive {:serial_snooze_started, 1, j1_worker}, 1_000
+
+    {:deferred, _j2} =
+      Exq.enqueue(Exq, "q1", ExqTest.SerialGateWorker, [2], options)
+
+    send(j1_worker, :snooze)
+    assert_receive {:serial_snooze_started, 1, retried_j1_worker}, 1_000
+
+    assert JobQueue.queue_size(:testredis, "test", "q1") == 0
+
+    send(retried_j1_worker, :continue)
+    assert_receive {:serial_snooze_finished, 1}, 1_000
+    assert_receive {:serial_started, 2, j2_worker}, 1_000
+
+    send(j2_worker, :continue)
+    assert_receive {:serial_finished, 2}, 1_000
+    stop_process(sup)
+  end
+
+  test "a dead serial job promotes its deferred successor" do
+    Process.register(self(), :exqtest)
+    {:ok, sup} = Exq.start_link(concurrency: 2, queues: ["q1"])
+
+    j1_options = [
+      unique_for: 60,
+      unique_until: :serial,
+      unique_token: "serial-dead-worker",
+      max_retries: 0
+    ]
+
+    j2_options = [unique_for: 60, unique_until: :serial, unique_token: "serial-dead-worker"]
+
+    {:ok, _j1} =
+      Exq.enqueue(Exq, "q1", ExqTest.SerialFailWorker, [], j1_options)
+
+    assert_receive {:serial_failure_started, j1_worker}, 1_000
+
+    {:deferred, _j2} =
+      Exq.enqueue(Exq, "q1", ExqTest.SerialGateWorker, [2], j2_options)
+
+    send(j1_worker, :fail)
+
+    assert_receive {:serial_started, 2, j2_worker}, 1_000
+    assert JobQueue.failed_size(:testredis, "test") == 1
+
+    send(j2_worker, :continue)
+    assert_receive {:serial_finished, 2}, 1_000
+    stop_process(sup)
+  end
+
+  test "a retrying serial job retains its deferred successor" do
+    Process.register(self(), :exqtest)
+
+    with_application_env(:exq, :backoff, ImmediateBackoff, fn ->
+      {:ok, sup} = Exq.start_link(concurrency: 2, queues: ["q1"], scheduler_enable: true)
+
+      j1_options = [
+        unique_for: 60,
+        unique_until: :serial,
+        unique_token: "serial-retry-worker",
+        max_retries: 1
+      ]
+
+      j2_options = [unique_for: 60, unique_until: :serial, unique_token: "serial-retry-worker"]
+
+      {:ok, _j1} =
+        Exq.enqueue(Exq, "q1", ExqTest.SerialRetryWorker, [], j1_options)
+
+      assert_receive {:serial_retry_started, j1_worker}, 1_000
+
+      {:deferred, _j2} =
+        Exq.enqueue(Exq, "q1", ExqTest.SerialGateWorker, [2], j2_options)
+
+      send(j1_worker, :fail)
+      assert_receive {:serial_retry_started, retried_j1_worker}, 1_000
+
+      pending_key = JobQueue.unique_key("test", "serial-retry-worker") <> ":pending"
+      assert Exq.Redis.Connection.get!(:testredis, pending_key)
+
+      send(retried_j1_worker, :continue)
+      assert_receive :serial_retry_finished, 1_000
+      assert_receive {:serial_started, 2, j2_worker}, 1_000
+
+      send(j2_worker, :continue)
+      assert_receive {:serial_finished, 2}, 1_000
+      stop_process(sup)
+    end)
   end
 
   test "handle lock expiry gracefully" do

@@ -42,6 +42,171 @@ defmodule JobQueueTest do
     assert deq == :none
   end
 
+  test "serial jobs defer one successor after the active job starts" do
+    options = [unique_for: 60, unique_until: :serial, unique_token: "serial-job"]
+
+    {:ok, j1} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], options)
+
+    {:conflict, ^j1} =
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [2], options)
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    assert %Job{jid: ^j1} = Job.decode(job_serialized)
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "serial-job", j1)
+
+    {:deferred, j2} =
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [2], options)
+
+    {:conflict, ^j2} =
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [3], options)
+
+    JobQueue.remove_job_from_backup(:testredis, "test", @host, "default", job_serialized)
+    {:ok, 1} = JobQueue.complete_serial(:testredis, "test", "serial-job", j1)
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    assert %Job{jid: ^j2, args: [2]} = Job.decode(job_serialized)
+  end
+
+  test "serial jobs retain a deferred scheduled successor" do
+    options = [unique_for: 60, unique_until: :serial, unique_token: "serial-scheduled-job"]
+    time = ~U[2099-01-01 00:00:00Z]
+
+    {:ok, j1} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], options)
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "serial-scheduled-job", j1)
+
+    {:deferred, j2} =
+      JobQueue.enqueue_at(:testredis, "test", "default", time, MyWorker, [2], options)
+
+    JobQueue.remove_job_from_backup(:testredis, "test", @host, "default", job_serialized)
+    {:ok, 1} = JobQueue.complete_serial(:testredis, "test", "serial-scheduled-job", j1)
+
+    assert JobQueue.queue_size(:testredis, "test", :scheduled) == 1
+    assert JobQueue.find_job(:testredis, "test", j2, :scheduled) != {:ok, nil}
+  end
+
+  test "snoozing a serial job retains its deferred successor" do
+    options = [unique_for: 60, unique_until: :serial, unique_token: "serial-snooze-job"]
+
+    {:ok, j1} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], options)
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    job = Job.decode(job_serialized)
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "serial-snooze-job", j1)
+
+    {:deferred, j2} =
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [2], options)
+
+    JobQueue.snooze_job(:testredis, "test", job, 60)
+    JobQueue.remove_job_from_backup(:testredis, "test", @host, "default", job_serialized)
+
+    assert JobQueue.queue_size(:testredis, "test", "default") == 0
+    assert JobQueue.queue_size(:testredis, "test", :retry) == 1
+
+    {:ok, retry_job} = JobQueue.find_job(:testredis, "test", j1, :retry, false)
+    JobQueue.dequeue_retry_jobs(:testredis, "test", [retry_job])
+
+    [{:ok, {retry_job, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "serial-snooze-job", j1)
+    JobQueue.remove_job_from_backup(:testredis, "test", @host, "default", retry_job)
+    {:ok, 1} = JobQueue.complete_serial(:testredis, "test", "serial-snooze-job", j1)
+
+    assert JobQueue.queue_size(:testredis, "test", "default") == 1
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    assert %Job{jid: ^j2, args: [2]} = Job.decode(job_serialized)
+  end
+
+  test "a dead serial job promotes its deferred successor" do
+    options = [
+      unique_for: 60,
+      unique_until: :serial,
+      unique_token: "serial-dead-job",
+      max_retries: 0
+    ]
+
+    {:ok, j1} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], options)
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    job = Job.decode(job_serialized)
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "serial-dead-job", j1)
+
+    {:deferred, j2} =
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [2], options)
+
+    JobQueue.retry_or_fail_job(:testredis, "test", job, "failed")
+    JobQueue.remove_job_from_backup(:testredis, "test", @host, "default", job_serialized)
+
+    assert JobQueue.failed_size(:testredis, "test") == 1
+    assert JobQueue.queue_size(:testredis, "test", "default") == 0
+
+    {:ok, 1} = JobQueue.complete_serial(:testredis, "test", "serial-dead-job", j1)
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    assert %Job{jid: ^j2, args: [2]} = Job.decode(job_serialized)
+  end
+
+  test "enqueue_all defers one serial successor" do
+    options = [unique_for: 60, unique_until: :serial, unique_token: "serial-enqueue-all"]
+
+    {:ok, j1} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], options)
+
+    [{:ok, {_job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "serial-enqueue-all", j1)
+
+    {:ok, [{:deferred, j2}]} =
+      JobQueue.enqueue_all(:testredis, "test", [["default", MyWorker, [2], options]])
+
+    assert {:ok, [{:conflict, ^j2}]} =
+             JobQueue.enqueue_all(:testredis, "test", [["default", MyWorker, [3], options]])
+  end
+
+  test "clearing a serial token discards its deferred successor" do
+    options = [unique_for: 60, unique_until: :serial, unique_token: "clear-serial"]
+
+    {:ok, j1} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], options)
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "clear-serial", j1)
+
+    {:deferred, _j2} =
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [2], options)
+
+    JobQueue.unlock_jobs(:testredis, "test", [job_serialized])
+
+    {:ok, j3} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [3], options)
+    {:ok, 0} = JobQueue.complete_serial(:testredis, "test", "clear-serial", j1)
+
+    assert JobQueue.queue_size(:testredis, "test", "default") == 1
+
+    [{:ok, {job_serialized, "default"}}] =
+      JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    assert %Job{jid: ^j3, args: [3]} = Job.decode(job_serialized)
+    assert JobQueue.queue_size(:testredis, "test", "default") == 0
+  end
+
   test "enqueue/dequeue multi queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
     JobQueue.enqueue(:testredis, "test", "myqueue", MyWorker, [], [])

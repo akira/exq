@@ -20,6 +20,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
             * `:success` - unlock on job success
             * `:start` - unlock on job first execution
             * `:expiry` - unlock when the lock is expired. Depends on `unique_for` value.
+            * `:serial` - allow one deferred job after the current job starts; it is enqueued when the current job succeeds or dies.
       """
 
       @default_options []
@@ -35,6 +36,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
 
       Returns:
         * `{:ok, jid}` if the job was enqueued successfully, with `jid` = Job ID.
+        * `{:deferred, jid}` if a `unique_until: :serial` job was accepted as the deferred successor.
         * `{:error, reason}` if there was an error enqueueing job
 
       """
@@ -117,6 +119,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
               * `:success` - unlock on job success
               * `:start` - unlock on job first execution
               * `:expiry` - unlock when the lock is expired. Depends on `unique_for` value.
+              * `:serial` - allow one deferred job after the current job starts; it is enqueued when the current job succeeds or dies.
             * `schedule` - (optional) - used to schedule the job for future. If not present, job will be enqueued immediately by default.
               * `{:in, seconds_from_now}`
               * `{:at, datetime}`

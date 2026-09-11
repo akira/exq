@@ -489,7 +489,9 @@ lifecycle. Using `:success` will clear the lock on successful
 completion of job or if the job is dead, `:start` will clear the lock
 when the job is picked for execution for the first time. `:expiry`
 specifies the lock should be cleared based on the expiration time set
-via `unique_for`.
+via `unique_for`. `:serial` holds the lock until success or death, but
+once the job has started it accepts one deferred successor. The
+successor is enqueued only after the current job completes or dies.
 
 ```elixir
 {:ok, jid} = Exq.enqueue(Exq, "default", MyWorker, ["arg1", "arg2"], unique_for: 60 * 60)
@@ -516,6 +518,13 @@ via `unique_for`.
   in the future using `enqueue_in` and set `unique_until:
   :success`. This will make sure no other job get enqueued till the
   scheduled job completes successfully.
+
+* Serialize - Let's say a user sync should process changes that arrive
+  while a previous sync is running, without running two syncs at once.
+  Use `unique_until: :serial`. Once the current job starts, one
+  successor can be deferred; that enqueue returns `{:deferred, jid}` and
+  further enqueues conflict with the successor. The deferred job is discarded if the current unique lock
+  expires, so `unique_for` must cover the job lifecycle.
 
 Although Exq provides unique jobs feature, try to make your worker
 idempotent as much as possible. Unique jobs doesn't prevent your job

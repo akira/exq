@@ -22,6 +22,7 @@ defmodule ExqTestUtil do
   alias Exq.Support.Coercion
   alias Exq.Support
   alias Config.Reader
+  import ExUnit.Assertions
 
   def redis_host do
     Support.Config.get(:host)
@@ -32,8 +33,6 @@ defmodule ExqTestUtil do
     |> Support.Config.get()
     |> Coercion.to_integer()
   end
-
-  import ExUnit.Assertions
 
   defmodule SendWorker do
     def perform(pid) do

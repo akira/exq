@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Add `unique_until: :serial` for unique jobs with one deferred successor.
+
 ## [0.24.0] - 2026-07-27
 
 ### Fixed
