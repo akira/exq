@@ -37,7 +37,8 @@ defmodule Exq.Support.Config do
       Exq.Middleware.Unique,
       Exq.Middleware.Logger
     ],
-    queue_adapter: Exq.Adapters.Queue.Redis
+    queue_adapter: Exq.Adapters.Queue.Redis,
+    enqueue_middleware: []
   }
 
   def get(key) do

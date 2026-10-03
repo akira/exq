@@ -5,17 +5,18 @@ defmodule Exq.Middleware.Server do
 
   Middleware chain defaults to Stats, Job and Manager middlewares.
 
-  To push new middleware you must create module with common interface. Interface is similar to `Plug`
-  implementation. It has three functions, every function receives `Exq.Middlewares.Pipeline` structure
-  and every function must return the same structure, modified or not.
+  Middleware implements `Exq.Middleware.Behaviour`. Its three lifecycle callbacks
+  receive and return an `Exq.Middleware.Pipeline` structure.
 
   Basically, `before_work/1` function may update worker state, while `after_processed_work/1` and
   `after_failed_work/1` are for cleanup and notification stuff.
+  The optional `c:Exq.Middleware.Behaviour.around_perform/2` callback wraps execution
+  inside the worker Task.
 
   For example, here is a valid middleware module:
 
       defmodule MyMiddleware do
-        @behaiour Exq.Middleware.Behaviour
+        @behaviour Exq.Middleware.Behaviour
 
         def before_work(pipeline) do
           # some functionality goes here...

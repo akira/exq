@@ -643,30 +643,33 @@ defmodule Exq.Redis.JobQueue do
     to_job_serialized(queue, worker, args, options, Time.unix_seconds())
   end
 
-  def to_job_serialized(queue, worker, args, options, enqueued_at) when is_atom(worker) do
-    to_job_serialized(queue, to_string(worker), args, options, enqueued_at)
-  end
-
-  def to_job_serialized(queue, "Elixir." <> worker, args, options, enqueued_at) do
-    to_job_serialized(queue, worker, args, options, enqueued_at)
-  end
-
   def to_job_serialized(queue, worker, args, options, enqueued_at) do
+    job = to_job(queue, worker, args, options, enqueued_at)
+    {job.jid, job, Config.serializer().encode!(Job.to_payload(job))}
+  end
+
+  def to_job(queue, worker, args, options, enqueued_at) when is_atom(worker) do
+    to_job(queue, to_string(worker), args, options, enqueued_at)
+  end
+
+  def to_job(queue, "Elixir." <> worker, args, options, enqueued_at) do
+    to_job(queue, worker, args, options, enqueued_at)
+  end
+
+  def to_job(queue, worker, args, options, enqueued_at) do
     jid = Keyword.get_lazy(options, :jid, fn -> UUID.uuid4() end)
     retry = Keyword.get_lazy(options, :max_retries, fn -> get_max_retries() end)
 
-    job =
-      %{
-        queue: queue,
-        retry: retry,
-        class: worker,
-        args: args,
-        jid: jid,
-        enqueued_at: enqueued_at
-      }
-      |> add_unique_attributes(options)
-
-    {jid, job, Config.serializer().encode!(job)}
+    %{
+      queue: queue,
+      retry: retry,
+      class: worker,
+      args: args,
+      jid: jid,
+      enqueued_at: enqueued_at,
+      meta: Keyword.get(options, :meta, %{})
+    }
+    |> add_unique_attributes(options)
   end
 
   defp dequeue_scheduled_jobs(redis, namespace, queue_key, raw_jobs) do

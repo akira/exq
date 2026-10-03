@@ -34,6 +34,111 @@ defmodule JobQueueTest do
     end
   end
 
+  test "meta is persisted at the payload top level" do
+    meta = %{"tenant_id" => "tenant-1", "traceparent" => "00-trace-span-01"}
+    {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [42], meta: meta)
+    [{:ok, {serialized, "default"}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+    assert %Job{jid: ^jid, args: [42], meta: ^meta} = Job.decode(serialized)
+    assert Map.take(Jason.decode!(serialized), Map.keys(meta)) == meta
+    refute Map.has_key?(Jason.decode!(serialized), "meta")
+  end
+
+  test "meta survives scheduled and bulk enqueue" do
+    meta = %{"tenant_id" => "tenant-1"}
+    now = DateTime.utc_now()
+
+    {:ok, first} =
+      JobQueue.enqueue_at(:testredis, "test", "default", now, MyWorker, [1], meta: meta)
+
+    {:ok, second} =
+      JobQueue.enqueue_in(:testredis, "test", "default", 0, MyWorker, [2], meta: meta)
+
+    {:ok, [{:ok, third}, {:ok, fourth}]} =
+      JobQueue.enqueue_all(:testredis, "test", [
+        ["default", MyWorker, [3], [meta: meta]],
+        ["default", MyWorker, [4], [meta: meta, schedule: {:at, now}]]
+      ])
+
+    assert JobQueue.scheduler_dequeue(:testredis, "test") == 3
+
+    jobs =
+      for _ <- 1..4 do
+        [{:ok, {serialized, "default"}}] =
+          JobQueue.dequeue(:testredis, "test", @host, ["default"])
+
+        Job.decode(serialized)
+      end
+
+    assert Enum.sort(Enum.map(jobs, & &1.jid)) == Enum.sort([first, second, third, fourth])
+    assert Enum.all?(jobs, &(&1.meta == meta))
+  end
+
+  test "meta survives snoozing, retries, and dead jobs" do
+    meta = %{"tenant_id" => "tenant-1"}
+    {:ok, jid} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], meta: meta)
+    [{:ok, {serialized, "default"}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
+    job = Job.decode(serialized)
+
+    JobQueue.snooze_job(:testredis, "test", job, 0)
+    {:ok, snoozed} = JobQueue.find_job(:testredis, "test", jid, :retry)
+    assert snoozed.meta == meta
+
+    JobQueue.retry_job(:testredis, "test", snoozed)
+    [{:ok, {serialized, "default"}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
+    retried = Job.decode(serialized)
+    assert retried.meta == meta
+
+    JobQueue.retry_job(:testredis, "test", retried, 1, "failed")
+    {:ok, failed} = JobQueue.find_job(:testredis, "test", jid, :retry)
+    assert failed.meta == meta
+
+    JobQueue.fail_job(:testredis, "test", failed, "failed permanently")
+    [dead] = JobQueue.failed(:testredis, "test")
+    assert dead.jid == jid
+    assert dead.meta == meta
+  end
+
+  test "meta does not affect default uniqueness" do
+    options = [unique_for: 60]
+
+    {:ok, jid} =
+      JobQueue.enqueue(
+        :testredis,
+        "test",
+        "default",
+        MyWorker,
+        [42],
+        options ++ [meta: %{"traceparent" => "first"}]
+      )
+
+    assert {:conflict, ^jid} =
+             JobQueue.enqueue(
+               :testredis,
+               "test",
+               "default",
+               MyWorker,
+               [42],
+               options ++ [meta: %{"traceparent" => "second"}]
+             )
+  end
+
+  test "meta survives deferred serial jobs" do
+    options = [unique_for: 60, unique_until: :serial, unique_token: "serial-meta"]
+    meta = %{"tenant_id" => "tenant-1"}
+    {:ok, first} = JobQueue.enqueue(:testredis, "test", "default", MyWorker, [1], options)
+    [{:ok, {serialized, "default"}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
+    {:ok, 1} = JobQueue.mark_serial_started(:testredis, "test", "serial-meta", first)
+
+    {:deferred, second} =
+      JobQueue.enqueue(:testredis, "test", "default", MyWorker, [2], options ++ [meta: meta])
+
+    JobQueue.remove_job_from_backup(:testredis, "test", @host, "default", serialized)
+    {:ok, 1} = JobQueue.complete_serial(:testredis, "test", "serial-meta", first)
+    [{:ok, {serialized, "default"}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])
+    assert %Job{jid: ^second, args: [2], meta: ^meta} = Job.decode(serialized)
+  end
+
   test "enqueue/dequeue single queue" do
     JobQueue.enqueue(:testredis, "test", "default", MyWorker, [], [])
     [{:ok, {deq, _}}] = JobQueue.dequeue(:testredis, "test", @host, ["default"])

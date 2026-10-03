@@ -199,7 +199,8 @@ defmodule Exq.Mock do
       queue: queue,
       class: worker,
       args: args,
-      enqueued_at: DateTime.utc_now()
+      enqueued_at: DateTime.utc_now(),
+      meta: Keyword.get(options, :meta, %{})
     }
   end
 
@@ -215,7 +216,8 @@ defmodule Exq.Mock do
       queue: queue,
       class: worker,
       args: args,
-      enqueued_at: scheduled_at
+      enqueued_at: scheduled_at,
+      meta: Keyword.get(options, :meta, %{})
     }
   end
 

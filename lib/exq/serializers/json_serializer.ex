@@ -1,6 +1,7 @@
 defmodule Exq.Serializers.JsonSerializer do
   @behaviour Exq.Serializers.Behaviour
   alias Exq.Support.Config
+  alias Exq.Support.Job
 
   defp json_library do
     Config.get(:json_library)
@@ -42,7 +43,8 @@ defmodule Exq.Serializers.JsonSerializer do
       unique_for: Map.get(deserialized, "unique_for"),
       unique_until: Map.get(deserialized, "unique_until"),
       unique_token: Map.get(deserialized, "unique_token"),
-      unlocks_at: Map.get(deserialized, "unlocks_at")
+      unlocks_at: Map.get(deserialized, "unlocks_at"),
+      meta: Map.drop(deserialized, Job.payload_fields())
     }
   end
 
@@ -75,7 +77,10 @@ defmodule Exq.Serializers.JsonSerializer do
         deserialized
       end
 
-    encode!(deserialized)
+    deserialized
+    |> Map.put(:meta, Map.get(job, :meta, %{}))
+    |> Job.to_payload()
+    |> encode!()
   end
 
   def decode_process(serialized) do

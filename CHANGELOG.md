@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Add `unique_until: :serial` for unique jobs with one deferred successor.
+- Add caller-side enqueue middleware with `around_enqueue/2`.
+- Add optional worker middleware `around_perform/2` inside the worker Task.
+- Preserve custom job fields through `job.meta` and the `meta:` enqueue option.
+
+### Changed
+- Potential breaking change: `Exq.Mock.jobs/0` now returns `class` as a string without the `Elixir.` prefix, instead of preserving the supplied worker value.
 
 ## [0.24.0] - 2026-07-27
 

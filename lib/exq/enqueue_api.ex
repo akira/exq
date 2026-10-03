@@ -8,12 +8,13 @@ defmodule Exq.Enqueuer.EnqueueApi do
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      alias Exq.Support.Config
+      alias Exq.Enqueue.Pipeline
 
       @options_doc """
         * `options`: Following job options are supported
           * `max_retries` (integer) - max retry count
           * `jid` (string) - user supplied jid value
+          * `meta` (map) - additional string-keyed job fields; cannot override built-in fields. See `Exq.Support.Job`.
           * `unique_for` (integer) - lock expiration duration in seconds
           * `unique_token` (string) - unique lock token. By default the token is computed based on the queue, class and args.
           * `unique_until` (atom) - defaults to `:success`. Supported values are
@@ -44,8 +45,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         do: enqueue(pid, queue, worker, args, @default_options)
 
       def enqueue(pid, queue, worker, args, options) do
-        queue_adapter = Config.get(:queue_adapter)
-        queue_adapter.enqueue(pid, queue, worker, args, options)
+        Pipeline.run(pid, :enqueue, [[queue, worker, args, options]])
       end
 
       @doc """
@@ -71,8 +71,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         do: enqueue_at(pid, queue, time, worker, args, @default_options)
 
       def enqueue_at(pid, queue, time, worker, args, options) do
-        queue_adapter = Config.get(:queue_adapter)
-        queue_adapter.enqueue_at(pid, queue, time, worker, args, options)
+        Pipeline.run(pid, :enqueue_at, [[queue, worker, args, options]], {:at, time})
       end
 
       @doc """
@@ -97,8 +96,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
         do: enqueue_in(pid, queue, offset, worker, args, @default_options)
 
       def enqueue_in(pid, queue, offset, worker, args, options) do
-        queue_adapter = Config.get(:queue_adapter)
-        queue_adapter.enqueue_in(pid, queue, offset, worker, args, options)
+        Pipeline.run(pid, :enqueue_in, [[queue, worker, args, options]], {:in, offset})
       end
 
       @doc """
@@ -113,6 +111,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
           * `options`: Following job options are supported
             * `max_retries` (integer) - max retry count
             * `jid` (string) - user supplied jid value
+            * `meta` (map) - additional string-keyed job fields; cannot override built-in fields. See `Exq.Support.Job`.
             * `unique_for` (integer) - lock expiration duration in seconds
             * `unique_token` (string) - unique lock token. By default the token is computed based on the queue, class and args.
             * `unique_until` (atom) - defaults to `:success`. Supported values are
@@ -126,8 +125,7 @@ defmodule Exq.Enqueuer.EnqueueApi do
 
       """
       def enqueue_all(pid, jobs) do
-        queue_adapter = Config.get(:queue_adapter)
-        queue_adapter.enqueue_all(pid, jobs)
+        Pipeline.run(pid, :enqueue_all, jobs)
       end
     end
   end

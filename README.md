@@ -342,6 +342,18 @@ defmodule MyWorker do
 end
 ```
 
+### Custom job metadata
+
+Use `meta:` to carry application data without adding worker arguments:
+
+```elixir
+{:ok, jid} = Exq.enqueue(Exq, "default", MyWorker, [], meta: %{"tenant_id" => "tenant-1"})
+# Inside the worker:
+tenant_id = Exq.worker_job().meta["tenant_id"]
+```
+
+Keys must be strings. Built-in job fields cannot be overridden.
+
 ### Dynamic queue subscriptions
 
 The list of queues that are being monitored by Exq is determined by the ```config.exs``` file or the parameters passed to Exq.start_link.  However, we can also dynamically add and remove queue subscriptions after Exq has started.
@@ -374,6 +386,11 @@ middleware: [Exq.Middleware.Stats, Exq.Middleware.Job, Exq.Middleware.Manager, E
 ```
 
 You can then create a module that implements the middleware behavior and defines `before_work`,  `after_processed_work` and `after_failed_work` functions.  You can also halt execution of the chain as well. For a simple example of middleware implementation, see the [Exq Logger Middleware](https://github.com/akira/exq/blob/master/lib/exq/middleware/logger.ex).
+
+For advanced integrations, worker middleware also supports an optional
+`around_perform/2` hook inside the worker Task. See the
+[worker middleware docs](https://hexdocs.pm/exq/Exq.Middleware.Behaviour.html).
+Exq also supports [caller-side enqueue middleware](https://hexdocs.pm/exq/Exq.Enqueue.Middleware.html).
 
 ## Using with Phoenix and Ecto
 
