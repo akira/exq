@@ -28,6 +28,19 @@ defmodule MetadataTest do
     assert Metadata.lookup(metadata, pid) == nil
   end
 
+  test "re-associating a worker updates the job without replacing its monitor", %{
+    metadata: metadata
+  } do
+    pid = spawn_link(fn -> receive do: (:finish -> :ok) end)
+    assert :ok = Metadata.associate(metadata, pid, @job)
+    [{^pid, ref, @job}] = :ets.lookup(metadata, pid)
+
+    updated = %{args: [4, 5, 6]}
+    assert :ok = Metadata.associate(metadata, pid, updated)
+    assert [{pid, ref, updated}] == :ets.lookup(metadata, pid)
+    send(pid, :finish)
+  end
+
   test "custom name" do
     {:ok, _} = Metadata.start_link(%{name: ExqTest})
 

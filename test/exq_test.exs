@@ -17,6 +17,12 @@ defmodule ExqTest do
     end
   end
 
+  defmodule MetaWorker do
+    def perform(arg) do
+      send(:exqtest, {:worked_meta, arg, Exq.worker_job().meta})
+    end
+  end
+
   defmodule SleepWorker do
     def perform(time, message) do
       :timer.sleep(time)
@@ -135,6 +141,15 @@ defmodule ExqTest do
     {:ok, _} = Exq.enqueue(Exq, "default", ExqTest.PerformWorker, [])
     assert_receive {:worked}
     stop_process(sup)
+  end
+
+  test "enqueue exposes meta in the worker without changing perform arguments" do
+    Process.register(self(), :exqtest)
+    start_supervised!({Exq, []})
+    meta = %{"tenant_id" => "tenant-1", "traceparent" => "00-trace-span-01"}
+
+    assert {:ok, _jid} = Exq.enqueue(Exq, "default", MetaWorker, [42], meta: meta)
+    assert_receive {:worked_meta, 42, ^meta}, 5_000
   end
 
   test "enqueue and run job via redis sentinel" do

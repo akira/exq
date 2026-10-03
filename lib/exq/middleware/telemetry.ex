@@ -135,6 +135,7 @@ defmodule Exq.Middleware.Telemetry do
       queue: job.queue,
       class: job.class,
       jid: job.jid,
-      retry_count: job.retry_count || 0
+      retry_count: job.retry_count || 0,
+      meta: job.meta
     }
 end

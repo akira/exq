@@ -34,7 +34,12 @@ defmodule Exq.Worker.Metadata do
   end
 
   def handle_call({:associate, pid, value}, _from, table) do
-    ref = Process.monitor(pid)
+    ref =
+      case :ets.lookup(table, pid) do
+        [{^pid, ref, _}] -> ref
+        [] -> Process.monitor(pid)
+      end
+
     true = :ets.insert(table, {pid, ref, value})
     {:reply, :ok, table}
   end

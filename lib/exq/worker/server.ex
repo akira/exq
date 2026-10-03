@@ -20,6 +20,7 @@ defmodule Exq.Worker.Server do
 
   alias Exq.Middleware.Server, as: Middleware
   alias Exq.Middleware.Pipeline
+  alias Exq.Support.Config
   alias Exq.Worker.Metadata
 
   defmodule State do
@@ -90,6 +91,17 @@ defmodule Exq.Worker.Server do
     }
   end
 
+  def handle_call({:checkpoint, pipeline}, {task_pid, _}, %{task_pid: task_pid} = state) do
+    pipeline =
+      if state.pipeline.assigns[:job_canceled] do
+        Pipeline.assign(pipeline, :job_canceled, true)
+      else
+        pipeline
+      end
+
+    {:reply, :ok, %{state | pipeline: pipeline}}
+  end
+
   @doc """
   Kickoff work associated with worker.
 
@@ -114,12 +126,7 @@ defmodule Exq.Worker.Server do
 
   # Dispatch work to the target module (call :perform method of target).
   def handle_cast(:dispatch, state) do
-    task_pid =
-      dispatch_work(
-        state.pipeline.assigns.worker_module,
-        state.pipeline.assigns.job,
-        state.metadata
-      )
+    task_pid = dispatch(state.pipeline, state.metadata, state.middleware_state)
 
     state = %{state | task_pid: task_pid}
     {:noreply, state}
@@ -189,19 +196,50 @@ defmodule Exq.Worker.Server do
   ## ===========================================================
 
   def dispatch_work(worker_module, job, metadata) do
+    pipeline = %Pipeline{
+      worker_pid: self(),
+      assigns: %{worker_module: worker_module, job: job}
+    }
+
+    dispatch(pipeline, metadata, [])
+  end
+
+  defp dispatch(pipeline, metadata, middleware) do
     # trap exit so that link can still track dispatch without crashing
     Process.flag(:trap_exit, true)
     worker = self()
 
     {:ok, pid} =
       Task.start_link(fn ->
-        :ok = Metadata.associate(metadata, self(), job)
-        result = apply(worker_module, :perform, job.args)
+        pipeline = %{pipeline | event: :around_perform}
+        :ok = Metadata.associate(metadata, self(), pipeline.assigns.job)
+        {_pipeline, result} = perform(pipeline, metadata, middleware, worker)
         GenServer.cast(worker, {:done, result})
       end)
 
     Process.monitor(pid)
     pid
+  end
+
+  defp perform(pipeline, metadata, [], _worker) do
+    job = pipeline.assigns.job
+    :ok = Metadata.associate(metadata, self(), job)
+    {pipeline, apply(pipeline.assigns.worker_module, :perform, job.args)}
+  end
+
+  defp perform(pipeline, metadata, [module | middleware], worker) do
+    if Code.ensure_loaded?(module) and function_exported?(module, :around_perform, 2) do
+      {%Pipeline{} = updated, result} =
+        module.around_perform(pipeline, fn %Pipeline{} = updated ->
+          :ok = GenServer.call(worker, {:checkpoint, updated}, Config.get(:genserver_timeout))
+          perform(updated, metadata, middleware, worker)
+        end)
+
+      :ok = GenServer.call(worker, {:checkpoint, updated}, Config.get(:genserver_timeout))
+      {updated, result}
+    else
+      perform(pipeline, metadata, middleware, worker)
+    end
   end
 
   defp before_work(state) do

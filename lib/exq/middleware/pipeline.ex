@@ -3,15 +3,17 @@ defmodule Exq.Middleware.Pipeline do
   Pipeline is a structure that is used as an argument in functions of module with
   `Exq.Middleware.Behaviour` behaviour.
 
-  This structure must be returned by particular function to be used in the next
-  middleware based on defined middleware chain.
+  Lifecycle callbacks return this structure for the next middleware.
+  The optional `around_perform/2` callback runs inside the worker Task and
+  returns `{pipeline, result}`. Returned assignments are available to the
+  after-work callbacks.
 
   Pipeline contains the following options:
 
   * `assigns` - map that contains shared data across the whole job lifecycle
   * `worker_pid` - process id of `Exq.Worker.Server`
   * `event` - name of current middleware function, possible values are: `before_work`,
-  `after_processed_work` and `after_failed_work`
+  `around_perform`, `after_processed_work` and `after_failed_work`
   * `halted` - flag indicating whether pipeline was halted, defaults to `false`
   * `terminated` - flag indicating whether worker and pipeline were halted, If
       the flag was set to true, the job will not be dispatched and all after_*_work/1
