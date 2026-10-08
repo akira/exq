@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-10-08
+
 ### Added
 - Add `unique_until: :serial` for unique jobs with one deferred successor.
 - Add caller-side enqueue middleware with `around_enqueue/2`.
